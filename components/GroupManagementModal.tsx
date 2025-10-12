@@ -8,12 +8,13 @@ interface GroupManagementModalProps {
   onClose: () => void;
   group: Group;
   allUsers: User[];
+  currentUserId: string;
   onSave: (updatedGroup: Group) => void;
   onDelete: (groupId: string) => void;
   totalDebt: number;
 }
 
-const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onClose, group, allUsers, onSave, onDelete, totalDebt }) => {
+const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onClose, group, allUsers, currentUserId, onSave, onDelete, totalDebt }) => {
   const [groupName, setGroupName] = useState(group.name);
   const [memberIds, setMemberIds] = useState(group.members);
   const [selectedUserToAdd, setSelectedUserToAdd] = useState('');

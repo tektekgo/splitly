@@ -68,27 +68,58 @@ const App: React.FC = () => {
         }
         try {
             console.log("Fetching data from Firestore...");
-            const [usersSnapshot, groupsSnapshot, expensesSnapshot, notificationsSnapshot] = await Promise.all([
-                getDocs(collection(db, 'users')),
-                getDocs(collection(db, 'groups')),
-                getDocs(collection(db, 'expenses')),
-                getDocs(collection(db, 'notifications'))
-            ]);
+            
+            // Fetch all users (needed for group member selection)
+            const usersSnapshot = await getDocs(collection(db, 'users'));
+            
+            // Fetch only groups where current user is a member
+            const groupsQuery = query(
+                collection(db, 'groups'), 
+                where('members', 'array-contains', currentUser.id)
+            );
+            const groupsSnapshot = await getDocs(groupsQuery);
+            
+            // Get group IDs for fetching expenses
+            const groupIds = groupsSnapshot.docs.map(doc => doc.id);
+            
+            // Fetch expenses only for user's groups
+            let expensesData: FinalExpense[] = [];
+            if (groupIds.length > 0) {
+                // Firestore 'in' queries support max 10 items at a time
+                const batchSize = 10;
+                for (let i = 0; i < groupIds.length; i += batchSize) {
+                    const batch = groupIds.slice(i, i + batchSize);
+                    const expensesQuery = query(
+                        collection(db, 'expenses'),
+                        where('groupId', 'in', batch)
+                    );
+                    const expensesSnapshot = await getDocs(expensesQuery);
+                    expensesData.push(...expensesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FinalExpense)));
+                }
+            }
+            
+            // Fetch notifications
+            const notificationsSnapshot = await getDocs(collection(db, 'notifications'));
 
+            // Process all the data
             const usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
             const groupsData = groupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
-            const expensesData = expensesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FinalExpense)).sort((a,b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime());
             const notificationsData = notificationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification)).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+            // Sort expenses by date
+            expensesData.sort((a,b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime());
 
             setUsers(usersData);
             setGroups(groupsData);
             setExpenses(expensesData);
             setNotifications(notificationsData);
 
-            if (groupsData.length > 0 && !activeGroupId) {
-                setActiveGroupId(groupsData[0].id);
-            }
-             console.log("Data fetched successfully.");
+            // Only set activeGroupId if not already set
+            setActiveGroupId(prev => {
+                if (prev) return prev;
+                return groupsData.length > 0 ? groupsData[0].id : null;
+            });
+            console.log("Data fetched successfully.");
         } catch (error) {
             console.error("Error fetching data from Firestore:", error);
             alert("Could not fetch data from the database. Please check your Firebase connection and configuration.");
@@ -97,8 +128,7 @@ const App: React.FC = () => {
         }
     };
     fetchData();
-  }, []);
-
+  }, [currentUser]);
 
   const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId), [groups, activeGroupId]);
   const activeGroupMembers = useMemo(() => {
@@ -187,8 +217,8 @@ const App: React.FC = () => {
 }, []);
 
   const handleSaveExpense = useCallback(async (expense: FinalExpense) => {
-    const currentUser = users.find(u => u.id === currentUser.id);
-    if (!currentUser || !activeGroupId) return;
+    const currentUserData = users.find(u => u.id === currentUser.id);
+    if (!currentUserData || !activeGroupId) return;
 
     let message = '';
     let type: NotificationType;
@@ -200,13 +230,13 @@ const App: React.FC = () => {
             await updateDoc(expenseDocRef, expenseWithGroupId);
             setExpenses(prevExpenses => prevExpenses.map(e => e.id === editingExpense.id ? expenseWithGroupId : e));
             setEditingExpense(null);
-            message = `${currentUser.name.replace(' (You)', '')} edited the expense "${expense.description}".`;
+            message = `${currentUserData.name.replace(' (You)', '')} edited the expense "${expense.description}".`;
             type = NotificationType.ExpenseEdited;
         } else {
             const docRef = await addDoc(collection(db, 'expenses'), expenseWithGroupId);
             const newExpenseWithId = { ...expenseWithGroupId, id: docRef.id };
             setExpenses(prevExpenses => [newExpenseWithId, ...prevExpenses]);
-            message = `${currentUser.name.replace(' (You)', '')} added a new expense: "${expense.description}" for $${expense.amount.toFixed(2)}.`;
+            message = `${currentUserData.name.replace(' (You)', '')} added a new expense: "${expense.description}" for $${expense.amount.toFixed(2)}.`;
             type = NotificationType.ExpenseAdded;
         }
 
@@ -552,6 +582,7 @@ const App: React.FC = () => {
             groups={groups}
             users={users}
             activeGroupId={activeGroupId}
+            currentUserId={currentUser.id}
             onSelectGroup={handleSetActiveGroup}
             onCreateGroup={handleCreateGroup}
           />
@@ -576,8 +607,13 @@ const App: React.FC = () => {
         <main className="flex-grow">
             <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
             <header className="text-center mb-8">
-              <h1 className="text-5xl font-extrabold text-primary tracking-tight">Splitly</h1>
-              <p className="mt-2 text-lg text-text-secondary-light dark:text-text-secondary-dark">Splitting expenses, made easy.</p>
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <h1 className="text-5xl font-extrabold text-primary tracking-tight">Splitly</h1>
+              </div>
+              <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                Welcome back, <span className="font-semibold text-primary">{currentUser.name}</span>
+              </p>
+              <p className="mt-1 text-sm text-text-secondary-light dark:text-text-secondary-dark">Splitting expenses, made easy.</p>
             </header>
 
             {renderContent()}
@@ -621,6 +657,7 @@ const App: React.FC = () => {
               onClose={() => setEditingGroupId(null)}
               group={groupForEditing}
               allUsers={users}
+              currentUserId={currentUser.id}
               onSave={handleSaveGroupChanges}
               onDelete={handleDeleteGroup}
               totalDebt={editingGroupDebt}

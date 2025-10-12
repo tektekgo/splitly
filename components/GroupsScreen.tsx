@@ -6,11 +6,12 @@ interface GroupsScreenProps {
     groups: Group[];
     users: User[];
     activeGroupId: string | null;
+    currentUserId: string;
     onSelectGroup: (groupId: string) => void;
     onCreateGroup: (newGroup: Omit<Group, 'id'>) => void;
 }
 
-const GroupsScreen: React.FC<GroupsScreenProps> = ({ groups, users, activeGroupId, onSelectGroup, onCreateGroup }) => {
+const GroupsScreen: React.FC<GroupsScreenProps> = ({ groups, users, activeGroupId, currentUserId, onSelectGroup, onCreateGroup }) => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const handleCreateGroup = (groupData: Omit<Group, 'id'>) => {

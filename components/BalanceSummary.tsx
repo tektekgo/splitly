@@ -14,7 +14,7 @@ interface BalanceSummaryProps {
     onExportClick: () => void;
 }
 
-const BalanceItem: React.FC<{ user: User; balance: number; onViewDetail: (user: User) => void; }> = ({ user, balance, onViewDetail }) => {
+const BalanceItem: React.FC<{ user: User; balance: number; currentUserId: string; onViewDetail: (user: User) => void; }> = ({ user, balance, currentUserId, onViewDetail }) => {
     const isCurrentUser = user.id === currentUserId;
 
     const balanceText = Math.abs(balance) < 0.01 
@@ -75,7 +75,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ expenses, group, member
 
     const currentUserBalance = balances.get(currentUserId) || 0;
     const totalDebt = useMemo(() => {
-        return Array.from(balances.values()).reduce((sum, balance) => {
+        return Array.from(balances.values()).reduce((sum: number, balance: number) => {
             return sum + (balance < 0 ? Math.abs(balance) : 0);
         }, 0);
     }, [balances]);
@@ -141,6 +141,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ expenses, group, member
                                 key={member.id} 
                                 user={member} 
                                 balance={balances.get(member.id) || 0}
+                                currentUserId={currentUserId}
                                 onViewDetail={onViewDetail}
                             />
                     ))}

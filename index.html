@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Splitly</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class', // Enable class-based dark mode
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                DEFAULT: '#14B8A6', // Teal-500
+                '50': '#F0FDFA',
+                '100': '#CCFBF1',
+                '200': '#99F6E4',
+                '300': '#5EEAD4',
+                '400': '#2DD4BF',
+                '500': '#14B8A6',
+                '600': '#0D9488',
+                '700': '#0F766E',
+                '800': '#115E59',
+                '900': '#134E4A',
+                '950': '#042F2E'
+              },
+              success: '#10B981',
+              error: '#EF4444',
+              warning: '#F59E0B',
+              // Light theme colors
+              'surface-light': '#F8F9FA',
+              'content-light': '#FFFFFF',
+              'text-primary-light': '#1F2937',
+              'text-secondary-light': '#6B7280',
+              'border-light': '#E5E7EB',
+              // Dark theme colors
+              'surface-dark': '#121212',
+              'content-dark': '#1E1E1E',
+              'text-primary-dark': '#F9FAFB',
+              'text-secondary-dark': '#9CA3AF',
+              'border-dark': '#374151',
+            }
+          }
+        }
+      }
+    </script>
+    <script>
+      // Prevents FOUC (Flash of Unstyled Content) or "flash of incorrect theme"
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "firebase/": "https://aistudiocdn.com/firebase@^10.12.3/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-surface-light dark:bg-surface-dark">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

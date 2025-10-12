@@ -12,13 +12,16 @@ interface GroupManagementModalProps {
   onSave: (updatedGroup: Group) => void;
   onDelete: (groupId: string) => void;
   totalDebt: number;
+  onCreateUser: (name: string) => Promise<void>;
 }
 
-const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onClose, group, allUsers, currentUserId, onSave, onDelete, totalDebt }) => {
+const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onClose, group, allUsers, currentUserId, onSave, onDelete, totalDebt, onCreateUser }) => {
   const [groupName, setGroupName] = useState(group.name);
   const [memberIds, setMemberIds] = useState(group.members);
   const [selectedUserToAdd, setSelectedUserToAdd] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
 
   useEffect(() => {
     if (group) {
@@ -26,6 +29,8 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
         setMemberIds(group.members);
         setShowDeleteConfirm(false);
         setSelectedUserToAdd('');
+        setIsCreatingUser(false);
+        setNewUserName('');
     }
   }, [group]);
 
@@ -117,9 +122,70 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                     ))}
                 </ul>
             </div>
+            
+            {/* Quick Add User */}
+            <div className="mb-4">
+              {!isCreatingUser ? (
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingUser(true)}
+                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                >
+                  <span className="text-lg">+</span>
+                  Don't see someone? Create new member
+                </button>
+              ) : (
+                <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                  <label className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark mb-2">
+                    New Member Name
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newUserName}
+                      onChange={(e) => setNewUserName(e.target.value)}
+                      placeholder="Enter name"
+                      className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && newUserName.trim()) {
+                          onCreateUser(newUserName.trim());
+                          setNewUserName('');
+                          setIsCreatingUser(false);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (newUserName.trim()) {
+                          await onCreateUser(newUserName.trim());
+                          setNewUserName('');
+                          setIsCreatingUser(false);
+                        }
+                      }}
+                      disabled={!newUserName.trim()}
+                      className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-600 text-sm font-medium disabled:bg-gray-400 dark:disabled:bg-gray-600"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCreatingUser(false);
+                        setNewUserName('');
+                      }}
+                      className="px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            
             {availableUsersToAdd.length > 0 && (
                 <div>
-                    <label htmlFor="addMemberSelect" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Add Member</label>
+                    <label htmlFor="addMemberSelect" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Add Existing Member</label>
                     <div className="mt-1 flex gap-2">
                         <select
                             id="addMemberSelect"

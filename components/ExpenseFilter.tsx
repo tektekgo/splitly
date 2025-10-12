@@ -1,6 +1,7 @@
 import React from 'react';
 import type { User, Category } from '../types';
 import { SearchIcon } from './icons';
+import InfoTooltip from './InfoTooltip';
 
 interface ExpenseFilterProps {
   searchTerm: string;
@@ -25,17 +26,26 @@ const ExpenseFilter: React.FC<ExpenseFilterProps> = ({
 }) => {
   return (
     <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-border-light dark:border-border-dark">
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
-          <SearchIcon className="h-5 w-5 text-gray-400" />
+      <div>
+        <div className="flex items-center mb-2">
+          <label htmlFor="search" className="text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">
+            Search
+          </label>
+          <InfoTooltip text="Find expenses by description - try searching for 'dinner', 'uber', 'groceries', or any part of the expense name." />
         </div>
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search by description..."
-          className="block w-full pl-10 pr-3 py-2 border border-border-light dark:border-border-dark bg-content-light dark:bg-gray-800 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-        />
+        <div className="relative">
+          <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
+            <SearchIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            id="search"
+            type="text"
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search by description (e.g., 'dinner', 'uber')"
+            className="block w-full pl-10 pr-3 py-2 border border-border-light dark:border-border-dark bg-content-light dark:bg-gray-800 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+          />
+        </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <select

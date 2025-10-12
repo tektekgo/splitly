@@ -98,20 +98,22 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ expenses, group, member
                     <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">{group.name}</h2>
                     <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">{members.length} Members</p>
                  </div>
-                 <div className="flex items-center space-x-2">
-                    <button
-                        onClick={onExportClick}
-                        className="p-2 rounded-full text-primary bg-primary/5 dark:bg-primary/10 hover:bg-primary/10 dark:hover:bg-primary/20 focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
-                        aria-label="Export Data"
-                    >
-                        <ExportIcon className="w-6 h-6" />
-                    </button>
+                 <div className="flex gap-2">
                     <button
                         onClick={onManageGroupClick}
-                        className="p-2 rounded-full text-primary bg-primary/5 dark:bg-primary/10 hover:bg-primary/10 dark:hover:bg-primary/20 focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         aria-label="Manage Group"
                     >
-                        <CogIcon className="w-6 h-6" />
+                        <CogIcon className="w-4 h-4" />
+                        <span className="hidden sm:inline">Manage</span>
+                    </button>
+                    <button
+                        onClick={onExportClick}
+                        className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-600 rounded-lg transition-colors shadow-sm"
+                        aria-label="Export to CSV"
+                    >
+                        <ExportIcon className="w-4 h-4" />
+                        <span className="hidden sm:inline">Export CSV</span>
                     </button>
                 </div>
             </div>

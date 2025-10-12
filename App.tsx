@@ -24,6 +24,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAuth } from './contexts/AuthContext';
 import LoginScreen from './components/LoginScreen';
 import FeedbackButton from './components/FeedbackButton';
+import InfoTooltip from './components/InfoTooltip';
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
 
@@ -497,11 +498,51 @@ const App: React.FC = () => {
         if (!activeGroup) {
           return (
             <main className="bg-content-light dark:bg-content-dark rounded-2xl shadow-lg overflow-hidden">
-                <div className="p-10 text-center">
-                    <UsersIcon className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600" />
-                    <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mt-4">No Active Group</h2>
-                    <p className="mt-2 text-text-secondary-light dark:text-text-secondary-dark">
-                        Please select a group from the 'Groups' tab or create a new one to get started.
+                <div className="p-10 text-center max-w-lg mx-auto">
+                    <div className="text-6xl mb-4">👥</div>
+                    <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-3">
+                        Welcome to Splitly!
+                    </h2>
+                    <p className="text-text-secondary-light dark:text-text-secondary-dark mb-6">
+                        Let's create your first group to start tracking shared expenses.
+                    </p>
+                    
+                    <div className="bg-primary/5 dark:bg-primary/10 rounded-lg p-6 mb-6 text-left">
+                        <p className="font-semibold text-text-primary-light dark:text-text-primary-dark mb-3">
+                            💡 What are groups?
+                        </p>
+                        <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-4">
+                            Groups help you organize expenses for different situations:
+                        </p>
+                        <ul className="space-y-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                            <li className="flex items-start gap-2">
+                                <span className="text-primary font-bold">•</span>
+                                <span><strong>Roommates</strong> - Track rent, utilities, groceries</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-primary font-bold">•</span>
+                                <span><strong>Trip with Friends</strong> - Hotels, meals, activities</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-primary font-bold">•</span>
+                                <span><strong>Family Expenses</strong> - Shared household costs</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-primary font-bold">•</span>
+                                <span><strong>Events</strong> - Weddings, parties, celebrations</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <button
+                        onClick={() => setActiveScreen('groups')}
+                        className="w-full px-6 py-4 bg-primary text-white font-semibold rounded-lg shadow-lg hover:bg-primary-600 transition-all hover:scale-105"
+                    >
+                        + Create Your First Group
+                    </button>
+                    
+                    <p className="mt-4 text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                        Click the <strong>Groups</strong> tab at the bottom to get started
                     </p>
                 </div>
             </main>
@@ -523,7 +564,10 @@ const App: React.FC = () => {
             </section>
             <main className="bg-content-light dark:bg-content-dark rounded-2xl shadow-lg overflow-hidden">
               <div className="p-6 space-y-6">
-                <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">Recent Expenses</h2>
+                <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark flex items-center">
+                  Recent Expenses
+                  <InfoTooltip text="All expenses in this group, sorted by date. Use filters below to find specific expenses." />
+                </h2>
                 <ExpenseFilter
                   searchTerm={searchTerm}
                   onSearchChange={setSearchTerm}
@@ -727,6 +771,7 @@ const App: React.FC = () => {
               onSave={handleSaveGroupChanges}
               onDelete={handleDeleteGroup}
               totalDebt={editingGroupDebt}
+              onCreateUser={handleCreateUser}
           />
       )}
 

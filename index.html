@@ -3,7 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Splitly</title>
+    <title>Splitly - Expense Tracker</title>
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#14B8A6">
+
+    <!-- iOS Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Splitly">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+
+    <!-- General Meta Tags -->
+    <meta name="description" content="Split expenses easily with friends, family, and roommates. Track shared costs and settle up with ease.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -68,5 +85,7 @@
   <body class="bg-surface-light dark:bg-surface-dark">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <!-- Service Worker Registration -->
+    <script src="/register-sw.js"></script>
   </body>
 </html>

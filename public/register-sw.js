@@ -1,5 +1,5 @@
-// Only register service worker in production
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+// Only register service worker in production (not localhost)
+if ('serviceWorker' in navigator && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     window.addEventListener('load', () => {
       navigator.serviceWorker
         .register('/sw.js')
@@ -15,6 +15,6 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
           console.error('❌ Service Worker registration failed:', error);
         });
     });
-  } else if (!import.meta.env.PROD) {
-    console.log('🔧 Service Worker disabled in development mode');
+  } else {
+    console.log('🔧 Development mode - Service Worker disabled');
   }

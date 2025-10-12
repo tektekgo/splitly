@@ -23,6 +23,7 @@ import { collection, getDocs, doc, writeBatch, addDoc, updateDoc, deleteDoc, que
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAuth } from './contexts/AuthContext';
 import LoginScreen from './components/LoginScreen';
+import FeedbackButton from './components/FeedbackButton';
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
 
@@ -664,9 +665,27 @@ const App: React.FC = () => {
             
         </main>
 
-        <footer className="text-center pt-8 text-gray-500 dark:text-gray-400 text-sm">
+        <footer className="text-center pt-8 pb-4 text-gray-500 dark:text-gray-400 text-sm space-y-3">
+          <div className="flex items-center justify-center gap-4 text-xs">
+            <a 
+              href="/install.html" 
+              target="_blank"
+              className="text-primary hover:underline font-medium flex items-center gap-1"
+            >
+              📱 Install App
+            </a>
+            <span className="text-gray-300 dark:text-gray-600">•</span>
+            <a 
+              href="https://forms.gle/1w3Vk6FhrQDppagw5"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline font-medium flex items-center gap-1"
+            >
+              💬 Send Feedback
+            </a>
+          </div>
           <p>Simplifying shared expenses | Built by Sujit Gangadharan</p>
-          <p className="mt-2">© 2025</p>
+          <p className="text-xs">© 2025</p>
         </footer>
         <div className="h-20" />
       </div>
@@ -676,7 +695,8 @@ const App: React.FC = () => {
         onNavigate={setActiveScreen} 
         notificationCount={unreadNotificationCount} 
       />
-
+      {/* Floating Feedback Button - Always accessible */}
+      <FeedbackButton />
       {isSettleUpModalOpen && activeGroup && (
         <SettleUpModal
           isOpen={isSettleUpModalOpen}

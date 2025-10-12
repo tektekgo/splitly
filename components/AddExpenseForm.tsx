@@ -17,10 +17,11 @@ interface AddExpenseFormProps {
   expenseToEdit?: FinalExpense | null;
   onCancelEdit?: () => void;
   groupId: string;
+  groupName: string;
   getCategorySuggestion: (description: string) => Promise<Category | null>;
 }
 
-const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId, onSaveExpense, expenseToEdit, onCancelEdit, groupId, getCategorySuggestion }) => {
+const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId, onSaveExpense, expenseToEdit, onCancelEdit, groupId, groupName, getCategorySuggestion }) => {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<Category>(Category.FoodAndDrink);
@@ -146,6 +147,12 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Group Name Header */}
+      <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+        <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+          Adding expense to: <span className="font-semibold text-primary">{groupName}</span>
+        </p>
+      </div>
       <div>
         <label htmlFor="description" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Description</label>
         <input

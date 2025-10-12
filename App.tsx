@@ -571,6 +571,7 @@ const App: React.FC = () => {
                 expenseToEdit={editingExpense}
                 onCancelEdit={handleCancelEdit}
                 groupId={activeGroupId}
+                groupName={activeGroup?.name || 'Unknown Group'}
                 getCategorySuggestion={getCategorySuggestion}
               />
             </div>
@@ -606,6 +607,7 @@ const App: React.FC = () => {
       <div className="container mx-auto max-w-3xl px-4 relative min-h-screen flex flex-col pt-8">
         <main className="flex-grow">
             <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+            
             <header className="text-center mb-8">
               <div className="flex items-center justify-center gap-3 mb-2">
                 <h1 className="text-5xl font-extrabold text-primary tracking-tight">Splitly</h1>
@@ -615,12 +617,56 @@ const App: React.FC = () => {
               </p>
               <p className="mt-1 text-sm text-text-secondary-light dark:text-text-secondary-dark">Splitting expenses, made easy.</p>
             </header>
-
+            {/* Install Banner - Show to new users */}
+            {!sessionStorage.getItem('install-banner-dismissed') && (
+              <div className="mb-6 bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 border border-primary/20 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 text-2xl">📱</div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-text-primary-light dark:text-text-primary-dark mb-1">
+                      Install Splitly on your device!
+                    </h3>
+                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-3">
+                      Get instant access from your home screen. Works offline too!
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      
+                        <a href="/install.html"
+                        target="_blank"
+                        className="inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors">
+                        📖 See How to Install
+                      </a>
+                      <button
+                        onClick={() => {
+                          sessionStorage.setItem('install-banner-dismissed', 'true');
+                          window.location.reload();
+                        }}
+                        className="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-text-primary-light dark:text-text-primary-dark text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                      >
+                        Maybe Later
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      sessionStorage.setItem('install-banner-dismissed', 'true');
+                      window.location.reload();
+                    }}
+                    className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xl leading-none"
+                    aria-label="Close"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
             {renderContent()}
+            
         </main>
 
         <footer className="text-center pt-8 text-gray-500 dark:text-gray-400 text-sm">
-            <p>Developed with <span role="img" aria-label="heart">♡</span> by Sujit Gangadharan</p>
+          <p>Simplifying shared expenses | Built by Sujit Gangadharan</p>
+          <p className="mt-2">© 2025</p>
         </footer>
         <div className="h-20" />
       </div>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Install Splitly - Installation Guide</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%);
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #14B8A6;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        .platform {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border-left: 4px solid #14B8A6;
+        }
+        .platform h2 {
+            color: #14B8A6;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .icon {
+            font-size: 2rem;
+        }
+        .steps {
+            list-style: none;
+            counter-reset: step-counter;
+        }
+        .steps li {
+            counter-increment: step-counter;
+            margin-bottom: 20px;
+            padding-left: 40px;
+            position: relative;
+        }
+        .steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #14B8A6;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .tip {
+            background: #d1ecf1;
+            border-left: 4px solid #0dcaf0;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .cta {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 2px solid #e9ecef;
+        }
+        .button {
+            display: inline-block;
+            background: #14B8A6;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+        }
+        .button:hover {
+            background: #0D9488;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(20, 184, 166, 0.4);
+        }
+        .screenshot {
+            background: #e9ecef;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+            font-style: italic;
+            color: #6c757d;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 20px; }
+            h1 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Install Splitly</h1>
+        <p class="subtitle">Get the app on your device for the best experience!</p>
+
+        <!-- Android -->
+        <div class="platform">
+            <h2><span class="icon">🤖</span> Android (Chrome)</h2>
+            <ol class="steps">
+                <li>Open <strong>https://splitlyapp-cc612.web.app</strong> in Chrome</li>
+                <li>Tap the <strong>three dots menu (⋮)</strong> in the top right</li>
+                <li>Select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong></li>
+                <li>Tap <strong>"Install"</strong> in the popup</li>
+                <li>The app icon appears on your home screen! 🎉</li>
+            </ol>
+            <div class="tip">
+                <strong>💡 Tip:</strong> You might also see an install banner at the bottom of the screen - just tap "Install" there!
+            </div>
+        </div>
+
+        <!-- iPhone -->
+        <div class="platform">
+            <h2><span class="icon">🍎</span> iPhone (Safari)</h2>
+            <ol class="steps">
+                <li>Open <strong>https://splitlyapp-cc612.web.app</strong> in Safari (must be Safari, not Chrome!)</li>
+                <li>Tap the <strong>Share button</strong> (square with arrow pointing up)</li>
+                <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                <li>Tap <strong>"Add"</strong> in the top right</li>
+                <li>The app icon appears on your home screen! 🎉</li>
+            </ol>
+            <div class="note">
+                <strong>⚠️ Important:</strong> On iPhone, this only works in Safari browser, not Chrome or other browsers.
+            </div>
+        </div>
+
+        <!-- Desktop Chrome -->
+        <div class="platform">
+            <h2><span class="icon">💻</span> Desktop (Chrome/Edge)</h2>
+            <ol class="steps">
+                <li>Open <strong>https://splitlyapp-cc612.web.app</strong> in Chrome or Edge</li>
+                <li>Look for the <strong>install icon (⊕ or computer icon)</strong> in the address bar (top right)</li>
+                <li>Click the icon</li>
+                <li>Click <strong>"Install"</strong> in the popup</li>
+                <li>The app opens in its own window! 🎉</li>
+            </ol>
+            <div class="tip">
+                <strong>💡 Tip:</strong> After installing, you can find Splitly in your Start Menu (Windows) or Applications folder (Mac)!
+            </div>
+        </div>
+
+        <!-- Desktop Mac -->
+        <div class="platform">
+            <h2><span class="icon">🍎</span> Mac (Safari)</h2>
+            <ol class="steps">
+                <li>Open <strong>https://splitlyapp-cc612.web.app</strong> in Safari</li>
+                <li>Click <strong>File → Add to Dock</strong> in the menu bar</li>
+                <li>The app appears in your Dock! 🎉</li>
+            </ol>
+        </div>
+
+        <!-- Benefits -->
+        <div class="platform" style="border-left-color: #0dcaf0; background: #e7f6fd;">
+            <h2><span class="icon">⭐</span> Why Install?</h2>
+            <ul style="list-style: none; padding-left: 0;">
+                <li style="margin-bottom: 10px;">✅ <strong>Faster access</strong> - Opens instantly from home screen</li>
+                <li style="margin-bottom: 10px;">✅ <strong>Works offline</strong> - View data without internet</li>
+                <li style="margin-bottom: 10px;">✅ <strong>Native feel</strong> - No browser UI, full screen</li>
+                <li style="margin-bottom: 10px;">✅ <strong>Push notifications</strong> - Get updates (coming soon!)</li>
+                <li style="margin-bottom: 10px;">✅ <strong>Less data usage</strong> - Cached for efficiency</li>
+            </ul>
+        </div>
+
+        <!-- CTA -->
+        <div class="cta">
+            <p style="font-size: 1.1rem; margin-bottom: 20px;">Ready to start splitting expenses?</p>
+            <a href="https://splitlyapp-cc612.web.app" class="button">Open Splitly →</a>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e9ecef; color: #6c757d; font-size: 0.9rem;">
+            <p>Need help? Email: gsujit@gmail.com</p>
+            <p style="margin-top: 10px;">Simplifying shared expenses | Built by Sujit Gangadharan</p>
+            <p style="margin-top: 5px; font-size: 0.85rem;">© 2025</p>
+        </div>
+    </div>
+</body>
+</html>

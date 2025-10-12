@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { User } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ProfileScreenProps {
     users: User[];
@@ -7,6 +8,7 @@ interface ProfileScreenProps {
 }
 
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser }) => {
+    const { logout, currentUser } = useAuth();
     const [newUserName, setNewUserName] = useState('');
 
     const handleAddUser = (e: React.FormEvent) => {
@@ -22,7 +24,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser }) =>
                 <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-6">
                     User Management
                 </h2>
-                
+                <button
+                    onClick={logout}
+                    className="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 mb-6"
+                >
+                    Logout
+        </button>
                 <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 space-y-4">
                      <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">All Users</h3>
                      <ul className="space-y-2">

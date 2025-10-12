@@ -1,7 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import type { Group, User } from '../types';
-import { CURRENT_USER_ID } from '../constants';
 import { DeleteIcon } from './icons';
 
 interface GroupManagementModalProps {
@@ -49,7 +48,7 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
   };
 
   const handleRemoveMember = (userId: string) => {
-    if (userId === CURRENT_USER_ID) {
+    if (userId === currentUserId) {
       alert("You cannot remove yourself from the group.");
       return;
     }
@@ -108,7 +107,7 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                                 <img src={member.avatarUrl} alt={member.name} className="w-8 h-8 rounded-full mr-3" />
                                 <span className="font-medium text-text-primary-light dark:text-text-primary-dark">{member.name}</span>
                             </div>
-                            {member.id !== CURRENT_USER_ID && (
+                            {member.id !== currentUserId && (
                                 <button onClick={() => handleRemoveMember(member.id)} className="p-2 text-gray-400 hover:text-error dark:hover:text-error-hover rounded-full hover:bg-red-100 dark:hover:bg-red-900/50">
                                     <DeleteIcon className="w-5 h-5"/>
                                 </button>

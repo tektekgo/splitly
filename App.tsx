@@ -13,7 +13,7 @@ import GroupsScreen from './components/GroupsScreen';
 import ProfileScreen from './components/ProfileScreen';
 import ActivityScreen from './components/ActivityScreen';
 import ExportModal from './components/ExportModal';
-import { CURRENT_USER_ID, CATEGORIES, createNewUser } from './constants';
+import { CATEGORIES, createNewUser } from './constants';
 import type { FinalExpense, SimplifiedDebt, User, Group, Notification } from './types';
 import { SplitMethod, Category, NotificationType } from './types';
 import { MoonIcon, SunIcon, UsersIcon } from './components/icons';
@@ -21,6 +21,8 @@ import { simplifyDebts } from './utils/debtSimplification';
 import { db } from './firebase';
 import { collection, getDocs, doc, writeBatch, addDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { useAuth } from './contexts/AuthContext';
+import LoginScreen from './components/LoginScreen';
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
 
@@ -38,6 +40,7 @@ const ThemeToggle: React.FC<{ theme: Theme, toggleTheme: () => void }> = ({ them
 );
 
 const App: React.FC = () => {
+  const { currentUser, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [expenses, setExpenses] = useState<FinalExpense[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -59,6 +62,10 @@ const App: React.FC = () => {
   // Fetch initial data from Firestore
   useEffect(() => {
     const fetchData = async () => {
+        if (!currentUser) {
+          setLoading(false);
+          return;
+        }
         try {
             console.log("Fetching data from Firestore...");
             const [usersSnapshot, groupsSnapshot, expensesSnapshot, notificationsSnapshot] = await Promise.all([
@@ -180,7 +187,7 @@ const App: React.FC = () => {
 }, []);
 
   const handleSaveExpense = useCallback(async (expense: FinalExpense) => {
-    const currentUser = users.find(u => u.id === CURRENT_USER_ID);
+    const currentUser = users.find(u => u.id === currentUser.id);
     if (!currentUser || !activeGroupId) return;
 
     let message = '';
@@ -290,7 +297,7 @@ const App: React.FC = () => {
   }, [activeGroup, users]);
   
   const handleSaveGroupChanges = async (updatedGroup: Group) => {
-    if (!updatedGroup.members.some(memberId => memberId === CURRENT_USER_ID)) {
+    if (!updatedGroup.members.some(memberId => memberId === currentUser.id)) {
         alert("You cannot remove yourself from the group.");
         return;
     }
@@ -441,12 +448,16 @@ const App: React.FC = () => {
     return notifications.filter(n => !n.read).length;
   }, [notifications]);
   
-  if (loading) {
+  if (authLoading || loading) {
     return (
         <div className="flex justify-center items-center min-h-screen">
             <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
         </div>
     );
+  }
+
+  if (!currentUser) {
+      return <LoginScreen />;
   }
 
   const renderContent = () => {
@@ -472,7 +483,7 @@ const App: React.FC = () => {
                 expenses={activeGroupExpenses} 
                 group={activeGroup}
                 members={activeGroupMembers}
-                currentUserId={CURRENT_USER_ID} 
+                currentUserId={currentUser.id} 
                 onSettleUpClick={handleOpenSettleUp}
                 onViewDetail={handleViewBalanceDetail}
                 onManageGroupClick={handleOpenGroupManagement}
@@ -500,6 +511,7 @@ const App: React.FC = () => {
                   onViewExpense={handleViewExpense}
                   hasActiveFilters={hasActiveFilters}
                   originalExpenseCount={activeGroupExpenses.length}
+                  currentUserId={currentUser.id}
                 />
               </div>
             </main>
@@ -524,7 +536,7 @@ const App: React.FC = () => {
               </h2>
               <AddExpenseForm 
                 members={activeGroupMembers}
-                currentUserId={CURRENT_USER_ID} 
+                currentUserId={currentUser.id} 
                 onSaveExpense={handleSaveExpense} 
                 expenseToEdit={editingExpense}
                 onCancelEdit={handleCancelEdit}
@@ -628,7 +640,7 @@ const App: React.FC = () => {
           <BalanceDetailModal
               isOpen={!!viewingBalanceForUser}
               onClose={handleCloseBalanceDetail}
-              currentUser={users.find(m => m.id === CURRENT_USER_ID)!}
+              currentUser={users.find(m => m.id === currentUser.id)!}
               targetUser={viewingBalanceForUser}
               allExpenses={activeGroupExpenses}
           />

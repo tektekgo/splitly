@@ -1,7 +1,4 @@
 import { Category, type User, type Group } from './types';
-
-export const CURRENT_USER_ID = 'user1';
-
 // MOCK_USERS_INITIAL and MOCK_GROUPS_INITIAL have been removed.
 // Data will now be fetched from Firestore.
 

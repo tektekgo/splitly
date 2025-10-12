@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import type { FinalExpense, Group, User } from '../types';
 import { ChevronRightIcon, CogIcon, ExportIcon } from './icons';
-import { CURRENT_USER_ID } from '../constants';
+
 
 interface BalanceSummaryProps {
     expenses: FinalExpense[];
@@ -15,7 +15,7 @@ interface BalanceSummaryProps {
 }
 
 const BalanceItem: React.FC<{ user: User; balance: number; onViewDetail: (user: User) => void; }> = ({ user, balance, onViewDetail }) => {
-    const isCurrentUser = user.id === CURRENT_USER_ID;
+    const isCurrentUser = user.id === currentUserId;
 
     const balanceText = Math.abs(balance) < 0.01 
         ? 'is settled up' 

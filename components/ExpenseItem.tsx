@@ -1,7 +1,6 @@
 import React from 'react';
 import { FinalExpense, User } from '../types';
 import { CategoryIcon, EditIcon, DeleteIcon } from './icons';
-import { CURRENT_USER_ID } from '../constants';
 
 interface ExpenseItemProps {
   expense: FinalExpense;
@@ -9,15 +8,16 @@ interface ExpenseItemProps {
   onDelete: (id: string) => void;
   onEdit: (expense: FinalExpense) => void;
   onView: (expense: FinalExpense) => void;
+  currentUserId: string; 
 }
 
-const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, members, onDelete, onEdit, onView }) => {
+const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, members, onDelete, onEdit, onView, currentUserId }) => {
     //const payer = members.find(m => m.id === expense.paidBy);
     const payer = members.find(m => m.id === expense.paidBy);
     const payerName = payer?.name?.replace(' (You)', '') || 'Unknown';
-    const userShareSplit = expense.splits.find(s => s.userId === CURRENT_USER_ID);
+    const userShareSplit = expense.splits.find(s => s.userId === currentUserId);
     const userShare = userShareSplit ? userShareSplit.amount : 0;
-    const userIsPayer = expense.paidBy === CURRENT_USER_ID;
+    const userIsPayer = expense.paidBy === currentUserId;
 
     // Calculate the net effect on the current user for this single transaction
     const netEffect = userIsPayer ? (expense.amount - userShare) : -userShare;

@@ -11,9 +11,10 @@ interface ExpenseListProps {
   onViewExpense: (expense: FinalExpense) => void;
   hasActiveFilters: boolean;
   originalExpenseCount: number;
+  currentUserId: string;
 }
 
-const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, members, onDeleteExpense, onEditExpense, onViewExpense, hasActiveFilters, originalExpenseCount }) => {
+const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, members, onDeleteExpense, onEditExpense, onViewExpense, hasActiveFilters, originalExpenseCount, currentUserId }) => {
   if (originalExpenseCount === 0) {
     return (
       <div className="text-center py-16 px-6 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
@@ -47,6 +48,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, members, onDeleteEx
             onDelete={onDeleteExpense}
             onEdit={onEditExpense}
             onView={onViewExpense}
+            currentUserId={currentUserId}
         />
       ))}
     </ul>

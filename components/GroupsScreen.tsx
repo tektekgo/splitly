@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import type { Group, User } from '../types';
-import { CURRENT_USER_ID } from '../constants';
 import CreateGroupModal from './CreateGroupModal';
 
 interface GroupsScreenProps {
@@ -15,7 +14,7 @@ const GroupsScreen: React.FC<GroupsScreenProps> = ({ groups, users, activeGroupI
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const handleCreateGroup = (groupData: Omit<Group, 'id'>) => {
-        const currentUser = users.find(m => m.id === CURRENT_USER_ID);
+        const currentUser = users.find(m => m.id === currentUserId);
         if (!currentUser) {
             alert("Error: Current user not found.");
             return;

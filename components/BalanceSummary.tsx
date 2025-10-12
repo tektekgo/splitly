@@ -101,7 +101,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ expenses, group, member
                  <div className="flex gap-2">
                     <button
                         onClick={onManageGroupClick}
-                        className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-gray-700 dark:bg-gray-600 hover:bg-gray-800 dark:hover:bg-gray-700 rounded-lg transition-colors shadow-sm"
                         aria-label="Manage Group"
                     >
                         <CogIcon className="w-4 h-4" />

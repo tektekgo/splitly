@@ -65,7 +65,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeScreen, onNavigate, notific
             />
             <NavItem
                 screen="profile"
-                label="Profile"
+                label="People"
                 Icon={UserCircleIcon}
                 isActive={activeScreen === 'profile'}
                 onClick={onNavigate}

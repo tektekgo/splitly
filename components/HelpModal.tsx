@@ -116,6 +116,49 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                   <li>Record payments as they happen</li>
                 </ol>
               </Section>
+
+              <Section title="How do I install Splitly as an app?">
+                <p className="mb-3">Installing makes Splitly work like a native app - faster and more convenient!</p>
+                
+                <div className="space-y-3">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                    <strong className="text-blue-900 dark:text-blue-100">🪟 Windows (Chrome/Edge):</strong>
+                    <ol className="list-decimal list-inside mt-2 text-sm space-y-1">
+                      <li>Look for an install icon (⊕ or 🖥️⤓) in the address bar</li>
+                      <li>Click it → Click "Install"</li>
+                      <li>Or: Menu (⋮) → "Apps" → "Install Splitly"</li>
+                    </ol>
+                    <p className="text-xs mt-2 text-blue-800 dark:text-blue-200">
+                      💡 See "Open In App"? It's already installed - click that!
+                    </p>
+                  </div>
+
+                  <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                    <strong className="text-green-900 dark:text-green-100">🤖 Android (Chrome):</strong>
+                    <ol className="list-decimal list-inside mt-2 text-sm space-y-1">
+                      <li>Tap menu (⋮) → "Install app"</li>
+                      <li>Or tap banner at bottom: "Install"</li>
+                      <li>Icon appears on home screen!</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
+                    <strong className="text-purple-900 dark:text-purple-100">🍎 iPhone (Safari only!):</strong>
+                    <ol className="list-decimal list-inside mt-2 text-sm space-y-1">
+                      <li>Tap Share button (□↑)</li>
+                      <li>Scroll → "Add to Home Screen"</li>
+                      <li>Tap "Add"</li>
+                    </ol>
+                    <p className="text-xs mt-2 text-purple-800 dark:text-purple-200">
+                      ⚠️ Must use Safari, not Chrome!
+                    </p>
+                  </div>
+                </div>
+
+                <p className="mt-3 text-sm">
+                  <strong>📱 For detailed instructions:</strong> Click "Install App" at the bottom of the page.
+                </p>
+              </Section>
             </div>
           )}
 

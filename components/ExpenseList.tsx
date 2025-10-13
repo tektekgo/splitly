@@ -22,7 +22,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, members, onDeleteEx
             <path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
         </svg>
         <h3 className="mt-4 text-lg font-medium text-text-primary-light dark:text-text-primary-dark">No expenses recorded</h3>
-        <p className="mt-1 text-sm text-text-secondary-light dark:text-text-secondary-dark">Switch to the 'Add Expense' tab to get started.</p>
+        <p className="mt-1 text-sm text-text-secondary-light dark:text-text-secondary-dark">Tap the + button at the bottom center to add your first expense.</p>
       </div>
     );
   }

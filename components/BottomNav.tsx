@@ -29,6 +29,7 @@ const NavItem: React.FC<{
 );
 
 const BottomNav: React.FC<BottomNavProps> = ({ activeScreen, onNavigate, notificationCount }) => {
+  const isAddActive = activeScreen === 'add';
   return (
     <div className="fixed bottom-0 left-0 right-0 h-16 bg-content-light dark:bg-content-dark border-t border-border-light dark:border-border-dark z-40">
         <div className="max-w-3xl mx-auto h-full grid grid-cols-5 items-center px-2">
@@ -50,14 +51,16 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeScreen, onNavigate, notific
                   onClick={onNavigate}
               />
             </div>
-            <div className="flex justify-center" data-tour="add-expense-button">
+            <div className="flex flex-col items-center justify-center" data-tour="add-expense-button">
                 <button 
                     onClick={() => onNavigate('add')}
-                    className="-mt-8 flex items-center justify-center w-16 h-16 bg-primary rounded-full shadow-lg text-white hover:bg-primary-600 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-surface-light dark:focus:ring-offset-surface-dark"
+                    className={`-mt-8 flex items-center justify-center w-16 h-16 rounded-full shadow-lg text-white transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-surface-light dark:focus:ring-offset-surface-dark ${isAddActive ? 'bg-primary ring-2 ring-primary/60' : 'bg-primary hover:bg-primary-600'}`}
                     aria-label="Add Expense"
+                    title="Add Expense"
                 >
                     <PlusCircleIcon className="w-10 h-10" />
                 </button>
+                <span className={`mt-1 text-[10px] font-medium uppercase tracking-wider ${isAddActive ? 'text-primary' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}>Add Expense</span>
             </div>
             <NavItem
                 screen="activity"

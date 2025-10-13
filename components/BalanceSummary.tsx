@@ -95,17 +95,21 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ expenses, group, member
         <div className="bg-content-light dark:bg-content-dark rounded-2xl shadow-lg">
             <div className="p-6 flex justify-between items-center border-b border-border-light dark:border-border-dark">
                  <div>
-                    <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">{group.name}</h2>
-                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">{members.length} Members</p>
+                    {/* De-emphasize duplicate title; emphasize members */}
+                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider mb-1">
+                      Members
+                    </p>
+                    <p className="text-2xl font-extrabold text-text-primary-light dark:text-text-primary-dark">{members.length}</p>
                  </div>
                  <div className="flex gap-2">
                     <button
                         onClick={onManageGroupClick}
                         className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-gray-700 dark:bg-gray-600 hover:bg-gray-800 dark:hover:bg-gray-700 rounded-lg transition-colors shadow-sm"
-                        aria-label="Manage Group"
+                        aria-label={`Manage ${group.name}`}
+                        title={`Manage ${group.name}`}
                     >
                         <CogIcon className="w-4 h-4" />
-                        <span className="hidden sm:inline">Manage</span>
+                        <span className="hidden sm:inline">Manage {group.name}</span>
                     </button>
                     <button
                         onClick={onExportClick}

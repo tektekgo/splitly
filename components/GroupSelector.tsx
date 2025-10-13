@@ -38,7 +38,7 @@ const GroupSelector: React.FC<GroupSelectorProps> = ({ groups, activeGroupId, on
 
   return (
     <div className="mb-6" ref={dropdownRef}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-border-light dark:border-border-dark p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border-2 border-primary/10 dark:border-primary/20 p-4">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <p className="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider mb-1">
@@ -59,8 +59,9 @@ const GroupSelector: React.FC<GroupSelectorProps> = ({ groups, activeGroupId, on
           <button
             onClick={onNavigateToGroups}
             className="px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
+            title="Create or edit groups"
           >
-            Manage Groups
+            Manage All Groups
           </button>
         </div>
 
@@ -98,7 +99,7 @@ const GroupSelector: React.FC<GroupSelectorProps> = ({ groups, activeGroupId, on
       {/* Helper text */}
       {!isOpen && groups.length > 1 && (
         <p className="mt-2 text-xs text-text-secondary-light dark:text-text-secondary-dark text-center">
-          💡 Click the group name above to switch between {groups.length} groups
+          Tip: Click the group name above to switch between {groups.length} groups
         </p>
       )}
     </div>

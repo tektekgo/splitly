@@ -38,8 +38,9 @@ type Screen = 'dashboard' | 'add' | 'groups' | 'profile' | 'activity';
 const ThemeToggle: React.FC<{ theme: Theme, toggleTheme: () => void }> = ({ theme, toggleTheme }) => (
     <button
       onClick={toggleTheme}
-      className="absolute top-8 right-4 p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary"
+      className="absolute top-8 right-4 p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary z-50 cursor-pointer"
       aria-label="Toggle theme"
+      style={{ pointerEvents: 'auto' }}
     >
       {theme === 'light' ? <MoonIcon className="w-6 h-6" /> : <SunIcon className="w-6 h-6" />}
     </button>
@@ -66,6 +67,7 @@ const App: React.FC = () => {
   const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showAddHint, setShowAddHint] = useState(() => !localStorage.getItem('add-hint-dismissed'));
   
   const [editingExpense, setEditingExpense] = useState<FinalExpense | null>(null);
   const [viewingExpense, setViewingExpense] = useState<FinalExpense | null>(null);
@@ -209,6 +211,18 @@ const App: React.FC = () => {
     localStorage.setItem('onboarding-completed', 'true');
   };
 
+  // One-time hint: explain the + button purpose
+  useEffect(() => {
+    if (activeScreen === 'dashboard' && showAddHint) {
+      const timer = setTimeout(() => {
+        // Auto-hide after 6s so it doesn't linger if user ignores
+        setShowAddHint(false);
+        localStorage.setItem('add-hint-dismissed', 'true');
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeScreen, showAddHint]);
+
   const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId), [groups, activeGroupId]);
   const activeGroupMembers = useMemo(() => {
     if (!activeGroup) return [];
@@ -228,8 +242,11 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const root = window.document.documentElement;
-    root.classList.remove(theme === 'light' ? 'dark' : 'light');
-    root.classList.add(theme);
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
     localStorage.setItem('theme', theme);
   }, [theme]);
   
@@ -925,8 +942,14 @@ const App: React.FC = () => {
              return (
                  <main className="bg-content-light dark:bg-content-dark rounded-2xl shadow-lg overflow-hidden">
                     <div className="p-10 text-center">
-                        <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">Select a Group First</h2>
-                        <p className="mt-2 text-text-secondary-light dark:text-text-secondary-dark">You need to select an active group before you can add an expense.</p>
+                        <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">Choose a Group</h2>
+                        <p className="mt-2 text-text-secondary-light dark:text-text-secondary-dark">Select a group to add your expense.</p>
+                        <button
+                          onClick={() => setActiveScreen('groups')}
+                          className="mt-6 inline-flex items-center gap-2 px-5 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
+                        >
+                          Go to Groups
+                        </button>
                     </div>
                  </main>
              )
@@ -934,9 +957,25 @@ const App: React.FC = () => {
         return (
           <main className="bg-content-light dark:bg-content-dark rounded-2xl shadow-lg overflow-hidden">
             <div className="p-6">
-              <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-6">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
                 {editingExpense ? 'Edit Expense' : 'Add New Expense'}
               </h2>
+                  <span className="hidden sm:inline text-primary">→</span>
+                  <span className="hidden sm:inline text-sm px-2 py-1 rounded-full border border-primary/20 bg-primary/10 dark:bg-primary/20 text-primary font-semibold">
+                    {activeGroup?.name}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setActiveScreen('dashboard')}
+                  className="p-2 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                  aria-label="Close and return to dashboard"
+                  title="Close"
+                >
+                  ×
+                </button>
+              </div>
               <AddExpenseForm 
                 members={activeGroupMembers}
                 currentUserId={currentUser.id} 
@@ -946,6 +985,7 @@ const App: React.FC = () => {
                 groupId={activeGroupId}
                 groupName={activeGroup?.name || 'Unknown Group'}
                 getCategorySuggestion={getCategorySuggestion}
+                onBack={() => setActiveScreen('dashboard')}
               />
             </div>
           </main>
@@ -987,7 +1027,7 @@ const App: React.FC = () => {
         <main className="flex-grow">
             <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
             
-            <header className="text-center mb-8">
+            <header className="text-center mb-8 relative">
               <div className="flex items-center justify-center gap-3 mb-2">
                 <h1 className="text-5xl font-extrabold text-primary tracking-tight">Splitly</h1>
               </div>
@@ -996,7 +1036,7 @@ const App: React.FC = () => {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="text-sm text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors flex items-center gap-1"
                 >
-                  Welcome back, <span className="font-semibold text-primary">{currentUser.name}</span>
+                Welcome back, <span className="font-semibold text-primary">{currentUser.name}</span>
                   <svg className={`w-4 h-4 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
@@ -1028,6 +1068,28 @@ const App: React.FC = () => {
                 )}
               </div>
               <p className="mt-1 text-sm text-text-secondary-light dark:text-text-secondary-dark">Splitting expenses, made easy.</p>
+
+              {/* One-time hint over + button area (bottom center) */}
+              {showAddHint && (
+                <div className="pointer-events-none">
+                  <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 text-xs px-3 py-2 rounded-full shadow-lg border border-border-light dark:border-border-dark">
+                    Tip: Tap the + button below to add an expense to your current group
+                  </div>
+                  <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 text-primary">
+                    ▼
+                  </div>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('add-hint-dismissed', 'true');
+                      setShowAddHint(false);
+                    }}
+                    className="fixed bottom-28 right-6 z-40 px-2 py-1 bg-gray-900/80 text-white text-[10px] rounded pointer-events-auto"
+                    aria-label="Dismiss hint"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
             </header>
             {/* Install Banner - Show to new users */}
             {!sessionStorage.getItem('install-banner-dismissed') && (
@@ -1186,7 +1248,7 @@ const App: React.FC = () => {
           onSendInvite={async (email) => {
             await handleSendGroupInvite(inviteGroupId, email);
           }}
-        />
+          />
       )}
 
       {viewingExpense && activeGroup && (

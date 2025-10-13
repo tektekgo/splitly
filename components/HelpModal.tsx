@@ -14,11 +14,11 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
   if (!isOpen) return null;
 
   const tabs = [
-    { id: 'getting-started' as TabType, label: '🚀 Getting Started', icon: '🚀' },
-    { id: 'groups' as TabType, label: '👥 Groups & People', icon: '👥' },
-    { id: 'expenses' as TabType, label: '💰 Expenses', icon: '💰' },
-    { id: 'invites' as TabType, label: '📧 Invites', icon: '📧' },
-    { id: 'privacy' as TabType, label: '🔐 Privacy', icon: '🔐' },
+    { id: 'getting-started' as TabType, label: 'Getting Started', icon: '🧭' },
+    { id: 'groups' as TabType, label: 'Groups & People', icon: '🧑‍🤝‍🧑' },
+    { id: 'expenses' as TabType, label: 'Expenses', icon: '🧾' },
+    { id: 'invites' as TabType, label: 'Invites', icon: '✉️' },
+    { id: 'privacy' as TabType, label: 'Privacy', icon: '🛡️' },
   ];
 
   return (
@@ -27,8 +27,8 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
         {/* Header */}
         <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10">
           <div>
-            <h2 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark flex items-center gap-2">
-              ❓ Help & FAQ
+          <h2 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark flex items-center gap-2">
+              🧠 Help & FAQ
             </h2>
             <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mt-1">
               Everything you need to know about Splitly
@@ -98,7 +98,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                 </div>
               </Section>
 
-              <Section title="Step 3: Add Expenses">
+              <Section title="Step 3: Add Expenses ➕">
                 <ol className="list-decimal list-inside space-y-2">
                   <li>Click the big <strong>+</strong> button at the bottom center</li>
                   <li>Enter expense details (description, amount, category)</li>
@@ -108,7 +108,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                 </ol>
               </Section>
 
-              <Section title="Step 4: Settle Up">
+              <Section title="Step 4: Settle Up 💼">
                 <p>When it's time to settle debts:</p>
                 <ol className="list-decimal list-inside space-y-2 mt-2">
                   <li>Go to <strong>Dashboard</strong></li>

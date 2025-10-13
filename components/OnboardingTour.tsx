@@ -13,7 +13,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ run, onFinish }) => {
       content: (
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-3">
-            🎉 Welcome to Splitly!
+            🧭 Welcome to Splitly
           </h2>
           <p className="text-gray-700 mb-4">
             Let's take a quick tour to show you how easy it is to split expenses with friends and family.
@@ -31,7 +31,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ run, onFinish }) => {
       content: (
         <div>
           <h3 className="text-lg font-bold text-gray-900 mb-2">
-            👥 Step 1: Create Groups
+            🗂️ Step 1: Create Groups
           </h3>
           <p className="text-gray-700">
             Start by creating a group for roommates, trips, or any shared expenses. 
@@ -47,7 +47,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ run, onFinish }) => {
       content: (
         <div>
           <h3 className="text-lg font-bold text-gray-900 mb-2">
-            💰 Step 2: Add Expenses
+            ➕ Step 2: Add Expenses
           </h3>
           <p className="text-gray-700">
             Click this big + button anytime to add an expense. 
@@ -63,7 +63,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ run, onFinish }) => {
       content: (
         <div>
           <h3 className="text-lg font-bold text-gray-900 mb-2">
-            📊 Step 3: View Balances
+            📈 Step 3: View Balances
           </h3>
           <p className="text-gray-700">
             Your Dashboard shows who owes what in real-time. 
@@ -79,7 +79,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ run, onFinish }) => {
       content: (
         <div>
           <h3 className="text-lg font-bold text-gray-900 mb-2">
-            📧 Step 4: Add People
+            👤 Step 4: Add People
           </h3>
           <p className="text-gray-700 mb-3">
             Add people in two ways:
@@ -101,7 +101,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ run, onFinish }) => {
       content: (
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-3">
-            🎊 You're All Set!
+            ✅ You're All Set
           </h2>
           <p className="text-gray-700 mb-4">
             Ready to start splitting expenses? Create your first group to get started!

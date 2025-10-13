@@ -175,9 +175,38 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                 </ol>
               </Section>
 
+              <Section title="Can I delete a guest user?">
+                <p className="mb-2">Yes! Hover over any guest user in the People tab to see the delete button (🗑️).</p>
+                <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg text-sm">
+                  <p className="font-semibold mb-2">⚠️ You can only delete if:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>They're not in any groups (remove from groups first)</li>
+                    <li>Their balance is $0.00 (all debts settled)</li>
+                  </ul>
+                  <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                    Note: Deleting also removes their expense history if they're settled up.
+                  </p>
+                </div>
+              </Section>
+
               <Section title="Can I delete a group?">
                 <p className="mb-2">Yes, but only if all debts are settled (everyone owes $0.00).</p>
                 <p className="text-sm text-amber-600 dark:text-amber-400">⚠️ Tip: Use "Settle Up" to record payments first, then delete the group.</p>
+              </Section>
+
+              <Section title="What if I created 'John' as a guest, but then real John signs up?">
+                <div className="space-y-2">
+                  <p>You'll temporarily have two "John" entries - a guest and the real user.</p>
+                  <p className="font-semibold text-primary">Here's what to do:</p>
+                  <ol className="list-decimal list-inside space-y-2 text-sm">
+                    <li>Remove guest "John" from all groups</li>
+                    <li>Invite real John (john@email.com) to those groups</li>
+                    <li>Once real John joins, delete the guest "John" from People tab</li>
+                  </ol>
+                  <p className="text-xs bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mt-3">
+                    💡 <strong>Tip:</strong> If guest John has unsettled balances, record a settlement payment to bring them to $0.00 before deleting. This preserves the expense history while allowing cleanup.
+                  </p>
+                </div>
               </Section>
             </div>
           )}

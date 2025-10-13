@@ -2,14 +2,16 @@ import React, { useState, useMemo } from 'react';
 import type { User } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import InfoTooltip from './InfoTooltip';
+import { DeleteIcon } from './icons';
 import { getDatabaseStats, exportAllData, findOrphanedData, type DatabaseStats } from '../utils/adminTools';
 
 interface ProfileScreenProps {
     users: User[];
     onCreateUser: (name: string) => void;
+    onDeleteGuestUser: (userId: string) => void;
 }
 
-const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser }) => {
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDeleteGuestUser }) => {
     const { currentUser } = useAuth();
     const [newUserName, setNewUserName] = useState('');
     const [stats, setStats] = useState<DatabaseStats | null>(null);
@@ -102,22 +104,31 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser }) =>
                     </div>
                     
                     {simulatedUsers.length > 0 ? (
-                     <ul className="space-y-2">
+                        <ul className="space-y-2">
                             {simulatedUsers.map(user => (
-                                <li key={user.id} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                                <li key={user.id} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg group/item hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                     <div className="flex items-center">
-                                <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full mr-4" />
+                                        <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full mr-4" />
                                         <div>
                                             <p className="font-medium text-text-primary-light dark:text-text-primary-dark">{user.name}</p>
                                             <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">No login required</p>
                                         </div>
                                     </div>
-                                    <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full">
-                                        Guest
-                                    </span>
-                            </li>
-                        ))}
-                    </ul>
+                                    <div className="flex items-center gap-2">
+                                        <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full">
+                                            Guest
+                                        </span>
+                                        <button
+                                            onClick={() => onDeleteGuestUser(user.id)}
+                                            className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover/item:opacity-100"
+                                            title="Delete guest user"
+                                        >
+                                            <DeleteIcon className="w-5 h-5"/>
+                                        </button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
                     ) : (
                         <div className="text-center py-8">
                             <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">

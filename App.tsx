@@ -454,6 +454,94 @@ const App: React.FC = () => {
     }
   };
 
+  const handleDeleteGuestUser = async (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    
+    if (!user || user.authType !== 'simulated') {
+      alert('Can only delete guest users.');
+      return;
+    }
+
+    // Check 1: Is user in any groups?
+    const userGroups = groups.filter(g => g.members.includes(userId));
+    if (userGroups.length > 0) {
+      alert(
+        `Cannot delete this user.\n\n` +
+        `They are in ${userGroups.length} group(s):\n` +
+        userGroups.map(g => `• ${g.name}`).join('\n') +
+        `\n\nRemove them from all groups first.`
+      );
+      return;
+    }
+
+    // Check 2: Does user have any outstanding balance?
+    let hasBalance = false;
+    const userExpenses = expenses.filter(exp => 
+      exp.paidBy === userId || exp.splits.some(s => s.userId === userId)
+    );
+
+    if (userExpenses.length > 0) {
+      // Calculate balance
+      let balance = 0;
+      userExpenses.forEach(exp => {
+        if (exp.paidBy === userId) {
+          balance += exp.amount;
+        }
+        const userSplit = exp.splits.find(s => s.userId === userId);
+        if (userSplit) {
+          balance -= userSplit.amount;
+        }
+      });
+
+      if (Math.abs(balance) > 0.01) {
+        hasBalance = true;
+        const balanceText = balance > 0 
+          ? `is owed $${balance.toFixed(2)}` 
+          : `owes $${Math.abs(balance).toFixed(2)}`;
+        
+        alert(
+          `Cannot delete this user.\n\n` +
+          `${user.name} ${balanceText}.\n\n` +
+          `Settle up all debts first.`
+        );
+        return;
+      }
+    }
+
+    // Final confirmation
+    const confirmMessage = userExpenses.length > 0
+      ? `Delete ${user.name}?\n\nThis will also delete their ${userExpenses.length} expense(s). This cannot be undone.`
+      : `Delete ${user.name}?\n\nThis cannot be undone.`;
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      // Delete user's expenses first
+      const batch = writeBatch(db);
+      userExpenses.forEach(exp => {
+        batch.delete(doc(db, 'expenses', exp.id));
+      });
+      
+      // Delete user document
+      batch.delete(doc(db, 'users', userId));
+      
+      await batch.commit();
+
+      // Update local state
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      setExpenses(prev => prev.filter(exp => 
+        exp.paidBy !== userId && !exp.splits.some(s => s.userId === userId)
+      ));
+
+      alert('Guest user deleted successfully.');
+    } catch (error) {
+      console.error("Error deleting user: ", error);
+      alert("Failed to delete user. Please try again.");
+    }
+  };
+
   const handleSendGroupInvite = async (groupId: string, email: string) => {
     const group = groups.find(g => g.id === groupId);
     if (!group) {
@@ -864,6 +952,7 @@ const App: React.FC = () => {
             <ProfileScreen
                 users={users}
                 onCreateUser={handleCreateUser}
+                onDeleteGuestUser={handleDeleteGuestUser}
             />
         );
       default:

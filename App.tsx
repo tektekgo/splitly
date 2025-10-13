@@ -28,6 +28,7 @@ import InfoTooltip from './components/InfoTooltip';
 import GroupSelector from './components/GroupSelector';
 import InviteMemberModal from './components/InviteMemberModal';
 import HelpModal from './components/HelpModal';
+import OnboardingTour from './components/OnboardingTour';
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
 
@@ -64,6 +65,7 @@ const App: React.FC = () => {
 
   const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   
   const [editingExpense, setEditingExpense] = useState<FinalExpense | null>(null);
   const [viewingExpense, setViewingExpense] = useState<FinalExpense | null>(null);
@@ -187,6 +189,25 @@ const App: React.FC = () => {
     };
     fetchData();
   }, [currentUser]);
+
+  // Check if user needs onboarding (first time user)
+  useEffect(() => {
+    if (currentUser && !loading) {
+      const hasCompletedOnboarding = localStorage.getItem('onboarding-completed');
+      if (!hasCompletedOnboarding) {
+        // Small delay to let UI render before starting tour
+        const timer = setTimeout(() => {
+          setShowOnboarding(true);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [currentUser, loading]);
+
+  const handleFinishOnboarding = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('onboarding-completed', 'true');
+  };
 
   const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId), [groups, activeGroupId]);
   const activeGroupMembers = useMemo(() => {
@@ -1103,7 +1124,18 @@ const App: React.FC = () => {
       <HelpModal 
         isOpen={isHelpModalOpen}
         onClose={() => setIsHelpModalOpen(false)}
+        onRestartTour={() => {
+          localStorage.removeItem('onboarding-completed');
+          setShowOnboarding(true);
+        }}
       />
+
+      {/* Onboarding Tour - Only for first-time users */}
+      <OnboardingTour 
+        run={showOnboarding}
+        onFinish={handleFinishOnboarding}
+      />
+
       {isSettleUpModalOpen && activeGroup && (
         <SettleUpModal
           isOpen={isSettleUpModalOpen}

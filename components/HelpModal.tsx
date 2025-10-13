@@ -3,11 +3,12 @@ import React, { useState } from 'react';
 interface HelpModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onRestartTour?: () => void;
 }
 
 type TabType = 'getting-started' | 'groups' | 'expenses' | 'invites' | 'privacy';
 
-const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
+const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour }) => {
   const [activeTab, setActiveTab] = useState<TabType>('getting-started');
 
   if (!isOpen) return null;
@@ -437,10 +438,24 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border-light dark:border-border-dark bg-gray-50 dark:bg-gray-900/50 text-center">
-          <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
-            Still have questions? Use the <strong>💬 Send Feedback</strong> button to reach out!
-          </p>
+        <div className="p-4 border-t border-border-light dark:border-border-dark bg-gray-50 dark:bg-gray-900/50">
+          <div className="text-center space-y-3">
+            {onRestartTour && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onRestartTour();
+                }}
+                className="px-6 py-2 bg-primary text-white font-medium rounded-lg hover:bg-primary-600 transition-colors inline-flex items-center gap-2"
+              >
+                <span>🎯</span>
+                <span>Restart Quick Tour</span>
+              </button>
+            )}
+            <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+              Still have questions? Use the <strong>💬 Send Feedback</strong> button to reach out!
+            </p>
+          </div>
         </div>
       </div>
     </div>

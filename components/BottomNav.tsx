@@ -32,21 +32,25 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeScreen, onNavigate, notific
   return (
     <div className="fixed bottom-0 left-0 right-0 h-16 bg-content-light dark:bg-content-dark border-t border-border-light dark:border-border-dark z-40">
         <div className="max-w-3xl mx-auto h-full grid grid-cols-5 items-center px-2">
-            <NavItem
-                screen="dashboard"
-                label="Dashboard"
-                Icon={HomeIcon}
-                isActive={activeScreen === 'dashboard'}
-                onClick={onNavigate}
-            />
-             <NavItem
-                screen="groups"
-                label="Groups"
-                Icon={UsersIcon}
-                isActive={activeScreen === 'groups'}
-                onClick={onNavigate}
-            />
-            <div className="flex justify-center">
+            <div data-tour="dashboard-tab">
+              <NavItem
+                  screen="dashboard"
+                  label="Dashboard"
+                  Icon={HomeIcon}
+                  isActive={activeScreen === 'dashboard'}
+                  onClick={onNavigate}
+              />
+            </div>
+            <div data-tour="groups-tab">
+              <NavItem
+                  screen="groups"
+                  label="Groups"
+                  Icon={UsersIcon}
+                  isActive={activeScreen === 'groups'}
+                  onClick={onNavigate}
+              />
+            </div>
+            <div className="flex justify-center" data-tour="add-expense-button">
                 <button 
                     onClick={() => onNavigate('add')}
                     className="-mt-8 flex items-center justify-center w-16 h-16 bg-primary rounded-full shadow-lg text-white hover:bg-primary-600 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-surface-light dark:focus:ring-offset-surface-dark"
@@ -63,13 +67,15 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeScreen, onNavigate, notific
                 onClick={onNavigate}
                 badgeCount={notificationCount}
             />
-            <NavItem
-                screen="profile"
-                label="People"
-                Icon={UserCircleIcon}
-                isActive={activeScreen === 'profile'}
-                onClick={onNavigate}
-            />
+            <div data-tour="people-tab">
+              <NavItem
+                  screen="profile"
+                  label="People"
+                  Icon={UserCircleIcon}
+                  isActive={activeScreen === 'profile'}
+                  onClick={onNavigate}
+              />
+            </div>
         </div>
     </div>
   );

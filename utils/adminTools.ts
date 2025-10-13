@@ -8,6 +8,7 @@
 import { db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import type { User, Group, FinalExpense, GroupInvite, Notification } from '../types';
+import { runCurrencyMigration, checkMigrationNeeded } from './currencyMigration';
 
 export interface DatabaseStats {
   totalUsers: number;
@@ -21,6 +22,7 @@ export interface DatabaseStats {
   unreadNotifications: number;
   largestGroup: { name: string; members: number } | null;
   mostExpenses: { name: string; count: number } | null;
+  currencyMigrationNeeded: { groupsNeedMigration: number; expensesNeedMigration: number };
 }
 
 /**
@@ -81,6 +83,9 @@ export const getDatabaseStats = async (): Promise<DatabaseStats> => {
       }
     }
 
+    // Check currency migration status
+    const currencyMigrationNeeded = await checkMigrationNeeded();
+
     const stats: DatabaseStats = {
       totalUsers: users.length,
       realUsers,
@@ -92,7 +97,8 @@ export const getDatabaseStats = async (): Promise<DatabaseStats> => {
       totalNotifications: notifications.length,
       unreadNotifications,
       largestGroup,
-      mostExpenses
+      mostExpenses,
+      currencyMigrationNeeded
     };
 
     console.log('✅ Stats fetched:', stats);
@@ -205,6 +211,33 @@ export const findOrphanedData = async (): Promise<{
 
   } catch (error) {
     console.error('❌ Error finding orphaned data:', error);
+    throw error;
+  }
+};
+
+/**
+ * Run currency migration for existing data
+ */
+export const runCurrencyMigrationAdmin = async (): Promise<void> => {
+  console.log('💰 Running currency migration...');
+
+  try {
+    const result = await runCurrencyMigration();
+    
+    const message = `✅ Currency migration completed!
+    
+Groups updated: ${result.groupsUpdated}
+Expenses updated: ${result.expensesUpdated}
+${result.errors.length > 0 ? `\nErrors: ${result.errors.length}` : ''}
+
+${result.errors.length > 0 ? result.errors.join('\n') : ''}`;
+
+    console.log(message);
+    alert(message);
+
+  } catch (error) {
+    console.error('❌ Error running currency migration:', error);
+    alert('❌ Currency migration failed. Check console for details.');
     throw error;
   }
 };

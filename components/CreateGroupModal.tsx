@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import type { Group } from '../types';
+import CurrencySelector from './CurrencySelector';
+import { DEFAULT_CURRENCY } from '../utils/currencyFormatter';
 
 interface CreateGroupModalProps {
   isOpen: boolean;
@@ -9,6 +11,7 @@ interface CreateGroupModalProps {
 
 const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, onCreate }) => {
   const [groupName, setGroupName] = useState('');
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
 
   if (!isOpen) return null;
 
@@ -16,7 +19,13 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
     e.preventDefault();
     if (groupName.trim()) {
       // The parent component will handle adding the current user
-      onCreate({ name: groupName.trim(), members: [] });
+      onCreate({ 
+        name: groupName.trim(), 
+        members: [], 
+        currency: currency || DEFAULT_CURRENCY,
+        createdAt: new Date(),
+        createdBy: undefined // Will be set by parent component
+      });
     }
   };
 
@@ -29,16 +38,30 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
             </div>
 
             <div className="p-6 space-y-4">
-                <label htmlFor="newGroupName" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Group Name</label>
-                <input
-                    id="newGroupName"
-                    type="text"
-                    value={groupName}
-                    onChange={(e) => setGroupName(e.target.value)}
-                    placeholder="e.g., Family, Ski Trip, etc."
-                    required
-                    className="block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-                />
+                <div>
+                    <label htmlFor="newGroupName" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Group Name</label>
+                    <input
+                        id="newGroupName"
+                        type="text"
+                        value={groupName}
+                        onChange={(e) => setGroupName(e.target.value)}
+                        placeholder="e.g., Family, Ski Trip, etc."
+                        required
+                        className="block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+                    />
+                </div>
+                
+                <div>
+                    <label htmlFor="groupCurrency" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Currency</label>
+                    <CurrencySelector
+                        value={currency}
+                        onChange={setCurrency}
+                        className="mt-1"
+                    />
+                    <p className="mt-1 text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                        All expenses in this group will use this currency
+                    </p>
+                </div>
             </div>
 
             <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-border-light dark:border-border-dark flex justify-end gap-3 rounded-b-2xl">

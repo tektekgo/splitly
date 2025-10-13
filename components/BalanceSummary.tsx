@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import type { FinalExpense, Group, User } from '../types';
 import { ChevronRightIcon, CogIcon, ExportIcon } from './icons';
+import { formatCurrency } from '../utils/currencyFormatter';
 
 
 interface BalanceSummaryProps {
@@ -14,14 +15,14 @@ interface BalanceSummaryProps {
     onExportClick: () => void;
 }
 
-const BalanceItem: React.FC<{ user: User; balance: number; currentUserId: string; onViewDetail: (user: User) => void; }> = ({ user, balance, currentUserId, onViewDetail }) => {
+const BalanceItem: React.FC<{ user: User; balance: number; currentUserId: string; currency: string; onViewDetail: (user: User) => void; }> = ({ user, balance, currentUserId, currency, onViewDetail }) => {
     const isCurrentUser = user.id === currentUserId;
 
     const balanceText = Math.abs(balance) < 0.01 
         ? 'is settled up' 
         : balance > 0 
-        ? `gets back $${balance.toFixed(2)}` 
-        : `owes $${(-balance).toFixed(2)}`;
+        ? `gets back ${formatCurrency(balance, currency)}` 
+        : `owes ${formatCurrency(-balance, currency)}`;
     
     const textColor = Math.abs(balance) < 0.01 ? 'text-text-secondary-light dark:text-text-secondary-dark' : balance > 0 ? 'text-success' : 'text-error';
 
@@ -89,7 +90,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ expenses, group, member
         balanceColor = 'text-error';
         balanceDescription = 'Overall, you owe';
     }
-    const formattedBalance = `$${Math.abs(currentUserBalance).toFixed(2)}`;
+    const formattedBalance = formatCurrency(Math.abs(currentUserBalance), group.currency);
 
     return (
         <div className="bg-content-light dark:bg-content-dark rounded-2xl shadow-lg">
@@ -148,6 +149,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ expenses, group, member
                                 user={member} 
                                 balance={balances.get(member.id) || 0}
                                 currentUserId={currentUserId}
+                                currency={group.currency}
                                 onViewDetail={onViewDetail}
                             />
                     ))}

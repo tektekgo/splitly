@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import type { User, FinalExpense, ExpenseSplit } from '../types';
+import type { User, FinalExpense, ExpenseSplit, Group } from '../types';
 import { SplitMethod, Category } from '../types';
 import { CATEGORIES } from '../constants';
 import SplitMethodTabs from './SplitMethodTabs';
@@ -9,6 +9,7 @@ import SplitUnequally from './split_methods/SplitUnequally';
 import SplitByPercentage from './split_methods/SplitByPercentage';
 import SplitByShares from './split_methods/SplitByShares';
 import { SparklesIcon } from './icons';
+import { formatCurrency, getCurrencySymbol } from '../utils/currencyFormatter';
 
 interface AddExpenseFormProps {
   members: User[];
@@ -16,13 +17,12 @@ interface AddExpenseFormProps {
   onSaveExpense: (expense: FinalExpense) => void;
   expenseToEdit?: FinalExpense | null;
   onCancelEdit?: () => void;
-  groupId: string;
-  groupName: string;
+  group: Group;
   getCategorySuggestion: (description: string) => Promise<Category | null>;
   onBack?: () => void;
 }
 
-const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId, onSaveExpense, expenseToEdit, onCancelEdit, groupId, groupName, getCategorySuggestion, onBack }) => {
+const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId, onSaveExpense, expenseToEdit, onCancelEdit, group, getCategorySuggestion, onBack }) => {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<Category>(Category.FoodAndDrink);
@@ -109,9 +109,10 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
 
     const finalExpense: FinalExpense = {
       id: expenseToEdit?.id || crypto.randomUUID(),
-      groupId,
+      groupId: group.id,
       description,
       amount: numericAmount,
+      currency: group.currency,
       category,
       paidBy,
       expenseDate: expenseToEdit?.expenseDate || new Date().toISOString(),
@@ -129,6 +130,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
       totalAmount: numericAmount,
       members: members,
       payerId: paidBy,
+      currency: group.currency,
       onUpdateSplits: handleSplitsUpdate,
       initialSplits: expenseToEdit?.splitMethod === splitMethod ? expenseToEdit.splits : undefined,
     };
@@ -167,7 +169,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
           <label htmlFor="amount" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Amount</label>
           <div className="mt-1 relative rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
-              <span className="text-gray-500 dark:text-gray-400 sm:text-sm">$</span>
+              <span className="text-gray-500 dark:text-gray-400 sm:text-sm">{getCurrencySymbol(group.currency)}</span>
             </div>
             <input
               id="amount"
@@ -181,12 +183,13 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
               className="block w-full pl-7 pr-3 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
             />
           </div>
+          <p className="mt-1 text-xs text-text-secondary-light dark:text-text-secondary-dark">
+            Currency: {group.currency}
+          </p>
         </div>
         <div className="w-2/3">
-            <label htmlFor="category" className="flex items-center gap-2 text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">
+            <label htmlFor="category" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">
                 Category
-                <SparklesIcon className="w-4 h-4 text-primary" title="AI-powered suggestion" />
-                {isSuggesting && <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary/50"></div>}
             </label>
             <div className="mt-1 relative">
                 <select

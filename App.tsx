@@ -18,6 +18,7 @@ import type { FinalExpense, SimplifiedDebt, User, Group, Notification, GroupInvi
 import { SplitMethod, Category, NotificationType } from './types';
 import { MoonIcon, SunIcon, UsersIcon } from './components/icons';
 import { simplifyDebts } from './utils/debtSimplification';
+import { formatCurrency } from './utils/currencyFormatter';
 import { db } from './firebase';
 import { collection, getDocs, doc, writeBatch, addDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -396,6 +397,7 @@ const App: React.FC = () => {
       groupId: activeGroup.id,
       description: `Payment from ${fromUser.name.replace(' (You)', '')} to ${toUser.name.replace(' (You)', '')}`,
       amount: payment.amount,
+      currency: activeGroup.currency,
       category: Category.Payment,
       paidBy: payment.from,
       expenseDate: new Date().toISOString(),
@@ -404,7 +406,7 @@ const App: React.FC = () => {
     };
 
     const newNotificationData: Omit<Notification, 'id'> = {
-        message: `${fromUser.name.replace(' (You)', '')} paid ${toUser.name.replace(' (You)', '')} $${payment.amount.toFixed(2)}.`,
+        message: `${fromUser.name.replace(' (You)', '')} paid ${toUser.name.replace(' (You)', '')} ${formatCurrency(payment.amount, activeGroup.currency)}.`,
         type: NotificationType.PaymentRecorded,
         timestamp: new Date().toISOString(),
         read: false,
@@ -464,8 +466,12 @@ const App: React.FC = () => {
   
   const handleCreateGroup = async (newGroupData: Omit<Group, 'id'>) => {
     try {
-        const docRef = await addDoc(collection(db, 'groups'), newGroupData);
-        const newGroup = { ...newGroupData, id: docRef.id };
+        const groupDataWithCreator = {
+            ...newGroupData,
+            createdBy: currentUser.id,
+        };
+        const docRef = await addDoc(collection(db, 'groups'), groupDataWithCreator);
+        const newGroup = { ...groupDataWithCreator, id: docRef.id };
         setGroups(prev => [...prev, newGroup]);
         setActiveGroupId(newGroup.id);
         setActiveScreen('dashboard');
@@ -982,8 +988,7 @@ const App: React.FC = () => {
                 onSaveExpense={handleSaveExpense} 
                 expenseToEdit={editingExpense}
                 onCancelEdit={handleCancelEdit}
-                groupId={activeGroupId}
-                groupName={activeGroup?.name || 'Unknown Group'}
+                group={activeGroup!}
                 getCategorySuggestion={getCategorySuggestion}
                 onBack={() => setActiveScreen('dashboard')}
               />
@@ -1215,6 +1220,7 @@ const App: React.FC = () => {
           expenses={activeGroupExpenses}
           members={activeGroupMembers}
           simplifiedDebts={simplifiedDebts}
+          group={activeGroup}
         />
       )}
 

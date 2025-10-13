@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import type { FinalExpense, SimplifiedDebt, User } from '../types';
+import type { FinalExpense, SimplifiedDebt, User, Group } from '../types';
 import { exportExpenseLogToCSV, exportSettlementToCSV } from '../utils/export';
 import { simplifyDebts } from '../utils/debtSimplification';
 import { ExportIcon } from './icons';
@@ -10,9 +10,10 @@ interface ExportModalProps {
   expenses: FinalExpense[];
   members: User[];
   simplifiedDebts: SimplifiedDebt[];
+  group: Group;
 }
 
-const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, expenses, members, simplifiedDebts }) => {
+const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, expenses, members, simplifiedDebts, group }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -119,7 +120,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, expenses, me
             </button>
 
             <button
-                onClick={() => exportSettlementToCSV(filteredDebts, members)}
+                onClick={() => exportSettlementToCSV(filteredDebts, members, group.currency)}
                 disabled={filteredDebts.length === 0}
                 className="w-full flex items-center justify-start gap-3 text-left p-4 rounded-xl border-2 border-transparent bg-gray-50 dark:bg-gray-900/50 hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-transparent transition-all"
             >

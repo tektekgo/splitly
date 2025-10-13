@@ -3,7 +3,7 @@ import type { User } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import InfoTooltip from './InfoTooltip';
 import { DeleteIcon } from './icons';
-import { getDatabaseStats, exportAllData, findOrphanedData, type DatabaseStats } from '../utils/adminTools';
+import { getDatabaseStats, exportAllData, findOrphanedData, runCurrencyMigrationAdmin, type DatabaseStats } from '../utils/adminTools';
 
 interface ProfileScreenProps {
     users: User[];
@@ -196,6 +196,39 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                             >
                                 {loadingStats ? '⏳ Loading...' : '📊 View Database Stats'}
                             </button>
+
+                            {/* Currency Migration Status */}
+                            {stats && (
+                                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-lg">
+                                    <p className="text-sm text-blue-900 dark:text-blue-100 font-medium">
+                                        💰 Currency Migration Status:
+                                    </p>
+                                    <p className="text-xs text-blue-800 dark:text-blue-200 mt-1">
+                                        Groups needing migration: {stats.currencyMigrationNeeded.groupsNeedMigration}
+                                        <br />
+                                        Expenses needing migration: {stats.currencyMigrationNeeded.expensesNeedMigration}
+                                    </p>
+                                    {(stats.currencyMigrationNeeded.groupsNeedMigration > 0 || stats.currencyMigrationNeeded.expensesNeedMigration > 0) && (
+                                        <button
+                                            onClick={async () => {
+                                                if (confirm('Run currency migration for existing data? This will add USD currency to groups and expenses that don\'t have it.')) {
+                                                    try {
+                                                        await runCurrencyMigrationAdmin();
+                                                        // Refresh stats after migration
+                                                        const data = await getDatabaseStats();
+                                                        setStats(data);
+                                                    } catch (error) {
+                                                        console.error('Migration failed:', error);
+                                                    }
+                                                }
+                                            }}
+                                            className="mt-2 px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+                                        >
+                                            🚀 Run Currency Migration
+                                        </button>
+                                    )}
+                                </div>
+                            )}
 
                             {stats && (
                                 <div className="mt-3 p-4 bg-white dark:bg-gray-800 rounded-lg text-sm">

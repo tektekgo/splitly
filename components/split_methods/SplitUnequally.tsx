@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { User, ExpenseSplit } from '../../types';
+import { formatCurrency, getCurrencySymbol } from '../../utils/currencyFormatter';
 
 interface SplitUnequallyProps {
   totalAmount: number;
   members: User[];
+  currency: string;
   onUpdateSplits: (splits: ExpenseSplit[], error?: string | null) => void;
   initialSplits?: ExpenseSplit[];
 }
 
-const SplitUnequally: React.FC<SplitUnequallyProps> = ({ totalAmount, members, onUpdateSplits, initialSplits }) => {
+const SplitUnequally: React.FC<SplitUnequallyProps> = ({ totalAmount, members, currency, onUpdateSplits, initialSplits }) => {
   const [amounts, setAmounts] = useState<Record<string, string>>(() => {
       if (initialSplits) {
           return initialSplits.reduce((acc, split) => {
@@ -39,7 +41,7 @@ const SplitUnequally: React.FC<SplitUnequallyProps> = ({ totalAmount, members, o
     });
 
     if (totalAmount > 0 && Math.abs(remaining) > 0.001) {
-      onUpdateSplits(validSplits, `The total split ($${totalSplit.toFixed(2)}) does not match the expense amount ($${totalAmount.toFixed(2)}).`);
+      onUpdateSplits(validSplits, `The total split (${formatCurrency(totalSplit, currency)}) does not match the expense amount (${formatCurrency(totalAmount, currency)}).`);
     } else {
       onUpdateSplits(validSplits, null);
     }
@@ -61,7 +63,7 @@ const SplitUnequally: React.FC<SplitUnequallyProps> = ({ totalAmount, members, o
             </div>
             <div className="relative rounded-md shadow-sm w-28">
                 <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
-                    <span className="text-gray-500 dark:text-gray-400 sm:text-sm">$</span>
+                    <span className="text-gray-500 dark:text-gray-400 sm:text-sm">{getCurrencySymbol(currency)}</span>
                 </div>
                 <input
                     type="number"
@@ -77,8 +79,8 @@ const SplitUnequally: React.FC<SplitUnequallyProps> = ({ totalAmount, members, o
         ))}
       </div>
       <div className="text-sm font-medium text-right pt-2 border-t border-border-light dark:border-border-dark">
-        <p className="dark:text-gray-300">Total Split: ${totalSplit.toFixed(2)}</p>
-        <p className={getRemainingColor()}>Remaining: ${remaining.toFixed(2)}</p>
+        <p className="dark:text-gray-300">Total Split: {formatCurrency(totalSplit, currency)}</p>
+        <p className={getRemainingColor()}>Remaining: {formatCurrency(remaining, currency)}</p>
       </div>
     </div>
   );

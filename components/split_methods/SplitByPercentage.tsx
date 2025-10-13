@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { User, ExpenseSplit } from '../../types';
+import { formatCurrency } from '../../utils/currencyFormatter';
 
 interface SplitByPercentageProps {
   totalAmount: number;
   members: User[];
+  currency: string;
   onUpdateSplits: (splits: ExpenseSplit[], error?: string | null) => void;
   initialSplits?: ExpenseSplit[];
 }
 
-const SplitByPercentage: React.FC<SplitByPercentageProps> = ({ totalAmount, members, onUpdateSplits, initialSplits }) => {
+const SplitByPercentage: React.FC<SplitByPercentageProps> = ({ totalAmount, members, currency, onUpdateSplits, initialSplits }) => {
   const [percentages, setPercentages] = useState<Record<string, string>>(() => {
     if (initialSplits && totalAmount > 0) {
         return initialSplits.reduce((acc, split) => {
@@ -60,7 +62,7 @@ const SplitByPercentage: React.FC<SplitByPercentageProps> = ({ totalAmount, memb
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-gray-600 dark:text-gray-400 w-24 text-right">
-                ${(totalAmount * (parseFloat(percentages[member.id]) || 0) / 100).toFixed(2)}
+                {formatCurrency(totalAmount * (parseFloat(percentages[member.id]) || 0) / 100, currency)}
               </span>
               <div className="relative rounded-md shadow-sm w-24">
                 <input

@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { User, ExpenseSplit } from '../../types';
+import { formatCurrency } from '../../utils/currencyFormatter';
 
 interface SplitBySharesProps {
   totalAmount: number;
   members: User[];
+  currency: string;
   onUpdateSplits: (splits: ExpenseSplit[], error?: string | null) => void;
   initialSplits?: ExpenseSplit[];
 }
 
-const SplitByShares: React.FC<SplitBySharesProps> = ({ totalAmount, members, onUpdateSplits, initialSplits }) => {
+const SplitByShares: React.FC<SplitBySharesProps> = ({ totalAmount, members, currency, onUpdateSplits, initialSplits }) => {
   const [shares, setShares] = useState<Record<string, string>>(() => {
     if (initialSplits && totalAmount > 0) {
         // To reverse-engineer shares, we need to find a common divisor.
@@ -67,7 +69,7 @@ const SplitByShares: React.FC<SplitBySharesProps> = ({ totalAmount, members, onU
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-gray-600 dark:text-gray-400 w-24 text-right">
-                ${(amountPerShare * (parseInt(shares[member.id], 10) || 0)).toFixed(2)}
+                {formatCurrency(amountPerShare * (parseInt(shares[member.id], 10) || 0), currency)}
               </span>
               <div className="relative rounded-md shadow-sm w-24">
                 <input
@@ -86,7 +88,7 @@ const SplitByShares: React.FC<SplitBySharesProps> = ({ totalAmount, members, onU
       </div>
        <div className="text-sm font-medium text-right pt-2 border-t border-border-light dark:border-border-dark">
         <p className="dark:text-gray-300">Total Shares: {totalShares}</p>
-        <p className="text-text-secondary-light dark:text-text-secondary-dark">Value per share: ${amountPerShare.toFixed(2)}</p>
+        <p className="text-text-secondary-light dark:text-text-secondary-dark">Value per share: {formatCurrency(amountPerShare, currency)}</p>
       </div>
     </div>
   );

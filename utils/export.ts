@@ -1,4 +1,5 @@
 import type { FinalExpense, SimplifiedDebt, User } from '../types';
+import { formatCurrency } from './currencyFormatter';
 
 function downloadCSV(csvContent: string, filename: string): void {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -27,21 +28,22 @@ function escapeCsvCell(cell: string | number): string {
 
 export function exportExpenseLogToCSV(expenses: FinalExpense[], users: User[]): void {
   const userMap = new Map(users.map(u => [u.id, u.name]));
-  const headers = ['Date', 'Description', 'Category', 'Amount', 'Paid By', 'Split Details'];
+  const headers = ['Date', 'Description', 'Category', 'Amount', 'Currency', 'Paid By', 'Split Details'];
   
   const rows = expenses.map(expense => {
     const expenseDate = new Date(expense.expenseDate).toLocaleDateString('en-CA'); // YYYY-MM-DD format
     const paidBy = userMap.get(expense.paidBy)?.replace(' (You)', '') || 'Unknown';
     const splitDetails = expense.splits.map(split => {
         const userName = userMap.get(split.userId)?.replace(' (You)', '') || 'Unknown';
-        return `${userName} owes $${split.amount.toFixed(2)}`;
+        return `${userName} owes ${formatCurrency(split.amount, expense.currency)}`;
     }).join('; ');
 
     return [
       expenseDate,
       expense.description,
       expense.category,
-      expense.amount.toFixed(2),
+      formatCurrency(expense.amount, expense.currency),
+      expense.currency,
       paidBy,
       splitDetails,
     ].map(escapeCsvCell).join(',');
@@ -51,9 +53,9 @@ export function exportExpenseLogToCSV(expenses: FinalExpense[], users: User[]): 
   downloadCSV(csvContent, 'splitly-expense-log.csv');
 }
 
-export function exportSettlementToCSV(debts: SimplifiedDebt[], users: User[]): void {
+export function exportSettlementToCSV(debts: SimplifiedDebt[], users: User[], currency: string = 'USD'): void {
     const userMap = new Map(users.map(u => [u.id, u.name]));
-    const headers = ['From', 'To', 'Amount'];
+    const headers = ['From', 'To', 'Amount', 'Currency'];
 
     const rows = debts.map(debt => {
         const fromUser = userMap.get(debt.from)?.replace(' (You)', '') || 'Unknown';
@@ -61,7 +63,8 @@ export function exportSettlementToCSV(debts: SimplifiedDebt[], users: User[]): v
         return [
             fromUser,
             toUser,
-            debt.amount.toFixed(2)
+            formatCurrency(debt.amount, currency),
+            currency
         ].map(escapeCsvCell).join(',');
     });
 

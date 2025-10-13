@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { User, ExpenseSplit } from '../../types';
+import { formatCurrency } from '../../utils/currencyFormatter';
 
 interface SplitEquallyProps {
   totalAmount: number;
   members: User[];
   payerId: string;
+  currency: string;
   onUpdateSplits: (splits: ExpenseSplit[], error?: string | null) => void;
   initialSplits?: ExpenseSplit[];
 }
 
-const SplitEqually: React.FC<SplitEquallyProps> = ({ totalAmount, members, onUpdateSplits, initialSplits }) => {
+const SplitEqually: React.FC<SplitEquallyProps> = ({ totalAmount, members, currency, onUpdateSplits, initialSplits }) => {
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(() => {
     if (initialSplits && initialSplits.length > 0) {
         return new Set(initialSplits.map(s => s.userId));
@@ -51,7 +53,7 @@ const SplitEqually: React.FC<SplitEquallyProps> = ({ totalAmount, members, onUpd
       <div className="flex justify-between items-center text-sm font-medium text-gray-700 dark:text-gray-300">
         <span>Split between:</span>
         <span className="px-2 py-1 bg-primary text-white rounded-md">
-          {selectedMembers.size > 0 ? `$${amountPerPerson.toFixed(2)} / person` : '$0.00 / person'}
+          {selectedMembers.size > 0 ? `${formatCurrency(amountPerPerson, currency)} / person` : `${formatCurrency(0, currency)} / person`}
         </span>
       </div>
       <div className="max-h-48 overflow-y-auto space-y-2 pr-2">

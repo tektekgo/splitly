@@ -16,6 +16,9 @@ export interface Group {
   id: string;
   name: string;
   members: string[]; // Changed from User[] to string[]
+  currency: string; // ISO code (USD, EUR, INR, GBP, etc.)
+  createdAt?: Date;
+  createdBy?: string;
 }
 
 export enum SplitMethod {
@@ -50,6 +53,7 @@ export interface FinalExpense {
   groupId: string; // Added to link expense to a group
   description: string;
   amount: number;
+  currency: string; // Inherited from group, stored for reference
   category: Category;
   paidBy: string; // User ID
   expenseDate: string; // ISO 8601 date string

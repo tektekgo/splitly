@@ -14,7 +14,7 @@ import ProfileScreen from './components/ProfileScreen';
 import ActivityScreen from './components/ActivityScreen';
 import ExportModal from './components/ExportModal';
 import { CATEGORIES, createNewUser } from './constants';
-import type { FinalExpense, SimplifiedDebt, User, Group, Notification } from './types';
+import type { FinalExpense, SimplifiedDebt, User, Group, Notification, GroupInvite } from './types';
 import { SplitMethod, Category, NotificationType } from './types';
 import { MoonIcon, SunIcon, UsersIcon } from './components/icons';
 import { simplifyDebts } from './utils/debtSimplification';
@@ -26,6 +26,8 @@ import LoginScreen from './components/LoginScreen';
 import FeedbackButton from './components/FeedbackButton';
 import InfoTooltip from './components/InfoTooltip';
 import GroupSelector from './components/GroupSelector';
+import InviteMemberModal from './components/InviteMemberModal';
+import HelpModal from './components/HelpModal';
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
 
@@ -43,20 +45,25 @@ const ThemeToggle: React.FC<{ theme: Theme, toggleTheme: () => void }> = ({ them
 );
 
 const App: React.FC = () => {
-  const { currentUser, loading: authLoading } = useAuth();
+  const { currentUser, loading: authLoading, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [expenses, setExpenses] = useState<FinalExpense[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [groupInvites, setGroupInvites] = useState<GroupInvite[]>([]);
 
   const [isSettleUpModalOpen, setIsSettleUpModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [inviteGroupId, setInviteGroupId] = useState<string | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupDebt, setEditingGroupDebt] = useState(0);
 
   const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
+  const [showUserMenu, setShowUserMenu] = useState(false);
   
   const [editingExpense, setEditingExpense] = useState<FinalExpense | null>(null);
   const [viewingExpense, setViewingExpense] = useState<FinalExpense | null>(null);
@@ -72,8 +79,28 @@ const App: React.FC = () => {
         try {
             console.log("Fetching data from Firestore...");
             
-            // Fetch all users (needed for group member selection)
-            const usersSnapshot = await getDocs(collection(db, 'users'));
+            // PRIVACY & SECURITY: Only fetch users relevant to current user
+            // Previously fetched ALL users (privacy issue at scale)
+            // Now only fetch:
+            // 1. Current user themselves (for profile display)
+            // 2. Simulated/guest users created by current user (for group management)
+            // This ensures users can't see or add other real users without permission
+            const usersQuery = query(
+                collection(db, 'users'),
+                where('createdBy', '==', currentUser.id)
+            );
+            const simulatedUsersSnapshot = await getDocs(usersQuery);
+            
+            // Get current user's document
+            const currentUserDoc = await getDocs(
+                query(collection(db, 'users'), where('__name__', '==', currentUser.id))
+            );
+            
+            // Combine current user + their simulated users
+            const allUserDocs = [...currentUserDoc.docs, ...simulatedUsersSnapshot.docs];
+            const usersSnapshot = { docs: allUserDocs };
+            
+            console.log(`Loaded ${allUserDocs.length} users (1 real + ${simulatedUsersSnapshot.docs.length} guest)`);
             
             // Fetch only groups where current user is a member
             const groupsQuery = query(
@@ -104,10 +131,37 @@ const App: React.FC = () => {
             // Fetch notifications
             const notificationsSnapshot = await getDocs(collection(db, 'notifications'));
 
+            // Fetch group invites (sent by or to current user)
+            const sentInvitesQuery = query(
+                collection(db, 'groupInvites'),
+                where('invitedBy', '==', currentUser.id)
+            );
+            const receivedInvitesQuery = query(
+                collection(db, 'groupInvites'),
+                where('invitedEmail', '==', currentUser.email?.toLowerCase())
+            );
+            
+            const [sentInvitesSnapshot, receivedInvitesSnapshot] = await Promise.all([
+                getDocs(sentInvitesQuery),
+                getDocs(receivedInvitesQuery)
+            ]);
+
             // Process all the data
             const usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
             const groupsData = groupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
             const notificationsData = notificationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification)).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            
+            // Combine and deduplicate invites
+            const allInviteDocs = [...sentInvitesSnapshot.docs, ...receivedInvitesSnapshot.docs];
+            const uniqueInvites = new Map();
+            allInviteDocs.forEach(doc => {
+                if (!uniqueInvites.has(doc.id)) {
+                    uniqueInvites.set(doc.id, { id: doc.id, ...doc.data() } as GroupInvite);
+                }
+            });
+            const invitesData = Array.from(uniqueInvites.values()).sort((a,b) => 
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
 
             // Sort expenses by date
             expensesData.sort((a,b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime());
@@ -116,6 +170,7 @@ const App: React.FC = () => {
             setGroups(groupsData);
             setExpenses(expensesData);
             setNotifications(notificationsData);
+            setGroupInvites(invitesData);
 
             // Only set activeGroupId if not already set
             setActiveGroupId(prev => {
@@ -385,7 +440,10 @@ const App: React.FC = () => {
   const handleCreateUser = async (name: string) => {
     const newUserNoId = {
         name: name,
-        avatarUrl: `https://i.pravatar.cc/150?u=${crypto.randomUUID()}`
+        avatarUrl: `https://i.pravatar.cc/150?u=${crypto.randomUUID()}`,
+        authType: 'simulated' as const,
+        createdBy: currentUser.id,
+        createdAt: new Date().toISOString()
     };
     try {
         const docRef = await addDoc(collection(db, 'users'), newUserNoId);
@@ -393,6 +451,141 @@ const App: React.FC = () => {
     } catch (error) {
         console.error("Error creating user: ", error);
         alert("Failed to create user. Please try again.");
+    }
+  };
+
+  const handleSendGroupInvite = async (groupId: string, email: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) {
+      throw new Error('Group not found');
+    }
+
+    // Check if user already invited
+    const existingInvite = groupInvites.find(
+      inv => inv.groupId === groupId && 
+             inv.invitedEmail === email.toLowerCase() && 
+             inv.status === 'pending'
+    );
+    
+    if (existingInvite) {
+      throw new Error('This person has already been invited to this group');
+    }
+
+    // Check if email matches current user
+    if (currentUser.email?.toLowerCase() === email.toLowerCase()) {
+      throw new Error('You cannot invite yourself');
+    }
+
+    try {
+      const newInvite: Omit<GroupInvite, 'id'> = {
+        groupId: group.id,
+        groupName: group.name,
+        invitedEmail: email.toLowerCase(),
+        invitedBy: currentUser.id,
+        inviterName: currentUser.name,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+      };
+
+      const docRef = await addDoc(collection(db, 'groupInvites'), newInvite);
+      const savedInvite = { id: docRef.id, ...newInvite };
+      setGroupInvites(prev => [...prev, savedInvite]);
+
+      // Create notification for the invited user (if they have an account)
+      const invitedUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+      if (invitedUser) {
+        const notification: Omit<Notification, 'id'> = {
+          message: `${currentUser.name} invited you to join "${group.name}"`,
+          type: NotificationType.GroupInvite,
+          timestamp: new Date().toISOString(),
+          read: false,
+          inviteId: docRef.id,
+        };
+        await addDoc(collection(db, 'notifications'), notification);
+      }
+
+      alert(`Invite sent to ${email}!`);
+    } catch (error: any) {
+      console.error("Error sending invite: ", error);
+      throw new Error(error.message || 'Failed to send invite');
+    }
+  };
+
+  const handleAcceptInvite = async (inviteId: string) => {
+    const invite = groupInvites.find(inv => inv.id === inviteId);
+    if (!invite) {
+      alert('Invite not found');
+      return;
+    }
+
+    if (invite.invitedEmail.toLowerCase() !== currentUser.email?.toLowerCase()) {
+      alert('This invite was not sent to your email address');
+      return;
+    }
+
+    try {
+      // Update invite status
+      await updateDoc(doc(db, 'groupInvites', inviteId), {
+        status: 'accepted',
+        acceptedAt: new Date().toISOString(),
+        invitedUserId: currentUser.id,
+      });
+
+      // Add user to group
+      const groupRef = doc(db, 'groups', invite.groupId);
+      const groupDoc = await getDocs(query(collection(db, 'groups'), where('__name__', '==', invite.groupId)));
+      if (!groupDoc.empty) {
+        const groupData = groupDoc.docs[0].data() as Group;
+        const updatedMembers = [...groupData.members, currentUser.id];
+        await updateDoc(groupRef, { members: updatedMembers });
+        
+        // Update local state
+        setGroups(prev => prev.map(g => 
+          g.id === invite.groupId ? { ...g, members: updatedMembers } : g
+        ));
+        setGroupInvites(prev => prev.map(inv => 
+          inv.id === inviteId ? { ...inv, status: 'accepted' as const, acceptedAt: new Date().toISOString(), invitedUserId: currentUser.id } : inv
+        ));
+
+        // Mark related notification as read
+        const relatedNotification = notifications.find(n => n.inviteId === inviteId);
+        if (relatedNotification) {
+          await updateDoc(doc(db, 'notifications', relatedNotification.id), { read: true });
+          setNotifications(prev => prev.map(n => n.id === relatedNotification.id ? { ...n, read: true } : n));
+        }
+
+        alert(`You've joined "${invite.groupName}"!`);
+        setActiveGroupId(invite.groupId);
+        setActiveScreen('dashboard');
+      }
+    } catch (error) {
+      console.error("Error accepting invite: ", error);
+      alert("Failed to accept invite. Please try again.");
+    }
+  };
+
+  const handleDeclineInvite = async (inviteId: string) => {
+    try {
+      await updateDoc(doc(db, 'groupInvites', inviteId), {
+        status: 'declined',
+      });
+
+      setGroupInvites(prev => prev.map(inv => 
+        inv.id === inviteId ? { ...inv, status: 'declined' as const } : inv
+      ));
+
+      // Mark related notification as read
+      const relatedNotification = notifications.find(n => n.inviteId === inviteId);
+      if (relatedNotification) {
+        await updateDoc(doc(db, 'notifications', relatedNotification.id), { read: true });
+        setNotifications(prev => prev.map(n => n.id === relatedNotification.id ? { ...n, read: true } : n));
+      }
+
+      alert('Invite declined');
+    } catch (error) {
+      console.error("Error declining invite: ", error);
+      alert("Failed to decline invite. Please try again.");
     }
   };
   
@@ -660,7 +853,12 @@ const App: React.FC = () => {
           />
         );
       case 'activity':
-          return <ActivityScreen notifications={notifications} />;
+          return <ActivityScreen 
+            notifications={notifications} 
+            groupInvites={groupInvites}
+            onAcceptInvite={handleAcceptInvite}
+            onDeclineInvite={handleDeclineInvite}
+          />;
       case 'profile':
         return (
             <ProfileScreen
@@ -683,9 +881,42 @@ const App: React.FC = () => {
               <div className="flex items-center justify-center gap-3 mb-2">
                 <h1 className="text-5xl font-extrabold text-primary tracking-tight">Splitly</h1>
               </div>
-              <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                Welcome back, <span className="font-semibold text-primary">{currentUser.name}</span>
-              </p>
+              <div className="relative inline-block">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="text-sm text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors flex items-center gap-1"
+                >
+                  Welcome back, <span className="font-semibold text-primary">{currentUser.name}</span>
+                  <svg className={`w-4 h-4 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                
+                {/* User Menu Dropdown */}
+                {showUserMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+                    <div className="absolute z-50 left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-border-light dark:border-border-dark overflow-hidden">
+                      <div className="p-3 border-b border-border-light dark:border-border-dark bg-gray-50 dark:bg-gray-900/50">
+                        <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">Signed in as</p>
+                        <p className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark truncate">{currentUser.email}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          logout();
+                        }}
+                        className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Logout
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
               <p className="mt-1 text-sm text-text-secondary-light dark:text-text-secondary-dark">Splitting expenses, made easy.</p>
             </header>
             {/* Install Banner - Show to new users */}
@@ -753,9 +984,20 @@ const App: React.FC = () => {
             >
               💬 Send Feedback
             </a>
+            <span className="text-gray-300 dark:text-gray-600">•</span>
+            <button
+              onClick={() => setIsHelpModalOpen(true)}
+              className="text-primary hover:underline font-medium flex items-center gap-1"
+            >
+              ❓ Help & FAQ
+            </button>
           </div>
-          <p>Simplifying shared expenses | Built by Sujit Gangadharan</p>
-          <p className="text-xs">© 2025</p>
+          <div className="flex items-center justify-center gap-2 text-xs">
+            <span className="font-medium">© 2025</span>
+            <span className="text-gray-300 dark:text-gray-600">•</span>
+            <span>Built with <span className="text-red-500 animate-pulse">❤️</span> by</span>
+            <span className="font-semibold text-primary">Sujit Gangadharan</span>
+          </div>
         </footer>
         <div className="h-20" />
       </div>
@@ -767,6 +1009,12 @@ const App: React.FC = () => {
       />
       {/* Floating Feedback Button - Always accessible */}
       <FeedbackButton />
+      
+      {/* Help Modal */}
+      <HelpModal 
+        isOpen={isHelpModalOpen}
+        onClose={() => setIsHelpModalOpen(false)}
+      />
       {isSettleUpModalOpen && activeGroup && (
         <SettleUpModal
           isOpen={isSettleUpModalOpen}
@@ -798,7 +1046,26 @@ const App: React.FC = () => {
               onDelete={handleDeleteGroup}
               totalDebt={editingGroupDebt}
               onCreateUser={handleCreateUser}
+              groupInvites={groupInvites}
+              onInviteMember={() => {
+                setInviteGroupId(groupForEditing.id);
+                setIsInviteModalOpen(true);
+              }}
           />
+      )}
+
+      {inviteGroupId && (
+        <InviteMemberModal
+          isOpen={isInviteModalOpen}
+          onClose={() => {
+            setIsInviteModalOpen(false);
+            setInviteGroupId(null);
+          }}
+          group={groups.find(g => g.id === inviteGroupId)!}
+          onSendInvite={async (email) => {
+            await handleSendGroupInvite(inviteGroupId, email);
+          }}
+        />
       )}
 
       {viewingExpense && activeGroup && (

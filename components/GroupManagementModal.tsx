@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import type { Group, User } from '../types';
+import type { Group, User, GroupInvite } from '../types';
 import { DeleteIcon } from './icons';
 
 interface GroupManagementModalProps {
@@ -13,9 +13,11 @@ interface GroupManagementModalProps {
   onDelete: (groupId: string) => void;
   totalDebt: number;
   onCreateUser: (name: string) => Promise<void>;
+  groupInvites?: GroupInvite[];
+  onInviteMember?: () => void;
 }
 
-const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onClose, group, allUsers, currentUserId, onSave, onDelete, totalDebt, onCreateUser }) => {
+const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onClose, group, allUsers, currentUserId, onSave, onDelete, totalDebt, onCreateUser, groupInvites = [], onInviteMember }) => {
   const [groupName, setGroupName] = useState(group.name);
   const [memberIds, setMemberIds] = useState(group.members);
   const [selectedUserToAdd, setSelectedUserToAdd] = useState('');
@@ -122,6 +124,52 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                     ))}
                 </ul>
             </div>
+
+            {/* Invite by Email Section */}
+            {onInviteMember && (
+              <div className="mb-6">
+                <div className="bg-primary/5 dark:bg-primary/10 rounded-lg p-4 border border-primary/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h4 className="font-semibold text-text-primary-light dark:text-text-primary-dark">
+                        📧 Invite by Email
+                      </h4>
+                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-1">
+                        Invite someone who has (or will create) a Splitly account
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onInviteMember}
+                    className="mt-3 w-full px-4 py-2 bg-primary text-white font-medium rounded-lg hover:bg-primary-600 transition-colors"
+                  >
+                    + Invite Member
+                  </button>
+                </div>
+
+                {/* Show pending invites for this group */}
+                {groupInvites.filter(inv => inv.groupId === group.id && inv.status === 'pending').length > 0 && (
+                  <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                    <p className="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark mb-2">
+                      Pending Invites:
+                    </p>
+                    <ul className="space-y-1">
+                      {groupInvites
+                        .filter(inv => inv.groupId === group.id && inv.status === 'pending')
+                        .map(invite => (
+                          <li key={invite.id} className="text-xs text-text-secondary-light dark:text-text-secondary-dark flex items-center gap-2">
+                            <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                            {invite.invitedEmail}
+                            <span className="text-gray-400">(waiting)</span>
+                          </li>
+                        ))
+                      }
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
             
             {/* Quick Add User */}
             <div className="mb-4">

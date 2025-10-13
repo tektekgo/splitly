@@ -52,7 +52,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Create new user document
           const newUser: Omit<User, 'id'> = {
             name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-            avatarUrl: firebaseUser.photoURL || `https://i.pravatar.cc/150?u=${firebaseUser.uid}`
+            email: firebaseUser.email || undefined,
+            avatarUrl: firebaseUser.photoURL || `https://i.pravatar.cc/150?u=${firebaseUser.uid}`,
+            authType: firebaseUser.providerData[0]?.providerId === 'google.com' ? 'google' : 'email',
+            createdAt: new Date().toISOString()
           };
           await setDoc(userDocRef, newUser);
           setCurrentUser({ id: firebaseUser.uid, ...newUser });
@@ -82,7 +85,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Create user document
     const newUser: Omit<User, 'id'> = {
       name,
-      avatarUrl: `https://i.pravatar.cc/150?u=${user.uid}`
+      email: email,
+      avatarUrl: `https://i.pravatar.cc/150?u=${user.uid}`,
+      authType: 'email',
+      createdAt: new Date().toISOString()
     };
     await setDoc(doc(db, 'users', user.uid), newUser);
   };

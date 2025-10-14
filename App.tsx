@@ -19,6 +19,7 @@ import { SplitMethod, Category, NotificationType } from './types';
 import { MoonIcon, SunIcon, UsersIcon } from './components/icons';
 import { simplifyDebts } from './utils/debtSimplification';
 import { formatCurrency } from './utils/currencyFormatter';
+import { logError } from './utils/errorLogger';
 import { db } from './firebase';
 import { collection, getDocs, doc, writeBatch, addDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -493,6 +494,7 @@ const App: React.FC = () => {
         const docRef = await addDoc(collection(db, 'users'), newUserNoId);
         setUsers(prev => [...prev, { id: docRef.id, ...newUserNoId }]);
     } catch (error) {
+        logError('Create User', error, { userName: name, currentUserId: currentUser.id });
         console.error("Error creating user: ", error);
         alert("Failed to create user. Please try again.");
     }

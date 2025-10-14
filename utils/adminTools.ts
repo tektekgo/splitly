@@ -9,6 +9,7 @@ import { db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import type { User, Group, FinalExpense, GroupInvite, Notification } from '../types';
 import { runCurrencyMigration, checkMigrationNeeded } from './currencyMigration';
+import { getErrorLogs, exportErrorLogs, clearErrorLogs, getErrorSolutions } from './errorLogger';
 
 export interface DatabaseStats {
   totalUsers: number;
@@ -23,6 +24,7 @@ export interface DatabaseStats {
   largestGroup: { name: string; members: number } | null;
   mostExpenses: { name: string; count: number } | null;
   currencyMigrationNeeded: { groupsNeedMigration: number; expensesNeedMigration: number };
+  errorLogs: number;
 }
 
 /**
@@ -86,6 +88,9 @@ export const getDatabaseStats = async (): Promise<DatabaseStats> => {
     // Check currency migration status
     const currencyMigrationNeeded = await checkMigrationNeeded();
 
+    // Get error logs count
+    const errorLogs = getErrorLogs().length;
+
     const stats: DatabaseStats = {
       totalUsers: users.length,
       realUsers,
@@ -98,7 +103,8 @@ export const getDatabaseStats = async (): Promise<DatabaseStats> => {
       unreadNotifications,
       largestGroup,
       mostExpenses,
-      currencyMigrationNeeded
+      currencyMigrationNeeded,
+      errorLogs
     };
 
     console.log('✅ Stats fetched:', stats);
@@ -240,5 +246,37 @@ ${result.errors.length > 0 ? result.errors.join('\n') : ''}`;
     alert('❌ Currency migration failed. Check console for details.');
     throw error;
   }
+};
+
+/**
+ * Get error logs for debugging user issues
+ */
+export const getErrorLogsAdmin = () => {
+  return getErrorLogs();
+};
+
+/**
+ * Export error logs for analysis
+ */
+export const exportErrorLogsAdmin = () => {
+  const logs = exportErrorLogs();
+  const blob = new Blob([logs], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `splitly-error-logs-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  console.log('✅ Error logs exported');
+};
+
+/**
+ * Clear error logs
+ */
+export const clearErrorLogsAdmin = () => {
+  clearErrorLogs();
+  console.log('✅ Error logs cleared');
 };
 

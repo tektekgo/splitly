@@ -2,11 +2,11 @@
 
 **Date:** January 2025  
 **Status:** ✅ Complete  
-**Feature:** Multi-Currency Support for Splitly
+**Feature:** Multi-Currency Support for Splitbi
 
 ## Overview
 
-Splitly now supports multiple currencies with per-group currency settings. Each group can have its own currency, and all expenses within that group will use the group's currency. This implementation follows Option A (per-group currency) as requested.
+Splitbi now supports multiple currencies with per-group currency settings. Each group can have its own currency, and all expenses within that group will use the group's currency. This implementation follows Option A (per-group currency) as requested.
 
 ## Implementation Summary
 
@@ -189,7 +189,7 @@ Potential future improvements (not implemented):
 
 ## Migration Instructions
 
-For existing Splitly installations:
+For existing Splitbi installations:
 
 1. **Deploy the updated code**
 2. **Run migration as admin:**

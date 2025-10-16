@@ -1,4 +1,4 @@
-# Splitly Tech Stack
+# Splitbi Tech Stack
 
 ## Frontend Framework
 - **React**: 19.2.0 (UI framework)
@@ -39,7 +39,7 @@
 - **Phase 3**: Apple App Store + Google Play Store
 
 ## Project Structure
-splitly/
+splitbi/
 ├── components/           # React components (20+ files)
 │   ├── AddExpenseForm.tsx
 │   ├── BalanceSummary.tsx

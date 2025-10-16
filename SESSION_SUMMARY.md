@@ -1,4 +1,4 @@
-# Splitly Development Session Summary
+# Splitbi Development Session Summary
 Date: 10-11-2025
 Duration: ~8 hours
 Status: Firebase Auth 95% Complete
@@ -228,6 +228,8 @@ Status: Firebase Auth 95% Complete
 ## 🔗 Resources
 
 - GitHub Repo: https://github.com/tektekgo/splitly
+- Primary URL: https://splitbi.app
+- Backup URL: https://splitlyapp-cc612.web.app
 - Firebase Console: https://console.firebase.google.com/project/splitlyapp-cc612
 - Local Dev: http://localhost:3000
 - Network Access: http://192.168.9.22:3000 (for mobile testing)

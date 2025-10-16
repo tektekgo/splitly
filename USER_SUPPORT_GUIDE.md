@@ -1,6 +1,6 @@
 # 🚨 User Support & Debugging Guide
 
-**For:** Splitly Production Support  
+**For:** Splitbi Production Support  
 **Updated:** January 2025
 
 ## 🔍 Quick Debugging Checklist
@@ -212,7 +212,7 @@ Sujit
 console.log('Current user:', window.__currentUserId);
 
 // Check error logs
-console.log('Error logs:', JSON.parse(localStorage.getItem('splitly-error-logs') || '[]'));
+console.log('Error logs:', JSON.parse(localStorage.getItem('splitbi-error-logs') || '[]'));
 
 // Check Firebase connection
 console.log('Firebase config:', firebase.app().options);

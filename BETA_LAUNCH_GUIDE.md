@@ -1,4 +1,4 @@
-# 🚀 Beta Launch Guide - Splitly
+# 🚀 Beta Launch Guide - Splitbi
 
 **Prepared:** October 13, 2025  
 **Status:** Ready for Public Beta
@@ -16,7 +16,7 @@
    ```
 
 2. **Run cleanup:**
-   - Refresh Splitly app
+   - Refresh Splitbi app
    - Go to Profile/People tab
    - Scroll to bottom → See "🔧 Admin Tools" section
    - Click "🗑️ CLEAN DATABASE (ONE-TIME)"
@@ -49,11 +49,11 @@
 #### **Beta Launch Message (Copy this):**
 
 ```
-🎉 Splitly Beta Launch!
+🎉 Splitbi Beta Launch!
 
-Hi everyone! I'm excited to announce that Splitly is now in public beta!
+Hi everyone! I'm excited to announce that Splitbi is now live!
 
-What is Splitly?
+What is Splitbi?
 • Split expenses with roommates, friends, and family
 • Track who owes what in real-time
 • Settle up easily
@@ -85,7 +85,7 @@ I'd love your feedback!
 ```
 Hey [Name]!
 
-Thanks for testing Splitly early! 
+Thanks for testing Splitbi early! 
 
 ⚠️ IMPORTANT UPDATE:
 I'm doing a final database cleanup before public launch. 

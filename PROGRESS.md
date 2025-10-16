@@ -1,4 +1,4 @@
-# Splitly Development Progress
+# Splitbi Development Progress
 
 ## ✅ Completed
 - [x] Code review with Claude AI
@@ -58,6 +58,10 @@ Testing the app locally and preparing for GitHub push.
 - [x] Fixed all bugs (user1, ExpenseItem, UI duplication)
 - [x] Tested all features successfully
 - [x] Pushed code to GitHub (https://github.com/tektekgo/splitly)
+- [x] Complete rebrand to Splitbi
+- [x] Logo integration
+- [x] Custom domain setup (https://splitbi.app)
+- [x] Live deployment
 
 ## 🎯 Next Session: Firebase Authentication
 Goal: Add real user logins and secure the app

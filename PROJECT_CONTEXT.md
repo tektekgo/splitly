@@ -1,4 +1,4 @@
-# Splitly Project Context
+# Splitbi Project Context
 
 ## What This Is
 Expense splitting app for friends/roommates. Similar to Splitwise.

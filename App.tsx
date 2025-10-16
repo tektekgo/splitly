@@ -827,7 +827,13 @@ const App: React.FC = () => {
           return (
             <main className="bg-content-light dark:bg-content-dark rounded-2xl shadow-lg overflow-hidden">
                 <div className="p-10 text-center max-w-lg mx-auto">
-                    <div className="text-6xl mb-4">👥</div>
+                    <div className="flex justify-center mb-4">
+                        <img 
+                            src="/splitbi-logo.png" 
+                            alt="Splitbi Logo" 
+                            className="h-20 w-auto"
+                        />
+                    </div>
                     <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-3">
                         Welcome to Splitbi!
                     </h2>
@@ -1036,6 +1042,11 @@ const App: React.FC = () => {
             
             <header className="text-center mb-8 relative">
               <div className="flex items-center justify-center gap-3 mb-2">
+                <img 
+                  src="/splitbi-logo.png" 
+                  alt="Splitbi" 
+                  className="h-8 w-auto"
+                />
                 <h1 className="text-5xl font-extrabold text-primary tracking-tight">Splitbi</h1>
               </div>
               <div className="relative inline-block">

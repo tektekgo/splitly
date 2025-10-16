@@ -255,7 +255,7 @@ notifications/
 ┌─────────────────────────────────────────┐
 │  📧 Invite by Email                     │
 │  Invite someone who has (or will       │
-│  create) a Splitly account              │
+│  create) a Splitbi account              │
 │                                         │
 │  [+ Invite Member]                      │
 │                                         │

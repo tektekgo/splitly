@@ -10,6 +10,12 @@
     "categories": ["finance", "productivity", "lifestyle"],
     "icons": [
       {
+        "src": "/splitbi-logo.png",
+        "sizes": "any",
+        "type": "image/png",
+        "purpose": "any maskable"
+      },
+      {
         "src": "/icon-192.png",
         "sizes": "192x192",
         "type": "image/png",

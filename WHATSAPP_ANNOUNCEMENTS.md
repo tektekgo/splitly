@@ -1,6 +1,6 @@
 # 📱 WhatsApp Launch Announcements
 
-Copy and paste these messages to share Splitly with friends!
+Copy and paste these messages to share Splitbi with friends!
 
 ---
 
@@ -20,7 +20,7 @@ Hey everyone! I just launched *Splitly* - a free app to split expenses with room
 • 🌙 Beautiful dark mode
 
 🔗 *Try it now:*
-https://splitlyapp-cc612.web.app
+https://splitbi.app
 
 📱 Works on phone, tablet & desktop. Install it like an app!
 
@@ -38,7 +38,7 @@ Give it a try and let me know what you think! 🚀
 ```
 👋 Hey friends!
 
-I'm excited to share something I've been building - *Splitly*! 
+I'm excited to share something I've been building - *Splitbi*! 
 
 🎯 *What is it?*
 A free expense splitting app that makes tracking shared costs super easy.
@@ -59,7 +59,7 @@ A free expense splitting app that makes tracking shared costs super easy.
 ✅ Privacy-first - your data is yours
 
 🔗 *Try it here:*
-https://splitlyapp-cc612.web.app
+https://splitbi.app
 
 📱 *Pro tip:* Install it as an app for best experience!
 
@@ -82,7 +82,7 @@ Questions? Just reply! 💬
 
 Split expenses with roommates, friends & family.
 
-🔗 Try it: https://splitlyapp-cc612.web.app
+🔗 Try it: https://splitbi.app
 
 📱 Free • Beautiful • Easy to use
 
@@ -94,7 +94,7 @@ Feedback welcome! 🚀
 ## 💼 **Version 4: Professional** (For LinkedIn/professional networks)
 
 ```
-🚀 Excited to announce the beta launch of *Splitly*!
+🚀 Excited to announce the beta launch of *Splitbi*!
 
 A privacy-first expense splitting app built to make shared cost tracking effortless.
 
@@ -108,7 +108,7 @@ A privacy-first expense splitting app built to make shared cost tracking effortl
 
 Built with React, TypeScript, Firebase & Tailwind CSS.
 
-Try it out: https://splitlyapp-cc612.web.app
+Try it out: https://splitbi.app
 
 Feedback and suggestions welcome as we refine the experience! 
 
@@ -125,14 +125,14 @@ Hey roommates! 👋
 
 Tired of tracking expenses on random apps/spreadsheets?
 
-I built *Splitly* for exactly this! 
+I built *Splitbi* for exactly this! 
 
 🏠 Track rent, utilities, groceries
 💰 See who owes what instantly
 📊 Simplified payments (fewer transactions)
 📱 Works on any device
 
-Try it: https://splitlyapp-cc612.web.app
+Try it: https://splitbi.app
 
 Just launched - feedback welcome! 🚀
 ```
@@ -141,7 +141,7 @@ Just launched - feedback welcome! 🚀
 ```
 Planning a trip? ✈️
 
-Check out *Splitly* - makes splitting travel costs super easy!
+Check out *Splitbi* - makes splitting travel costs super easy!
 
 🏨 Hotels • 🍽️ Meals • 🎟️ Activities
 
@@ -154,7 +154,7 @@ No more:
 ✅ Everyone sees balances in real-time
 ✅ Settle up at the end
 
-Try it: https://splitlyapp-cc612.web.app
+Try it: https://splitbi.app
 
 Free & easy to use! 🎉
 ```
@@ -167,7 +167,7 @@ Free & easy to use! 🎉
 ```
 Hey! Quick question - 
 
-Did you get a chance to try Splitly? 
+Did you get a chance to try Splitbi? 
 
 Would love to know:
 • ✅ What worked well?
@@ -179,7 +179,7 @@ Your feedback helps make it better! 🙏
 
 ### **After someone tries it:**
 ```
-Thanks for trying Splitly! 🎉
+Thanks for trying Splitbi! 🎉
 
 Quick tips:
 • Create different groups for different situations
@@ -230,20 +230,20 @@ I'll look into it ASAP! 🔧
 
 **For immediate action:**
 ```
-🔗 Try it now: https://splitlyapp-cc612.web.app
+🔗 Try it now: https://splitbi.app
 Takes 30 seconds to sign up! ⚡
 ```
 
 **For social proof:**
 ```
 Already helped 3 groups track $500+ in expenses! 
-Your turn? 🔗 https://splitlyapp-cc612.web.app
+Your turn? 🔗 https://splitbi.app
 ```
 
 **For feature highlight:**
 ```
 💡 Cool feature: Add roommates without them needing an account!
-Check it out: https://splitlyapp-cc612.web.app
+Check it out: https://splitbi.app
 ```
 
 ---

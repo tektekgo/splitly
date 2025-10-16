@@ -1,5 +1,5 @@
-const CACHE_NAME = 'splitly-v1';
-const RUNTIME_CACHE = 'splitly-runtime';
+const CACHE_NAME = 'splitbi-v1';
+const RUNTIME_CACHE = 'splitbi-runtime';
 
 // Core files to cache on install
 const CORE_ASSETS = [

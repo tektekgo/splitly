@@ -13,7 +13,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ run, onFinish }) => {
       content: (
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-3">
-            🧭 Welcome to Splitly
+            🧭 Welcome to Splitbi
           </h2>
           <p className="text-gray-700 mb-4">
             Let's take a quick tour to show you how easy it is to split expenses with friends and family.
@@ -67,7 +67,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ run, onFinish }) => {
           </h3>
           <p className="text-gray-700">
             Your Dashboard shows who owes what in real-time. 
-            Splitly automatically calculates and simplifies all debts!
+            Splitbi automatically calculates and simplifies all debts!
           </p>
         </div>
       ),

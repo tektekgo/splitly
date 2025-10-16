@@ -50,7 +50,7 @@ export function exportExpenseLogToCSV(expenses: FinalExpense[], users: User[]): 
   });
 
   const csvContent = [headers.join(','), ...rows].join('\n');
-  downloadCSV(csvContent, 'splitly-expense-log.csv');
+  downloadCSV(csvContent, 'splitbi-expense-log.csv');
 }
 
 export function exportSettlementToCSV(debts: SimplifiedDebt[], users: User[], currency: string = 'USD'): void {
@@ -69,5 +69,5 @@ export function exportSettlementToCSV(debts: SimplifiedDebt[], users: User[], cu
     });
 
     const csvContent = [headers.join(','), ...rows].join('\n');
-    downloadCSV(csvContent, 'splitly-settlement-plan.csv');
+    downloadCSV(csvContent, 'splitbi-settlement-plan.csv');
 }

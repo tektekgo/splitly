@@ -829,7 +829,7 @@ const App: React.FC = () => {
                 <div className="p-10 text-center max-w-lg mx-auto">
                     <div className="text-6xl mb-4">👥</div>
                     <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-3">
-                        Welcome to Splitly!
+                        Welcome to Splitbi!
                     </h2>
                     <p className="text-text-secondary-light dark:text-text-secondary-dark mb-6">
                         Let's create your first group to start tracking shared expenses.
@@ -1036,7 +1036,7 @@ const App: React.FC = () => {
             
             <header className="text-center mb-8 relative">
               <div className="flex items-center justify-center gap-3 mb-2">
-                <h1 className="text-5xl font-extrabold text-primary tracking-tight">Splitly</h1>
+                <h1 className="text-5xl font-extrabold text-primary tracking-tight">Splitbi</h1>
               </div>
               <div className="relative inline-block">
                 <button
@@ -1105,7 +1105,7 @@ const App: React.FC = () => {
                   <div className="flex-shrink-0 text-2xl">📱</div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-text-primary-light dark:text-text-primary-dark mb-1">
-                      Install Splitly on your device!
+                      Install Splitbi on your device!
                     </h3>
                     <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-3">
                       Get instant access from your home screen. Works offline too!

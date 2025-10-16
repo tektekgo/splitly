@@ -81,7 +81,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                                 Why add people?
                             </p>
                             <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                                Add roommates, friends, or family members who <strong>don't have a Splitly account</strong>. 
+                                Add roommates, friends, or family members who <strong>don't have a Splitbi account</strong>. 
                                 You can then include them in your groups and track expenses together. They won't need to log in - 
                                 you'll manage everything on your side!
                             </p>
@@ -145,7 +145,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                         Add New Person
                     </h3>
                          <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-4">
-                        Add someone who doesn't have a Splitly account. Great for roommates, friends, or family!
+                        Add someone who doesn't have a Splitbi account. Great for roommates, friends, or family!
                          </p>
                         <div className="flex gap-2">
                             <input

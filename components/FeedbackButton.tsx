@@ -26,7 +26,7 @@ const FeedbackButton: React.FC = () => {
                   💬 Send Feedback
                 </h3>
                 <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mt-1">
-                  Help me make Splitly better!
+                  Help me make Splitbi better!
                 </p>
               </div>
               <button
@@ -47,7 +47,7 @@ const FeedbackButton: React.FC = () => {
                 </p>
                 <div className="space-y-2">
                   
-                    <a href="mailto:gsujit@gmail.com?subject=Splitly Bug Report&body=Please describe the bug you encountered:%0D%0A%0D%0A"
+                    <a href="mailto:gsujit@gmail.com?subject=Splitbi Bug Report&body=Please describe the bug you encountered:%0D%0A%0D%0A"
                     className="block w-full text-left px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
                   >
                     <span className="text-lg mr-2">🐛</span>
@@ -55,7 +55,7 @@ const FeedbackButton: React.FC = () => {
                   </a>
                   
                   
-                    <a href="mailto:gsujit@gmail.com?subject=Splitly Feature Request&body=I would love to see this feature:%0D%0A%0D%0A"
+                    <a href="mailto:gsujit@gmail.com?subject=Splitbi Feature Request&body=I would love to see this feature:%0D%0A%0D%0A"
                     className="block w-full text-left px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                   >
                     <span className="text-lg mr-2">💡</span>
@@ -63,7 +63,7 @@ const FeedbackButton: React.FC = () => {
                   </a>
                   
                   
-                    <a href="mailto:gsujit@gmail.com?subject=Splitly General Feedback&body=Here's my feedback about Splitly:%0D%0A%0D%0A"
+                    <a href="mailto:gsujit@gmail.com?subject=Splitbi General Feedback&body=Here's my feedback about Splitbi:%0D%0A%0D%0A"
                     className="block w-full text-left px-4 py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
                   >
                     <span className="text-lg mr-2">😊</span>

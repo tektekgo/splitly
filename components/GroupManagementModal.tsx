@@ -135,7 +135,7 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                         📧 Invite by Email
                       </h4>
                       <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-1">
-                        Invite someone who has (or will create) a Splitly account
+                        Invite someone who has (or will create) a Splitbi account
                       </p>
                     </div>
                   </div>

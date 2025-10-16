@@ -31,7 +31,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
               🧠 Help & FAQ
             </h2>
             <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mt-1">
-              Everything you need to know about Splitly
+              Everything you need to know about Splitbi
             </p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
@@ -63,8 +63,8 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
         <div className="p-6 overflow-y-auto max-h-[60vh]">
           {activeTab === 'getting-started' && (
             <div className="space-y-6">
-              <Section title="Welcome to Splitly! 🎉">
-                <p>Splitly helps you track and split shared expenses with roommates, friends, and family. Here's how to get started:</p>
+              <Section title="Welcome to Splitbi! 🎉">
+                <p>Splitbi helps you track and split shared expenses with roommates, friends, and family. Here's how to get started:</p>
               </Section>
 
               <Section title="Step 1: Create Your First Group">
@@ -118,8 +118,8 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                 </ol>
               </Section>
 
-              <Section title="How do I install Splitly as an app?">
-                <p className="mb-3">Installing makes Splitly work like a native app - faster and more convenient!</p>
+              <Section title="How do I install Splitbi as an app?">
+                <p className="mb-3">Installing makes Splitbi work like a native app - faster and more convenient!</p>
                 
                 <div className="space-y-3">
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
@@ -127,7 +127,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                     <ol className="list-decimal list-inside mt-2 text-sm space-y-1">
                       <li>Look for an install icon (⊕ or 🖥️⤓) in the address bar</li>
                       <li>Click it → Click "Install"</li>
-                      <li>Or: Menu (⋮) → "Apps" → "Install Splitly"</li>
+                      <li>Or: Menu (⋮) → "Apps" → "Install Splitbi"</li>
                     </ol>
                     <p className="text-xs mt-2 text-blue-800 dark:text-blue-200">
                       💡 See "Open In App"? It's already installed - click that!
@@ -185,7 +185,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                     <strong className="text-primary">Guest Users (No Login)</strong>
                     <ul className="list-disc list-inside mt-2 text-sm">
                       <li>You create them in the People tab</li>
-                      <li>They never see Splitly</li>
+                      <li>They never see Splitbi</li>
                       <li>You manage all their expenses</li>
                       <li>Great for: partners, kids, anyone who doesn't want an account</li>
                       <li>Shows "Guest" badge</li>
@@ -195,7 +195,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                     <strong className="text-primary">Real Users (With Login)</strong>
                     <ul className="list-disc list-inside mt-2 text-sm">
                       <li>You invite them by email</li>
-                      <li>They create their own Splitly account</li>
+                      <li>They create their own Splitbi account</li>
                       <li>They can add expenses themselves</li>
                       <li>They see their own balances</li>
                       <li>Great for: roommates, friends who want to participate</li>
@@ -353,12 +353,12 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                 </ol>
               </Section>
 
-              <Section title="Can I invite someone who already uses Splitly?">
+              <Section title="Can I invite someone who already uses Splitbi?">
                 <p className="mb-2">Yes! Just enter their email. They'll get a notification immediately and can accept right away.</p>
                 <p className="text-sm text-blue-600 dark:text-blue-400">✨ The system automatically detects existing users - no duplicates are created!</p>
               </Section>
 
-              <Section title="What if they don't have a Splitly account?">
+              <Section title="What if they don't have a Splitbi account?">
                 <p>No problem! The invite will wait for them. When they sign up using the invited email address, they'll see the invite and can accept it.</p>
               </Section>
 
@@ -375,7 +375,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
           {activeTab === 'privacy' && (
             <div className="space-y-6">
               <Section title="Is my data private? 🔐">
-                <p className="font-semibold text-primary mb-2">Yes! Splitly is privacy-first.</p>
+                <p className="font-semibold text-primary mb-2">Yes! Splitbi is privacy-first.</p>
                 <ul className="list-disc list-inside space-y-2">
                   <li>You can only see your own data and groups you're part of</li>
                   <li>No global user directory - no one can search for you</li>
@@ -415,7 +415,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                   <ul className="list-disc list-inside text-sm space-y-1">
                     <li>No login required</li>
                     <li>Someone else manages their expenses</li>
-                    <li>They never see Splitly</li>
+                    <li>They never see Splitbi</li>
                     <li>Only visible to the person who created them</li>
                     <li>No email or password needed</li>
                   </ul>

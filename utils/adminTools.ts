@@ -145,7 +145,7 @@ export const exportAllData = async (): Promise<void> => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `splitly-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `splitbi-backup-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -264,7 +264,7 @@ export const exportErrorLogsAdmin = () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `splitly-error-logs-${new Date().toISOString().split('T')[0]}.json`;
+  a.download = `splitbi-error-logs-${new Date().toISOString().split('T')[0]}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

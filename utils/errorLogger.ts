@@ -31,12 +31,12 @@ export function logError(action: string, error: any, details?: any) {
   };
 
   // Log to console for development
-  console.error('🚨 Splitly Error:', errorLog);
+  console.error('🚨 Splitbi Error:', errorLog);
 
   // In production, you could send to an external service
   // For now, we'll store in localStorage for debugging
   try {
-    const existingLogs = JSON.parse(localStorage.getItem('splitly-error-logs') || '[]');
+    const existingLogs = JSON.parse(localStorage.getItem('splitbi-error-logs') || '[]');
     existingLogs.push(errorLog);
     
     // Keep only last 50 errors
@@ -44,7 +44,7 @@ export function logError(action: string, error: any, details?: any) {
       existingLogs.splice(0, existingLogs.length - 50);
     }
     
-    localStorage.setItem('splitly-error-logs', JSON.stringify(existingLogs));
+    localStorage.setItem('splitbi-error-logs', JSON.stringify(existingLogs));
   } catch (e) {
     console.error('Failed to save error log:', e);
   }
@@ -55,7 +55,7 @@ export function logError(action: string, error: any, details?: any) {
  */
 export function getErrorLogs(): ErrorLog[] {
   try {
-    return JSON.parse(localStorage.getItem('splitly-error-logs') || '[]');
+    return JSON.parse(localStorage.getItem('splitbi-error-logs') || '[]');
   } catch {
     return [];
   }
@@ -65,7 +65,7 @@ export function getErrorLogs(): ErrorLog[] {
  * Clear error logs
  */
 export function clearErrorLogs() {
-  localStorage.removeItem('splitly-error-logs');
+  localStorage.removeItem('splitbi-error-logs');
 }
 
 /**

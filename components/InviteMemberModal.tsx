@@ -91,7 +91,7 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ isOpen, onClose, 
 
           <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
             <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-              💡 <strong>Tip:</strong> If they don't have a Splitly account yet, they can sign up using this email to see the invite.
+              💡 <strong>Tip:</strong> If they don't have a Splitbi account yet, they can sign up using this email to see the invite.
             </p>
           </div>
 

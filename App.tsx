@@ -825,23 +825,23 @@ const App: React.FC = () => {
       case 'dashboard':
         if (!activeGroup) {
           return (
-            <main className="bg-content-light dark:bg-content-dark rounded-2xl shadow-lg overflow-hidden">
-                <div className="p-10 text-center max-w-lg mx-auto">
+            <main className="bg-content-light dark:bg-content-dark rounded-lg shadow-md overflow-hidden">
+                <div className="p-6 text-center max-w-sm mx-auto">
                     <div className="flex justify-center mb-4">
                         <img 
                             src="/splitbi-logo.png" 
                             alt="Splitbi Logo" 
-                            className="h-20 w-auto"
+                            className="h-28 w-auto"
                         />
                     </div>
-                    <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-3">
-                        Welcome to Splitbi!
+                    <h2 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark mb-2">
+                        Welcome!
                     </h2>
-                    <p className="text-text-secondary-light dark:text-text-secondary-dark mb-6">
+                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-4">
                         Let's create your first group to start tracking shared expenses.
                     </p>
                     
-                    <div className="bg-primary/5 dark:bg-primary/10 rounded-lg p-6 mb-6 text-left">
+                    <div className="bg-primary/5 dark:bg-primary/10 rounded-lg p-4 mb-4 text-left">
                         <p className="font-semibold text-text-primary-light dark:text-text-primary-dark mb-3">
                             💡 What are groups?
                         </p>
@@ -890,7 +890,7 @@ const App: React.FC = () => {
               onSelectGroup={handleSetActiveGroup}
               onNavigateToGroups={() => setActiveScreen('groups')}
             />
-            <section className="mb-8">
+            <section className="mb-4">
               <BalanceSummary 
                 expenses={activeGroupExpenses} 
                 group={activeGroup}
@@ -902,12 +902,12 @@ const App: React.FC = () => {
                 onExportClick={handleOpenExport}
               />
             </section>
-            <main className="bg-content-light dark:bg-content-dark rounded-2xl shadow-lg overflow-hidden">
-              <div className="p-6 space-y-6">
+            <main className="bg-content-light dark:bg-content-dark rounded-lg shadow-md overflow-hidden">
+              <div className="p-4 space-y-4">
                 {/* Section Header with Group Context */}
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                    <h2 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">
                       Recent Expenses
                     </h2>
                     <InfoTooltip text="Search and filter expenses by description, category, or person. Only expenses from the current group are shown." />
@@ -1036,26 +1036,33 @@ const App: React.FC = () => {
 
   return (
     <div className="bg-surface-light dark:bg-surface-dark font-sans text-text-primary-light dark:text-text-primary-dark transition-colors duration-300">
-      <div className="container mx-auto max-w-3xl px-4 relative min-h-screen flex flex-col pt-8">
+      <div className="container mx-auto max-w-md sm:max-w-lg lg:max-w-xl px-3 relative min-h-screen flex flex-col pt-4">
         <main className="flex-grow">
             <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
             
-            <header className="text-center mb-8 relative">
-              <div className="flex items-center justify-center gap-3 mb-2">
-                <img 
-                  src="/splitbi-logo.png" 
-                  alt="Splitbi" 
-                  className="h-8 w-auto"
-                />
-                <h1 className="text-5xl font-extrabold text-primary tracking-tight">Splitbi</h1>
+            <header className="text-center mb-6 relative">
+              {/* Logo and Tagline Section */}
+              <div className="mb-6">
+                <div className="flex justify-center mb-2">
+                  <img 
+                    src="/splitbi-logo.png" 
+                    alt="Splitbi" 
+                    className="h-28 w-auto"
+                  />
+                </div>
+                <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                  Splitting expenses, made easy
+                </p>
               </div>
+              
+              {/* User Welcome Section */}
               <div className="relative inline-block">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="text-sm text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors flex items-center gap-1"
+                  className="text-xs text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors flex items-center gap-1"
                 >
                 Welcome back, <span className="font-semibold text-primary">{currentUser.name}</span>
-                  <svg className={`w-4 h-4 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
+                  <svg className={`w-3 h-3 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
                 </button>
@@ -1085,7 +1092,6 @@ const App: React.FC = () => {
                   </>
                 )}
               </div>
-              <p className="mt-1 text-sm text-text-secondary-light dark:text-text-secondary-dark">Splitting expenses, made easy.</p>
 
               {/* One-time hint over + button area (bottom center) */}
               {showAddHint && (

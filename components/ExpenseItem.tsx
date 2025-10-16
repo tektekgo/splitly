@@ -29,15 +29,15 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, members, onDelete, o
 
     return (
         <li 
-            className="flex items-center justify-between p-4 bg-content-light dark:bg-content-dark hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl shadow-md border border-border-light dark:border-border-dark transition-all cursor-pointer group"
+            className="flex items-center justify-between p-3 bg-content-light dark:bg-content-dark hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg shadow-sm border border-border-light dark:border-border-dark transition-all cursor-pointer group"
             onClick={() => onView(expense)}
         >
-            <div className="flex items-center gap-4 flex-grow min-w-0">
-                <div className="flex-shrink-0 p-3 bg-primary/10 rounded-full">
-                     <CategoryIcon category={expense.category} className="w-6 h-6 text-primary" />
+            <div className="flex items-center gap-3 flex-grow min-w-0">
+                <div className="flex-shrink-0 p-2 bg-primary/10 rounded-full">
+                     <CategoryIcon category={expense.category} className="w-5 h-5 text-primary" />
                 </div>
                 <div className="min-w-0">
-                    <p className="text-md font-semibold text-text-primary-light dark:text-text-primary-dark truncate">{expense.description}</p>
+                    <p className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark truncate">{expense.description}</p>
                     <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
                         Paid by {payerName}
                     </p>

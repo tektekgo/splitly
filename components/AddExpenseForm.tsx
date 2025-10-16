@@ -149,10 +149,10 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {/* Group context pill removed per UX feedback - title area remains minimal */}
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Description</label>
+        <label htmlFor="description" className="block text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">Description</label>
         <input
           id="description"
           type="text"
@@ -160,7 +160,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
           onChange={(e) => setDescription(e.target.value)}
           placeholder="e.g., Dinner at restaurant"
           required
-          className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+          className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-primary focus:border-primary text-sm"
         />
       </div>
 

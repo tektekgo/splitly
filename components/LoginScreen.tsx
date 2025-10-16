@@ -52,17 +52,16 @@ const LoginScreen: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-8">
-        <div className="text-center mb-8">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-sm p-6">
+        <div className="text-center mb-6">
           <div className="flex justify-center mb-4">
             <img 
               src="/splitbi-logo.png" 
               alt="Splitbi Logo" 
-              className="h-16 w-auto"
+              className="h-28 w-auto"
             />
           </div>
-          <h1 className="text-4xl font-extrabold text-primary mb-2">Splitbi</h1>
-          <p className="text-gray-600 dark:text-gray-400">Splitting expenses, made easy</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Splitting expenses, made easy</p>
         </div>
 
         {error && (
@@ -104,7 +103,7 @@ const LoginScreen: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-400 transition-all"
+            className="w-full py-2 bg-primary text-white font-semibold rounded-lg hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-400 transition-all min-h-12"
           >
             {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
           </button>

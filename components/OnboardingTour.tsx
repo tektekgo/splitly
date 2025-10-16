@@ -43,11 +43,33 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ run, onFinish }) => {
       disableBeacon: true,
     },
     {
+      target: '[data-tour="people-tab"]',
+      content: (
+        <div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">
+            👤 Step 2: Add People
+          </h3>
+          <p className="text-gray-700 mb-3">
+            Add people in two ways:
+          </p>
+          <ul className="text-sm text-gray-600 space-y-1 mb-3">
+            <li>• <strong>Guest users</strong> - No login needed, you manage everything</li>
+            <li>• <strong>Email invites</strong> - They get their own account</li>
+          </ul>
+          <p className="text-gray-700">
+            Tap here to add your first person! You'll need people to split expenses with.
+          </p>
+        </div>
+      ),
+      placement: 'top',
+      disableBeacon: true,
+    },
+    {
       target: '[data-tour="add-expense-button"]',
       content: (
         <div>
           <h3 className="text-lg font-bold text-gray-900 mb-2">
-            ➕ Step 2: Add Expenses
+            ➕ Step 3: Add Expenses
           </h3>
           <p className="text-gray-700">
             Click this big + button anytime to add an expense. 
@@ -63,33 +85,11 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ run, onFinish }) => {
       content: (
         <div>
           <h3 className="text-lg font-bold text-gray-900 mb-2">
-            📈 Step 3: View Balances
+            📈 Step 4: View Balances
           </h3>
           <p className="text-gray-700">
             Your Dashboard shows who owes what in real-time. 
             Splitbi automatically calculates and simplifies all debts!
-          </p>
-        </div>
-      ),
-      placement: 'top',
-      disableBeacon: true,
-    },
-    {
-      target: '[data-tour="people-tab"]',
-      content: (
-        <div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">
-            👤 Step 4: Add People
-          </h3>
-          <p className="text-gray-700 mb-3">
-            Add people in two ways:
-          </p>
-          <ul className="text-sm text-gray-600 space-y-1 mb-3">
-            <li>• <strong>Guest users</strong> - No login needed, you manage everything</li>
-            <li>• <strong>Email invites</strong> - They get their own account</li>
-          </ul>
-          <p className="text-gray-700">
-            Tap here to add your first person!
           </p>
         </div>
       ),

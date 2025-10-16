@@ -35,14 +35,14 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
     }, [users, currentUser]);
 
     return (
-        <main className="bg-content-light dark:bg-content-dark rounded-2xl shadow-lg overflow-hidden">
-            <div className="p-6 space-y-6">
+        <main className="bg-content-light dark:bg-content-dark rounded-lg shadow-md overflow-hidden">
+            <div className="p-4 space-y-4">
                 {/* Header */}
                 <div>
-                    <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-2">
+                    <h2 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark mb-2">
                         Profile & People
-                </h2>
-                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                    </h2>
+                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
                         Manage your account and add people to split expenses with
                     </p>
                 </div>

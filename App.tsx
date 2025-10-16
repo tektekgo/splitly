@@ -32,7 +32,7 @@ import InviteMemberModal from './components/InviteMemberModal';
 import HelpModal from './components/HelpModal';
 import OnboardingTour from './components/OnboardingTour';
 
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
+const genAI = new GoogleGenerativeAI((import.meta as any).env?.VITE_GEMINI_API_KEY || "");
 
 type Theme = 'light' | 'dark';
 type Screen = 'dashboard' | 'add' | 'groups' | 'profile' | 'activity';
@@ -62,6 +62,7 @@ const App: React.FC = () => {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isGroupManagementModalOpen, setIsGroupManagementModalOpen] = useState(false);
   const [inviteGroupId, setInviteGroupId] = useState<string | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupDebt, setEditingGroupDebt] = useState(0);
@@ -289,6 +290,43 @@ const App: React.FC = () => {
     if (!activeGroupId) return [];
     return expenses.filter(e => e.groupId === activeGroupId);
   }, [expenses, activeGroupId]);
+
+  // Calculate user balance for minimal display
+  const balances = useMemo(() => {
+    if (!activeGroupMembers || !currentUser) return new Map();
+    const memberBalances = new Map<string, number>();
+    activeGroupMembers.forEach(member => {
+      memberBalances.set(member.id, 0);
+    });
+
+    activeGroupExpenses.forEach(expense => {
+      const payerInGroup = memberBalances.has(expense.paidBy);
+      if (payerInGroup) {
+        const payerBalance = memberBalances.get(expense.paidBy) || 0;
+        memberBalances.set(expense.paidBy, payerBalance + expense.amount);
+        expense.splits.forEach(split => {
+          if (memberBalances.has(split.userId)) {
+            const splitteeBalance = memberBalances.get(split.userId) || 0;
+            memberBalances.set(split.userId, splitteeBalance - split.amount);
+          }
+        });
+      }
+    });
+    return memberBalances;
+  }, [activeGroupExpenses, activeGroupMembers, currentUser]);
+
+  const currentUserBalance = balances.get(currentUser?.id) || 0;
+  const balanceColor = useMemo(() => {
+    if (currentUserBalance > 0.01) return 'text-green-600 dark:text-green-400';
+    if (currentUserBalance < -0.01) return 'text-red-600 dark:text-red-400';
+    return 'text-text-primary-light dark:text-text-primary-dark';
+  }, [currentUserBalance]);
+
+  const balanceDescription = useMemo(() => {
+    if (currentUserBalance > 0.01) return 'Overall, you are owed';
+    if (currentUserBalance < -0.01) return 'Overall, you owe';
+    return 'You are all settled up.';
+  }, [currentUserBalance]);
 
   const getCategorySuggestion = useCallback(async (description: string): Promise<Category | null> => {
     if (description.trim().length < 3) {
@@ -826,18 +864,24 @@ const App: React.FC = () => {
         if (!activeGroup) {
           return (
             <main className="bg-content-light dark:bg-content-dark rounded-lg shadow-md overflow-hidden">
-                <div className="p-6 text-center max-w-sm mx-auto">
-                    <div className="flex justify-center mb-4">
-                        <img 
+                <div className="p-4 text-center max-w-sm mx-auto">
+                    {/* Compact Welcome Header */}
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-4">
+                      <div className="p-4 text-center">
+                        <div className="flex justify-center mb-2">
+                          <img 
                             src="/splitbi-logo.png" 
                             alt="Splitbi Logo" 
-                            className="h-28 w-auto"
-                        />
+                            className="h-12 w-auto"
+                          />
+                        </div>
+                        <h2 className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          Welcome to Splitbi!
+                        </h2>
+                      </div>
                     </div>
-                    <h2 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark mb-2">
-                        Welcome!
-                    </h2>
-                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-4">
+                    
+                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mb-3">
                         Let's create your first group to start tracking shared expenses.
                     </p>
                     
@@ -882,74 +926,170 @@ const App: React.FC = () => {
             </main>
           )
         }
+
         return (
-          <>
-            <GroupSelector
-              groups={groups}
-              activeGroupId={activeGroupId}
-              onSelectGroup={handleSetActiveGroup}
-              onNavigateToGroups={() => setActiveScreen('groups')}
-            />
-            <section className="mb-4">
-              <BalanceSummary 
-                expenses={activeGroupExpenses} 
-                group={activeGroup}
-                members={activeGroupMembers}
-                currentUserId={currentUser.id} 
-                onSettleUpClick={handleOpenSettleUp}
-                onViewDetail={handleViewBalanceDetail}
-                onManageGroupClick={handleOpenGroupManagement}
-                onExportClick={handleOpenExport}
-              />
-            </section>
-            <main className="bg-content-light dark:bg-content-dark rounded-lg shadow-md overflow-hidden">
-              <div className="p-4 space-y-4">
-                {/* Section Header with Group Context */}
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">
-                      Recent Expenses
-                    </h2>
-                    <InfoTooltip text="Search and filter expenses by description, category, or person. Only expenses from the current group are shown." />
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-text-secondary-light dark:text-text-secondary-dark">
-                      Showing expenses for:
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 dark:bg-primary/20 text-primary font-semibold rounded-full border border-primary/20">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
-                      </svg>
-                      {activeGroup.name}
-                    </span>
-                    <span className="text-text-secondary-light dark:text-text-secondary-dark text-xs">
-                      ({activeGroupExpenses.length} {activeGroupExpenses.length === 1 ? 'expense' : 'expenses'})
-                    </span>
-                  </div>
-                </div>
-                <ExpenseFilter
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  filterCategory={filterCategory}
-                  onCategoryChange={setFilterCategory}
-                  filterUser={filterUser}
-                  onUserChange={setFilterUser}
-                  members={activeGroupMembers}
-                  categories={CATEGORIES}
-                />
-                <ExpenseList 
-                  expenses={filteredExpenses} 
-                  members={activeGroupMembers}
-                  onDeleteExpense={handleDeleteExpense}
-                  onEditExpense={handleStartEdit}
-                  onViewExpense={handleViewExpense}
-                  hasActiveFilters={hasActiveFilters}
-                  originalExpenseCount={activeGroupExpenses.length}
-                  currentUserId={currentUser.id}
-                />
+          <div className="space-y-3">
+            {/* Balance Card */}
+            <div className="bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg shadow-sm border border-slate-200 dark:border-gray-600 p-4">
+              <div className="text-center">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">
+                  Your Balance
+                </p>
+                <p className={`text-3xl font-bold mb-1 ${balanceColor}`}>
+                  {formatCurrency(Math.abs(currentUserBalance), activeGroup?.currency || 'USD')}
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {balanceDescription}
+                </p>
               </div>
-            </main>
-          </>
+            </div>
+
+            {/* Groups Card */}
+            <div className="bg-slate-50 dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">Groups</h3>
+                <button 
+                  onClick={() => setActiveScreen('groups')}
+                  className="text-sm text-primary hover:text-primary-600 transition-colors font-medium"
+                >
+                  Manage →
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {groups.map(group => (
+                  <button
+                    key={group.id}
+                    onClick={() => handleSetActiveGroup(group.id)}
+                    className={`flex items-center gap-2 p-2 rounded-md transition-all text-left border ${
+                      activeGroupId === group.id 
+                        ? 'bg-primary/10 border-primary/30 text-primary shadow-sm' 
+                        : 'hover:bg-white dark:hover:bg-gray-700 border-slate-200 dark:border-gray-600'
+                    }`}
+                  >
+                    <div className="flex-shrink-0 w-6 h-6 rounded bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm">
+                      <span className="text-xs">
+                        {group.name.toLowerCase().includes('room') ? '🏠' :
+                         group.name.toLowerCase().includes('trip') || group.name.toLowerCase().includes('travel') ? '✈️' :
+                         group.name.toLowerCase().includes('family') ? '👨‍👩‍👧‍👦' :
+                         group.name.toLowerCase().includes('work') || group.name.toLowerCase().includes('office') ? '💼' :
+                         '👥'}
+                      </span>
+                    </div>
+                    <div className="flex-grow min-w-0">
+                      <p className="text-sm font-medium truncate">{group.name}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        ({group.members.length})
+                      </p>
+                    </div>
+                    {activeGroupId === group.id && (
+                      <div className="flex-shrink-0 w-1.5 h-1.5 bg-primary rounded-full"></div>
+                    )}
+                  </button>
+                ))}
+                
+                {/* Create New Group - Full Width */}
+                <button
+                  onClick={() => setActiveScreen('groups')}
+                  className="col-span-2 flex items-center justify-center gap-2 p-2 rounded-md hover:bg-white dark:hover:bg-gray-700 transition-colors border-2 border-dashed border-slate-300 dark:border-gray-600"
+                >
+                  <div className="w-6 h-6 rounded bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm">
+                    <span className="text-slate-400 text-xs">+</span>
+                  </div>
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Create New Group</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Recent Expenses Card */}
+            <div className="bg-slate-50 dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700">
+              <div className="p-3 border-b border-slate-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+                    Recent Expenses
+                  </h3>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-gray-700 px-2 py-0.5 rounded-full border border-slate-200 dark:border-gray-600">
+                    {activeGroupExpenses.length} total
+                  </span>
+                </div>
+              </div>
+              <div className="p-3">
+                {activeGroupExpenses.slice(0, 3).map(expense => {
+                  const payer = activeGroupMembers.find(m => m.id === expense.paidBy);
+                  return (
+                    <div key={expense.id} className="flex items-center gap-2 py-2 border-b border-slate-100 dark:border-gray-700 last:border-b-0">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-md bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm">
+                        <span className="text-slate-600 dark:text-slate-300 text-sm">
+                          {expense.category === 'Food' ? '🍕' :
+                           expense.category === 'Transport' ? '🚗' :
+                           expense.category === 'Entertainment' ? '🎬' :
+                           expense.category === 'Shopping' ? '🛍️' :
+                           '💰'}
+                        </span>
+                      </div>
+                      <div className="flex-grow min-w-0">
+                        <p className="text-sm font-medium truncate text-slate-800 dark:text-slate-100">{expense.description}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Paid by {payer?.name?.replace(' (You)', '')}
+                        </p>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                          {formatCurrency(expense.amount, activeGroup?.currency || 'USD')}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+                {activeGroupExpenses.length === 0 && (
+                  <div className="text-center py-4">
+                    <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center shadow-sm border border-slate-200 dark:border-gray-600">
+                      <span className="text-slate-400 text-lg">💰</span>
+                    </div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">No expenses yet</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Add your first expense to get started</p>
+                  </div>
+                )}
+                {activeGroupExpenses.length > 3 && (
+                  <div className="pt-2 border-t border-slate-100 dark:border-gray-700">
+                    <button
+                      onClick={() => {/* TODO: Implement view all */}}
+                      className="w-full text-sm text-primary hover:text-primary-600 transition-colors font-medium py-1"
+                    >
+                      View All Expenses →
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Actions Card */}
+            <div className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-3">
+              <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-2">Quick Actions</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setActiveScreen('add')}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-green-600 hover:bg-green-700 text-white rounded-md shadow-sm transition-all text-sm font-medium"
+                >
+                  <span className="text-sm">+</span>
+                  <span>Add Expense</span>
+                </button>
+                <button
+                  onClick={handleOpenSettleUp}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md shadow-sm transition-all text-sm font-medium"
+                >
+                  <span className="text-sm">$</span>
+                  <span>Settle Up</span>
+                </button>
+                <button
+                  onClick={() => setActiveScreen('profile')}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm transition-all text-sm font-medium"
+                >
+                  <span className="text-sm">⚙</span>
+                  <span>Users</span>
+                </button>
+              </div>
+            </div>
+          </div>
         );
       case 'add':
         if (!activeGroup || !activeGroupId) {
@@ -1012,12 +1152,16 @@ const App: React.FC = () => {
             currentUserId={currentUser.id}
             onSelectGroup={handleSetActiveGroup}
             onCreateGroup={handleCreateGroup}
+            onManageGroupMembers={(groupId) => {
+              setEditingGroupId(groupId);
+              setIsGroupManagementModalOpen(true);
+            }}
           />
         );
       case 'activity':
           return <ActivityScreen 
             notifications={notifications} 
-            groupInvites={groupInvites}
+            groupInvites={groupInvites.filter(invite => invite.invitedEmail === currentUser.email?.toLowerCase())}
             onAcceptInvite={handleAcceptInvite}
             onDeclineInvite={handleDeclineInvite}
           />;
@@ -1027,6 +1171,25 @@ const App: React.FC = () => {
                 users={users}
                 onCreateUser={handleCreateUser}
                 onDeleteGuestUser={handleDeleteGuestUser}
+                onOpenInviteModal={() => setIsInviteModalOpen(true)}
+                onOpenGroupManagement={() => {
+                  if (activeGroupId) {
+                    setEditingGroupId(activeGroupId);
+                    setIsGroupManagementModalOpen(true);
+                  }
+                }}
+                onOpenGroupSelector={() => setActiveScreen('groups')}
+                groupInvites={groupInvites.filter(invite => invite.invitedBy === currentUser.id)}
+                onResendInvite={async (inviteId) => {
+                  const invite = groupInvites.find(inv => inv.id === inviteId);
+                  if (invite) {
+                    try {
+                      await handleSendGroupInvite(invite.groupId, invite.invitedEmail);
+                    } catch (error: any) {
+                      alert(error.message || 'Failed to resend invite');
+                    }
+                  }
+                }}
             />
         );
       default:
@@ -1040,58 +1203,61 @@ const App: React.FC = () => {
         <main className="flex-grow">
             <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
             
-            <header className="text-center mb-6 relative">
-              {/* Logo and Tagline Section */}
-              <div className="mb-6">
+            {/* Clean Professional Header */}
+            <header className="bg-gray-50 dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 mb-4 relative">
+              {/* Header Content */}
+              <div className="p-4 text-center">
+                {/* Logo */}
                 <div className="flex justify-center mb-2">
                   <img 
                     src="/splitbi-logo.png" 
                     alt="Splitbi" 
-                    className="h-28 w-auto"
+                    className="h-16 w-auto"
                   />
                 </div>
-                <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                
+                {/* Tagline */}
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-3">
                   Splitting expenses, made easy
                 </p>
-              </div>
-              
-              {/* User Welcome Section */}
-              <div className="relative inline-block">
+                
+                {/* User Welcome */}
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="text-xs text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors flex items-center gap-1"
+                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors flex items-center gap-1 mx-auto"
                 >
-                Welcome back, <span className="font-semibold text-primary">{currentUser.name}</span>
+                  Welcome back, <span className="font-semibold text-gray-700 dark:text-gray-300">{currentUser.name}</span>
                   <svg className={`w-3 h-3 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
                 </button>
                 
-                {/* User Menu Dropdown */}
-                {showUserMenu && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-                    <div className="absolute z-50 left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-border-light dark:border-border-dark overflow-hidden">
-                      <div className="p-3 border-b border-border-light dark:border-border-dark bg-gray-50 dark:bg-gray-900/50">
-                        <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">Signed in as</p>
-                        <p className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark truncate">{currentUser.email}</p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          logout();
-                        }}
-                        className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                        Logout
-                      </button>
-                    </div>
-                  </>
-                )}
               </div>
+              
+              {/* User Menu Dropdown */}
+              {showUserMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+                  <div className="absolute z-50 left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-border-light dark:border-border-dark overflow-hidden">
+                    <div className="p-3 border-b border-border-light dark:border-border-dark bg-gray-50 dark:bg-gray-900/50">
+                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">Signed in as</p>
+                      <p className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark truncate">{currentUser.email}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        logout();
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      Logout
+                    </button>
+                  </div>
+                </>
+              )}
 
               {/* One-time hint over + button area (bottom center) */}
               {showAddHint && (
@@ -1243,10 +1409,13 @@ const App: React.FC = () => {
         />
       )}
 
-      {groupForEditing && (
+      {isGroupManagementModalOpen && groupForEditing && (
           <GroupManagementModal
-              isOpen={!!groupForEditing}
-              onClose={() => setEditingGroupId(null)}
+              isOpen={isGroupManagementModalOpen}
+              onClose={() => {
+                setEditingGroupId(null);
+                setIsGroupManagementModalOpen(false);
+              }}
               group={groupForEditing}
               allUsers={users}
               currentUserId={currentUser.id}

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import type { User } from '../types';
+import type { User, GroupInvite } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import InfoTooltip from './InfoTooltip';
 import { DeleteIcon } from './icons';
@@ -9,9 +9,14 @@ interface ProfileScreenProps {
     users: User[];
     onCreateUser: (name: string) => void;
     onDeleteGuestUser: (userId: string) => void;
+    onOpenInviteModal?: () => void;
+    onOpenGroupManagement?: () => void;
+    onOpenGroupSelector?: () => void;
+    groupInvites?: GroupInvite[];
+    onResendInvite?: (inviteId: string) => void;
 }
 
-const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDeleteGuestUser }) => {
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDeleteGuestUser, onOpenInviteModal, onOpenGroupManagement, onOpenGroupSelector, groupInvites = [], onResendInvite }) => {
     const { currentUser } = useAuth();
     const [newUserName, setNewUserName] = useState('');
     const [stats, setStats] = useState<DatabaseStats | null>(null);
@@ -35,135 +40,167 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
     }, [users, currentUser]);
 
     return (
-        <main className="bg-content-light dark:bg-content-dark rounded-lg shadow-md overflow-hidden">
-            <div className="p-4 space-y-4">
+        <main className="bg-slate-50 dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700">
+            <div className="p-3 space-y-3">
                 {/* Header */}
                 <div>
-                    <h2 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark mb-2">
-                        Profile & People
+                    <h2 className="text-base font-semibold text-text-primary-light dark:text-text-primary-dark mb-2">
+                        Profile
                     </h2>
-                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-                        Manage your account and add people to split expenses with
-                    </p>
                 </div>
 
-                {/* Logged-in User Section */}
-                <div className="bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 rounded-lg p-4 border-2 border-primary/20">
-                    <div className="mb-3">
-                        <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark flex items-center gap-2">
-                            Your Account
-                            <span className="px-2 py-0.5 bg-primary text-white text-xs font-semibold rounded-full">
-                                Logged In
-                            </span>
-                        </h3>
-                    </div>
+                {/* Your Account */}
+                <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-slate-200 dark:border-gray-600">
+                    <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">Your Account</h3>
                     {loggedInUser && (
-                        <div className="flex items-center p-3 bg-white dark:bg-gray-800 rounded-lg">
-                            <img src={loggedInUser.avatarUrl} alt={loggedInUser.name} className="w-12 h-12 rounded-full mr-4 ring-2 ring-primary" />
+                        <div className="flex items-center gap-2">
+                            <img src={loggedInUser.avatarUrl} alt={loggedInUser.name} className="w-8 h-8 rounded-full ring-1 ring-primary" />
                             <div>
-                                <p className="font-semibold text-text-primary-light dark:text-text-primary-dark">{loggedInUser.name}</p>
-                                <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-                                    {loggedInUser.authType === 'google' ? 'Authenticated with Google' : 
-                                     loggedInUser.authType === 'email' ? `Email: ${loggedInUser.email}` : 
-                                     'Authenticated'}
+                                <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{loggedInUser.name}</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    {loggedInUser.authType === 'google' ? 'Google' : 
+                                     loggedInUser.authType === 'email' ? 'Email' : 
+                                     'Auth'}
                                 </p>
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Explanation Box */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <div className="flex items-start gap-2">
-                        <span className="text-2xl">💡</span>
-                        <div>
-                            <p className="font-medium text-text-primary-light dark:text-text-primary-dark mb-1">
-                                Why add people?
-                            </p>
-                            <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                                Add roommates, friends, or family members who <strong>don't have a Splitbi account</strong>. 
-                                You can then include them in your groups and track expenses together. They won't need to log in - 
-                                you'll manage everything on your side!
-                            </p>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Simulated Users Section */}
-                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">
-                                People You've Added
-                            </h3>
-                            <InfoTooltip text="These are people you've created to track shared expenses. They don't have their own login - you manage everything for them." />
-                        </div>
-                        <span className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-text-secondary-light dark:text-text-secondary-dark text-xs font-semibold rounded-full">
-                            {simulatedUsers.length} {simulatedUsers.length === 1 ? 'person' : 'people'}
+                {/* Guest Users Section */}
+                <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-slate-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Guest Users</h3>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-gray-600 px-2 py-0.5 rounded-full">
+                            {simulatedUsers.length}
                         </span>
                     </div>
                     
                     {simulatedUsers.length > 0 ? (
-                        <ul className="space-y-2">
+                        <ul className="space-y-1">
                             {simulatedUsers.map(user => (
-                                <li key={user.id} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg group/item hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                    <div className="flex items-center">
-                                        <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full mr-4" />
-                                        <div>
-                                            <p className="font-medium text-text-primary-light dark:text-text-primary-dark">{user.name}</p>
-                                            <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">No login required</p>
-                                        </div>
-                                    </div>
+                                <li key={user.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-gray-600 rounded-md group/item hover:bg-slate-100 dark:hover:bg-gray-500 transition-colors">
                                     <div className="flex items-center gap-2">
-                                        <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full">
-                                            Guest
-                                        </span>
-                                        <button
-                                            onClick={() => onDeleteGuestUser(user.id)}
-                                            className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover/item:opacity-100"
-                                            title="Delete guest user"
-                                        >
-                                            <DeleteIcon className="w-5 h-5"/>
-                                        </button>
+                                        <img src={user.avatarUrl} alt={user.name} className="w-6 h-6 rounded-full" />
+                                        <span className="text-sm font-medium text-slate-800 dark:text-slate-100">{user.name}</span>
                                     </div>
+                                    <button
+                                        onClick={() => onDeleteGuestUser(user.id)}
+                                        className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                        title="Delete"
+                                    >
+                                        <DeleteIcon className="w-4 h-4"/>
+                                    </button>
                                 </li>
                             ))}
                         </ul>
                     ) : (
-                        <div className="text-center py-8">
-                            <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                                No people added yet. Add someone below to get started!
-                            </p>
+                        <div className="text-center py-4">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">No guest users yet</p>
                         </div>
                     )}
                 </div>
 
-                {/* Add New User Form */}
-                     <form onSubmit={handleAddUser} className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
-                    <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark mb-2 flex items-center">
-                        <span className="text-2xl mr-2">➕</span>
-                        Add New Person
-                    </h3>
-                         <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-4">
-                        Add someone who doesn't have a Splitbi account. Great for roommates, friends, or family!
-                         </p>
+                {/* Add Guest User Form */}
+                <form onSubmit={handleAddUser} className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-slate-200 dark:border-gray-600">
+                    <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">Add Guest User</h3>
                         <div className="flex gap-2">
                             <input
                                 type="text"
                                 value={newUserName}
                                 onChange={(e) => setNewUserName(e.target.value)}
-                            placeholder="Enter their name (e.g., 'John', 'Sarah')"
-                                className="block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+                            placeholder="Enter name"
+                                className="block w-full px-2 py-1.5 bg-slate-50 dark:bg-gray-600 border border-slate-200 dark:border-gray-500 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                             />
                             <button
                                 type="submit"
                             disabled={!newUserName.trim()}
-                            className="px-4 py-2 bg-primary text-white font-semibold rounded-lg shadow-md hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                            className="px-3 py-1.5 bg-primary text-white font-medium rounded-md text-sm hover:bg-primary-600 focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
                         >
                             Add Person
                         </button>
                     </div>
                 </form>
+
+                {/* Invite Real User Section */}
+                <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-slate-200 dark:border-gray-600">
+                    <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">Invite Real Users</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                        Send email invites to people who will create their own Splitbi accounts
+                    </p>
+                    <div className="space-y-2">
+                        <button
+                            onClick={() => onOpenGroupSelector?.()}
+                            className="w-full flex items-center justify-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                        >
+                            <span className="text-blue-600 dark:text-blue-400">📧</span>
+                            <span className="text-sm font-medium text-blue-700 dark:text-blue-400">Send Email Invite</span>
+                        </button>
+                        <button
+                            onClick={() => onOpenGroupSelector?.()}
+                            className="w-full flex items-center justify-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                        >
+                            <span className="text-green-600 dark:text-green-400">👥</span>
+                            <span className="text-sm font-medium text-green-700 dark:text-green-400">Manage Group Members</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Invite Status Section */}
+                {groupInvites.length > 0 && (
+                    <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-slate-200 dark:border-gray-600">
+                        <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">Invite Status</h3>
+                        <div className="space-y-2">
+                            {groupInvites.map(invite => {
+                                const isExpired = new Date(invite.expiresAt) < new Date();
+                                const statusColor = invite.status === 'pending' 
+                                    ? (isExpired ? 'text-orange-600 dark:text-orange-400' : 'text-blue-600 dark:text-blue-400')
+                                    : invite.status === 'accepted' 
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : 'text-red-600 dark:text-red-400';
+                                
+                                const statusText = invite.status === 'pending' 
+                                    ? (isExpired ? 'Expired' : 'Pending')
+                                    : invite.status === 'accepted' 
+                                    ? 'Accepted'
+                                    : 'Declined';
+
+                                return (
+                                    <div key={invite.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-gray-600 rounded-md">
+                                        <div className="flex-grow min-w-0">
+                                            <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">
+                                                {invite.invitedEmail}
+                                            </p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                {invite.groupName} • {statusText}
+                                            </p>
+                                            {invite.status === 'pending' && !isExpired && (
+                                                <p className="text-xs text-slate-400 dark:text-slate-500">
+                                                    Expires {new Date(invite.expiresAt).toLocaleDateString()}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-xs font-medium ${statusColor}`}>
+                                                {statusText}
+                                            </span>
+                                            {invite.status === 'pending' && !isExpired && onResendInvite && (
+                                                <button
+                                                    onClick={() => onResendInvite(invite.id)}
+                                                    className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded hover:bg-blue-200 dark:hover:bg-blue-900/30 transition-colors"
+                                                    title="Resend invite"
+                                                >
+                                                    Resend
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 {/* ⚠️ ADMIN TOOLS - Only visible to admins */}
                 {isAdmin && (

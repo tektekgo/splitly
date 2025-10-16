@@ -152,7 +152,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Group context pill removed per UX feedback - title area remains minimal */}
       <div>
-        <label htmlFor="description" className="block text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">Description</label>
+        <label htmlFor="description" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Description</label>
         <input
           id="description"
           type="text"

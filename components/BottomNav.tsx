@@ -70,10 +70,10 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeScreen, onNavigate, notific
                 onClick={onNavigate}
                 badgeCount={notificationCount}
             />
-            <div data-tour="people-tab">
+            <div data-tour="profile-tab">
               <NavItem
                   screen="profile"
-                  label="People"
+                  label="Profile"
                   Icon={UserCircleIcon}
                   isActive={activeScreen === 'profile'}
                   onClick={onNavigate}

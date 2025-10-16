@@ -43,7 +43,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ run, onFinish }) => {
       disableBeacon: true,
     },
     {
-      target: '[data-tour="people-tab"]',
+      target: '[data-tour="profile-tab"]',
       content: (
         <div>
           <h3 className="text-lg font-bold text-gray-900 mb-2">

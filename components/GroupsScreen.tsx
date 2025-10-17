@@ -51,40 +51,37 @@ const GroupsScreen: React.FC<GroupsScreenProps> = ({ groups, users, activeGroupI
                         <p className="text-text-secondary-light dark:text-text-secondary-dark">You haven't created any groups yet.</p>
                     </div>
                 ) : (
-                    <ul className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {groups.map(group => (
-                            <li key={group.id}>
-                                <div className={`w-full p-4 rounded-xl border-2 transition-all duration-200 ${
-                                    activeGroupId === group.id
-                                    ? 'bg-primary/10 border-primary shadow-md'
-                                    : 'bg-gray-50 dark:bg-gray-900/50 border-transparent hover:border-primary/50'
-                                }`}>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div>
-                                            <h3 className="font-bold text-base text-text-primary-light dark:text-text-primary-dark">{group.name}</h3>
-                                            <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">{group.members.length} member(s)</p>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => onSelectGroup(group.id)}
-                                                className="px-3 py-1 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-600 transition-colors"
-                                            >
-                                                View
-                                            </button>
-                                            {onManageGroupMembers && (
-                                                <button
-                                                    onClick={() => onManageGroupMembers(group.id)}
-                                                    className="px-3 py-1 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 transition-colors"
-                                                >
-                                                    Manage Members
-                                                </button>
+                            <div key={group.id}>
+                                <div 
+                                    className={`w-full p-3 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
+                                        activeGroupId === group.id
+                                        ? 'bg-primary/20 border-primary shadow-lg ring-2 ring-primary/30'
+                                        : 'bg-gray-50 dark:bg-gray-900/50 border-transparent hover:border-primary/50 hover:bg-primary/5'
+                                    }`}
+                                    onClick={() => onSelectGroup(group.id)}
+                                >
+                                    <div className="space-y-1">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className={`font-bold text-base truncate ${
+                                                activeGroupId === group.id
+                                                ? 'text-primary'
+                                                : 'text-text-primary-light dark:text-text-primary-dark'
+                                            }`}>{group.name}</h3>
+                                            {activeGroupId === group.id && (
+                                                <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
                                             )}
                                         </div>
+                                        <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">{group.members.length} member(s)</p>
+                                        {activeGroupId === group.id && (
+                                            <span className="text-xs font-medium text-primary">Currently Active</span>
+                                        )}
                                     </div>
                                 </div>
-                            </li>
+                            </div>
                         ))}
-                    </ul>
+                    </div>
                 )}
             </div>
             {isCreateModalOpen && (

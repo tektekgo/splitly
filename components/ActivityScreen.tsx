@@ -34,14 +34,14 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({ notifications, groupInv
     return (
         <main className="bg-content-light dark:bg-content-dark rounded-2xl shadow-lg overflow-hidden">
             <div className="p-6">
-                <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-6">
+                <h2 className="text-base font-bold text-text-primary-light dark:text-text-primary-dark mb-6">
                     Activity Feed
                 </h2>
 
                 {/* Pending Group Invites */}
                 {pendingInvites.length > 0 && (
                     <div className="mb-6">
-                        <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark mb-3 flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark mb-3 flex items-center gap-2">
                             📧 Pending Invites
                             <span className="px-2 py-0.5 bg-primary text-white text-xs font-bold rounded-full">
                                 {pendingInvites.length}
@@ -84,13 +84,13 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({ notifications, groupInv
                 )}
 
                 {/* Activity Notifications */}
-                <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark mb-3">
+                <h3 className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark mb-3">
                     Recent Activity
                 </h3>
                 {notifications.length === 0 ? (
                     <div className="text-center py-16 px-6 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
                         <BellIcon className="mx-auto h-12 w-12 text-gray-400" />
-                        <h3 className="mt-4 text-lg font-medium text-text-primary-light dark:text-text-primary-dark">No recent activity</h3>
+                        <h3 className="mt-4 text-sm font-medium text-text-primary-light dark:text-text-primary-dark">No recent activity</h3>
                         <p className="mt-1 text-sm text-text-secondary-light dark:text-text-secondary-dark">New expenses and payments will appear here.</p>
                     </div>
                 ) : (

@@ -44,7 +44,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
             <div className="p-3 space-y-3">
                 {/* Header */}
                 <div>
-                    <h2 className="text-base font-semibold text-text-primary-light dark:text-text-primary-dark mb-2">
+                    <h2 className="text-base font-bold text-text-primary-light dark:text-text-primary-dark mb-2">
                         Profile
                     </h2>
                 </div>
@@ -56,7 +56,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                         <div className="flex items-center gap-2">
                             <img src={loggedInUser.avatarUrl} alt={loggedInUser.name} className="w-8 h-8 rounded-full ring-1 ring-primary" />
                             <div>
-                                <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{loggedInUser.name}</p>
+                                <p className="text-base font-bold text-slate-800 dark:text-slate-100">{loggedInUser.name}</p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">
                                     {loggedInUser.authType === 'google' ? 'Google' : 
                                      loggedInUser.authType === 'email' ? 'Email' : 
@@ -83,7 +83,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                                 <li key={user.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-gray-600 rounded-md group/item hover:bg-slate-100 dark:hover:bg-gray-500 transition-colors">
                                     <div className="flex items-center gap-2">
                                         <img src={user.avatarUrl} alt={user.name} className="w-6 h-6 rounded-full" />
-                                        <span className="text-sm font-medium text-slate-800 dark:text-slate-100">{user.name}</span>
+                                        <span className="text-base font-bold text-slate-800 dark:text-slate-100">{user.name}</span>
                                     </div>
                                     <button
                                         onClick={() => onDeleteGuestUser(user.id)}
@@ -131,18 +131,18 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                     </p>
                     <div className="space-y-2">
                         <button
-                            onClick={() => onOpenGroupSelector?.()}
+                            onClick={() => onOpenInviteModal?.()}
                             className="w-full flex items-center justify-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                         >
                             <span className="text-blue-600 dark:text-blue-400">📧</span>
-                            <span className="text-sm font-medium text-blue-700 dark:text-blue-400">Send Email Invite</span>
+                            <span className="text-base font-bold text-blue-700 dark:text-blue-400">Send Email Invite</span>
                         </button>
                         <button
                             onClick={() => onOpenGroupSelector?.()}
                             className="w-full flex items-center justify-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
                         >
                             <span className="text-green-600 dark:text-green-400">👥</span>
-                            <span className="text-sm font-medium text-green-700 dark:text-green-400">Manage Group Members</span>
+                            <span className="text-base font-bold text-green-700 dark:text-green-400">Manage Group Members</span>
                         </button>
                     </div>
                 </div>
@@ -169,7 +169,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                                 return (
                                     <div key={invite.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-gray-600 rounded-md">
                                         <div className="flex-grow min-w-0">
-                                            <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">
+                                            <p className="text-base font-bold text-slate-800 dark:text-slate-100 truncate">
                                                 {invite.invitedEmail}
                                             </p>
                                             <p className="text-xs text-slate-500 dark:text-slate-400">

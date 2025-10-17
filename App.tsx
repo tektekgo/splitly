@@ -20,6 +20,7 @@ import { MoonIcon, SunIcon, UsersIcon } from './components/icons';
 import { simplifyDebts } from './utils/debtSimplification';
 import { formatCurrency } from './utils/currencyFormatter';
 import { logError } from './utils/errorLogger';
+import { sendGroupInviteEmail } from './utils/emailService';
 import { db } from './firebase';
 import { collection, getDocs, doc, writeBatch, addDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -40,7 +41,7 @@ type Screen = 'dashboard' | 'add' | 'groups' | 'profile' | 'activity';
 const ThemeToggle: React.FC<{ theme: Theme, toggleTheme: () => void }> = ({ theme, toggleTheme }) => (
     <button
       onClick={toggleTheme}
-      className="absolute top-8 right-4 p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary z-50 cursor-pointer"
+      className="absolute top-8 right-4 p-3 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary z-50 cursor-pointer shadow-sm border border-gray-200 dark:border-gray-600"
       aria-label="Toggle theme"
       style={{ pointerEvents: 'auto' }}
     >
@@ -626,21 +627,10 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSendGroupInvite = async (groupId: string, email: string) => {
+  const handleSendGroupInvite = async (groupId: string, email: string, isResend: boolean = false) => {
     const group = groups.find(g => g.id === groupId);
     if (!group) {
       throw new Error('Group not found');
-    }
-
-    // Check if user already invited
-    const existingInvite = groupInvites.find(
-      inv => inv.groupId === groupId && 
-             inv.invitedEmail === email.toLowerCase() && 
-             inv.status === 'pending'
-    );
-    
-    if (existingInvite) {
-      throw new Error('This person has already been invited to this group');
     }
 
     // Check if email matches current user
@@ -649,35 +639,83 @@ const App: React.FC = () => {
     }
 
     try {
-      const newInvite: Omit<GroupInvite, 'id'> = {
-        groupId: group.id,
-        groupName: group.name,
-        invitedEmail: email.toLowerCase(),
-        invitedBy: currentUser.id,
-        inviterName: currentUser.name,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-      };
+      let inviteId: string;
+      let inviteUrl: string;
 
-      const docRef = await addDoc(collection(db, 'groupInvites'), newInvite);
-      const savedInvite = { id: docRef.id, ...newInvite };
-      setGroupInvites(prev => [...prev, savedInvite]);
+      if (isResend) {
+        // For resend, find the existing invite
+        const existingInvite = groupInvites.find(
+          inv => inv.groupId === groupId && 
+                 inv.invitedEmail === email.toLowerCase() && 
+                 inv.status === 'pending'
+        );
+        
+        if (!existingInvite) {
+          throw new Error('No pending invite found to resend');
+        }
 
-      // Create notification for the invited user (if they have an account)
-      const invitedUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
-      if (invitedUser) {
-        const notification: Omit<Notification, 'id'> = {
-          message: `${currentUser.name} invited you to join "${group.name}"`,
-          type: NotificationType.GroupInvite,
-          timestamp: new Date().toISOString(),
-          read: false,
-          inviteId: docRef.id,
+        inviteId = existingInvite.id;
+        inviteUrl = `https://splitbi.app?invite=${inviteId}`;
+      } else {
+        // For new invite, check for existing invites
+        const existingInvite = groupInvites.find(
+          inv => inv.groupId === groupId && 
+                 inv.invitedEmail === email.toLowerCase() && 
+                 inv.status === 'pending'
+        );
+        
+        if (existingInvite) {
+          throw new Error('This person has already been invited to this group');
+        }
+
+        // Create new invite
+        const newInvite: Omit<GroupInvite, 'id'> = {
+          groupId: group.id,
+          groupName: group.name,
+          invitedEmail: email.toLowerCase(),
+          invitedBy: currentUser.id,
+          inviterName: currentUser.name,
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
         };
-        await addDoc(collection(db, 'notifications'), notification);
+
+        const docRef = await addDoc(collection(db, 'groupInvites'), newInvite);
+        const savedInvite = { id: docRef.id, ...newInvite };
+        setGroupInvites(prev => [...prev, savedInvite]);
+        
+        inviteId = docRef.id;
+        inviteUrl = `https://splitbi.app?invite=${inviteId}`;
+
+        // Create notification for the invited user (if they have an account)
+        const invitedUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+        if (invitedUser) {
+          const notification: Omit<Notification, 'id'> = {
+            message: `${currentUser.name} invited you to join "${group.name}"`,
+            type: NotificationType.GroupInvite,
+            timestamp: new Date().toISOString(),
+            read: false,
+            inviteId: inviteId,
+          };
+          await addDoc(collection(db, 'notifications'), notification);
+        }
       }
 
-      alert(`Invite sent to ${email}!`);
+      // Send email invitation (for both new and resend)
+      const emailResult = await sendGroupInviteEmail({
+        invitedEmail: email.toLowerCase(),
+        inviterName: currentUser.name,
+        groupName: group.name,
+        inviteUrl: inviteUrl,
+      });
+
+      // Show appropriate success message
+      const action = isResend ? 'resent' : 'sent';
+      const successMessage = emailResult.messageId 
+        ? `✅ Email ${action} successfully to ${email}!\n\n📧 Message ID: ${emailResult.messageId}\n🔗 Invite Link: ${inviteUrl}\n\nThey'll receive an email with a link to join the group.`
+        : `✅ Email ${action} successfully to ${email}!\n\n🔗 Invite Link: ${inviteUrl}\n\nThey'll receive an email with a link to join the group.`;
+      
+      alert(successMessage);
     } catch (error: any) {
       console.error("Error sending invite: ", error);
       throw new Error(error.message || 'Failed to send invite');
@@ -764,6 +802,13 @@ const App: React.FC = () => {
   const handleSetActiveGroup = (groupId: string) => {
     setActiveGroupId(groupId);
     setActiveScreen('dashboard');
+  }
+
+  const handleSelectGroupFromGroupsScreen = (groupId: string) => {
+    setActiveGroupId(groupId);
+    setEditingGroupId(groupId);
+    setIsGroupManagementModalOpen(true);
+    // Go to group management - this is what user actually wants
   }
 
   const handleOpenSettleUp = () => setIsSettleUpModalOpen(true);
@@ -869,13 +914,15 @@ const App: React.FC = () => {
                     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-4">
                       <div className="p-4 text-center">
                         <div className="flex justify-center mb-2">
-                          <img 
-                            src="/splitbi-logo.png" 
-                            alt="Splitbi Logo" 
-                            className="h-12 w-auto"
-                          />
+                          <div className="bg-white dark:bg-gray-900 rounded-lg p-2 shadow-sm">
+                            <img 
+                              src="/splitbi-logo.png" 
+                              alt="Splitbi Logo" 
+                              className="h-24 sm:h-28 w-auto"
+                            />
+                          </div>
                         </div>
-                        <h2 className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                        <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           Welcome to Splitbi!
                         </h2>
                       </div>
@@ -932,13 +979,13 @@ const App: React.FC = () => {
             {/* Balance Card */}
             <div className="bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg shadow-sm border border-slate-200 dark:border-gray-600 p-4">
               <div className="text-center">
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">
+                <p className="text-base font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider mb-2">
                   Your Balance
                 </p>
                 <p className={`text-3xl font-bold mb-1 ${balanceColor}`}>
                   {formatCurrency(Math.abs(currentUserBalance), activeGroup?.currency || 'USD')}
                 </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-base font-medium text-slate-600 dark:text-slate-300">
                   {balanceDescription}
                 </p>
               </div>
@@ -947,7 +994,7 @@ const App: React.FC = () => {
             {/* Groups Card */}
             <div className="bg-slate-50 dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 p-3">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">Groups</h3>
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Groups</h3>
                 <button 
                   onClick={() => setActiveScreen('groups')}
                   className="text-sm text-primary hover:text-primary-600 transition-colors font-medium"
@@ -976,7 +1023,7 @@ const App: React.FC = () => {
                       </span>
                     </div>
                     <div className="flex-grow min-w-0">
-                      <p className="text-sm font-medium truncate">{group.name}</p>
+                      <p className="text-base font-bold truncate text-slate-800 dark:text-slate-100">{group.name}</p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
                         ({group.members.length})
                       </p>
@@ -1004,7 +1051,7 @@ const App: React.FC = () => {
             <div className="bg-slate-50 dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700">
               <div className="p-3 border-b border-slate-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+                  <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
                     Recent Expenses
                   </h3>
                   <span className="text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-gray-700 px-2 py-0.5 rounded-full border border-slate-200 dark:border-gray-600">
@@ -1027,13 +1074,13 @@ const App: React.FC = () => {
                         </span>
                       </div>
                       <div className="flex-grow min-w-0">
-                        <p className="text-sm font-medium truncate text-slate-800 dark:text-slate-100">{expense.description}</p>
+                        <p className="text-base font-bold truncate text-slate-800 dark:text-slate-100">{expense.description}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
                           Paid by {payer?.name?.replace(' (You)', '')}
                         </p>
                       </div>
                       <div className="flex-shrink-0">
-                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                        <p className="text-base font-bold text-slate-800 dark:text-slate-100">
                           {formatCurrency(expense.amount, activeGroup?.currency || 'USD')}
                         </p>
                       </div>
@@ -1064,7 +1111,7 @@ const App: React.FC = () => {
 
             {/* Quick Actions Card */}
             <div className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-3">
-              <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-2">Quick Actions</h3>
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 mb-2">Quick Actions</h3>
               <div className="flex gap-2">
                 <button
                   onClick={() => setActiveScreen('add')}
@@ -1150,7 +1197,7 @@ const App: React.FC = () => {
             users={users}
             activeGroupId={activeGroupId}
             currentUserId={currentUser.id}
-            onSelectGroup={handleSetActiveGroup}
+            onSelectGroup={handleSelectGroupFromGroupsScreen}
             onCreateGroup={handleCreateGroup}
             onManageGroupMembers={(groupId) => {
               setEditingGroupId(groupId);
@@ -1171,7 +1218,20 @@ const App: React.FC = () => {
                 users={users}
                 onCreateUser={handleCreateUser}
                 onDeleteGuestUser={handleDeleteGuestUser}
-                onOpenInviteModal={() => setIsInviteModalOpen(true)}
+                onOpenInviteModal={() => {
+                  if (groups.length === 0) {
+                    alert('Please create a group first before sending invites.');
+                    setActiveScreen('groups');
+                  } else if (groups.length === 1) {
+                    // If only one group, use it directly
+                    setInviteGroupId(groups[0].id);
+                    setIsInviteModalOpen(true);
+                  } else {
+                    // Multiple groups - show group selector
+                    alert('Please select a group first. Go to Groups screen to select the group you want to invite someone to.');
+                    setActiveScreen('groups');
+                  }
+                }}
                 onOpenGroupManagement={() => {
                   if (activeGroupId) {
                     setEditingGroupId(activeGroupId);
@@ -1184,7 +1244,8 @@ const App: React.FC = () => {
                   const invite = groupInvites.find(inv => inv.id === inviteId);
                   if (invite) {
                     try {
-                      await handleSendGroupInvite(invite.groupId, invite.invitedEmail);
+                      await handleSendGroupInvite(invite.groupId, invite.invitedEmail, true);
+                      // Success message is already shown by handleSendGroupInvite
                     } catch (error: any) {
                       alert(error.message || 'Failed to resend invite');
                     }
@@ -1209,24 +1270,26 @@ const App: React.FC = () => {
               <div className="p-4 text-center">
                 {/* Logo */}
                 <div className="flex justify-center mb-2">
-                  <img 
-                    src="/splitbi-logo.png" 
-                    alt="Splitbi" 
-                    className="h-16 w-auto"
-                  />
+                  <div className="bg-white dark:bg-gray-900 rounded-lg p-3 shadow-sm">
+                    <img 
+                      src="/splitbi-logo.png" 
+                      alt="Splitbi" 
+                      className="h-28 sm:h-32 w-auto"
+                    />
+                  </div>
                 </div>
                 
                 {/* Tagline */}
-                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-3">
+                <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-3">
                   Splitting expenses, made easy
                 </p>
                 
                 {/* User Welcome */}
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors flex items-center gap-1 mx-auto"
+                  className="text-xs text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-200 transition-colors flex items-center gap-1 mx-auto"
                 >
-                  Welcome back, <span className="font-semibold text-gray-700 dark:text-gray-300">{currentUser.name}</span>
+                  Welcome back, <span className="font-semibold text-gray-800 dark:text-gray-200">{currentUser.name}</span>
                   <svg className={`w-3 h-3 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
@@ -1333,7 +1396,7 @@ const App: React.FC = () => {
             <a 
               href="/install.html" 
               target="_blank"
-              className="text-primary hover:underline font-medium flex items-center gap-1"
+              className="text-primary hover:underline font-bold flex items-center gap-1"
             >
               📱 Install App
             </a>
@@ -1342,23 +1405,23 @@ const App: React.FC = () => {
               href="https://forms.gle/1w3Vk6FhrQDppagw5"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:underline font-medium flex items-center gap-1"
+              className="text-primary hover:underline font-bold flex items-center gap-1"
             >
               💬 Send Feedback
             </a>
             <span className="text-gray-300 dark:text-gray-600">•</span>
             <button
               onClick={() => setIsHelpModalOpen(true)}
-              className="text-primary hover:underline font-medium flex items-center gap-1"
+              className="text-primary hover:underline font-bold flex items-center gap-1"
             >
               ❓ Help & FAQ
             </button>
           </div>
           <div className="flex items-center justify-center gap-2 text-xs">
-            <span className="font-medium">© 2025</span>
+            <span className="font-bold">© 2025</span>
             <span className="text-gray-300 dark:text-gray-600">•</span>
-            <span>Built with <span className="text-red-500 animate-pulse">❤️</span> by</span>
-            <span className="font-semibold text-primary">Sujit Gangadharan</span>
+            <span className="font-bold">Built with <span className="text-red-500 animate-pulse">❤️</span> by</span>
+            <span className="font-bold text-primary">Sujit Gangadharan</span>
           </div>
         </footer>
         <div className="h-20" />

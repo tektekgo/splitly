@@ -12,7 +12,6 @@ A privacy-first Progressive Web App (PWA) for tracking and splitting shared expe
 
 **Primary URL:** https://splitbi.app ✅  
 **Backup URL:** https://splitlyapp-cc612.web.app ✅  
-**Tech Stack:** React 18, TypeScript, Firebase (Auth/Firestore), Vite, Tailwind CSS, Google Gemini AI
 
 ---
 

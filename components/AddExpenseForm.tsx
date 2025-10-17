@@ -150,7 +150,14 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Group context pill removed per UX feedback - title area remains minimal */}
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-4">
+        <SparklesIcon className="w-5 h-5 text-primary" />
+        <h2 className="text-base font-bold text-text-primary-light dark:text-text-primary-dark">
+          {isEditing ? 'Edit Expense' : 'Add New Expense'}
+        </h2>
+      </div>
+      
       <div>
         <label htmlFor="description" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Description</label>
         <input
@@ -235,7 +242,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
             <button
             type="button"
             onClick={onCancelEdit}
-            className="w-1/3 flex justify-center py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            className="w-1/3 flex justify-center py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
             Cancel
             </button>
@@ -243,7 +250,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
         <button
           type="submit"
           disabled={!!error || !description || numericAmount <= 0 || splits.length === 0}
-          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-all"
+          className="w-full flex justify-center py-2 px-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-all"
         >
           {isEditing ? 'Update Expense' : 'Save Expense'}
         </button>

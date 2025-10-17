@@ -59,15 +59,17 @@ const LoginScreen: React.FC = () => {
           <div className="p-6 text-center">
             {/* Logo */}
             <div className="flex justify-center mb-3">
-              <img 
-                src="/splitbi-logo.png" 
-                alt="Splitbi Logo" 
-                className="h-20 w-auto"
-              />
+              <div className="bg-white dark:bg-gray-900 rounded-lg p-3 shadow-sm">
+                <img 
+                  src="/splitbi-logo.png" 
+                  alt="Splitbi Logo" 
+                  className="h-24 sm:h-28 w-auto"
+                />
+              </div>
             </div>
             
             {/* Tagline */}
-            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+            <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">
               Splitting expenses, made easy
             </p>
           </div>

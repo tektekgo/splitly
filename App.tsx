@@ -996,7 +996,13 @@ const App: React.FC = () => {
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Groups</h3>
                 <button 
-                  onClick={() => setActiveScreen('groups')}
+                  onClick={() => {
+                    if (activeGroupId) {
+                      setEditingGroupDebt(calculateGroupDebt(activeGroupId));
+                      setEditingGroupId(activeGroupId);
+                      setIsGroupManagementModalOpen(true);
+                    }
+                  }}
                   className="text-sm text-primary hover:text-primary-600 transition-colors font-medium"
                 >
                   Manage →

@@ -1,5 +1,6 @@
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import AddExpenseForm from './components/AddExpenseForm';
 import ExpenseList from './components/ExpenseList';
@@ -127,6 +128,7 @@ const App: React.FC = () => {
 
   const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuButtonRef = useRef<HTMLButtonElement>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showAddHint, setShowAddHint] = useState(() => !localStorage.getItem('add-hint-dismissed'));
   
@@ -1191,7 +1193,7 @@ const App: React.FC = () => {
           <motion.header 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-primary/15 via-primary/8 to-white dark:from-primary/20 dark:via-primary/12 dark:to-gray-800 px-4 pt-3 pb-3 border-b-2 border-primary/20 dark:border-primary/30"
+            className="relative bg-gradient-to-br from-primary/15 via-primary/8 to-white dark:from-primary/20 dark:via-primary/12 dark:to-gray-800 px-4 pt-3 pb-3 border-b-2 border-primary/20 dark:border-primary/30"
           >
               {/* Header Content */}
               <div className="flex items-center justify-between">
@@ -1221,9 +1223,13 @@ const App: React.FC = () => {
                 <div className="flex flex-col items-end gap-1.5">
                   <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
                   <motion.button
+                    ref={userMenuButtonRef}
                     whileTap={{ scale: 0.98 }}
                     whileHover={{ scale: 1.02 }}
-                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowUserMenu(!showUserMenu);
+                    }}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/90 dark:bg-gray-800 backdrop-blur-sm text-xs text-sage dark:text-gray-300 hover:text-charcoal dark:hover:text-gray-200 transition-all border border-primary/20 dark:border-primary/30 shadow-sm"
                   >
                     <span className="font-semibold text-charcoal dark:text-gray-200 hidden sm:inline">{currentUser.name}</span>
@@ -1236,13 +1242,18 @@ const App: React.FC = () => {
               </div>
               
               {/* User Menu Dropdown */}
-              {showUserMenu && (
+              {showUserMenu && userMenuButtonRef.current && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
                   <motion.div 
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="absolute z-50 right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-stone-200 dark:border-gray-700 overflow-hidden"
+                    className="fixed z-[60] w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-stone-200 dark:border-gray-700 overflow-hidden"
+                    style={{
+                      top: `${userMenuButtonRef.current.getBoundingClientRect().bottom + 8}px`,
+                      right: `${window.innerWidth - userMenuButtonRef.current.getBoundingClientRect().right}px`
+                    }}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <div className="p-4 border-b border-stone-200 dark:border-stone-700 bg-surface dark:bg-gray-900/50">
                       <p className="text-xs text-sage dark:text-text-secondary-dark">Signed in as</p>

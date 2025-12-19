@@ -1,5 +1,6 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import AddExpenseForm from './components/AddExpenseForm';
 import ExpenseList from './components/ExpenseList';
 import BalanceSummary from './components/BalanceSummary';
@@ -39,14 +40,15 @@ type Theme = 'light' | 'dark';
 type Screen = 'dashboard' | 'add' | 'groups' | 'profile' | 'activity';
 
 const ThemeToggle: React.FC<{ theme: Theme, toggleTheme: () => void }> = ({ theme, toggleTheme }) => (
-    <button
+    <motion.button
       onClick={toggleTheme}
-      className="absolute top-8 right-4 p-3 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary z-50 cursor-pointer shadow-sm border border-gray-200 dark:border-gray-600"
+      whileTap={{ scale: 0.98 }}
+      className="absolute top-8 right-4 p-3 rounded-full text-sage hover:bg-teal-light focus:outline-none focus:ring-2 focus:ring-teal-primary z-50 cursor-pointer shadow-sm border border-stone-200 dark:border-stone-600"
       aria-label="Toggle theme"
       style={{ pointerEvents: 'auto' }}
     >
       {theme === 'light' ? <MoonIcon className="w-6 h-6" /> : <SunIcon className="w-6 h-6" />}
-    </button>
+    </motion.button>
 );
 
 const App: React.FC = () => {
@@ -318,9 +320,9 @@ const App: React.FC = () => {
 
   const currentUserBalance = balances.get(currentUser?.id) || 0;
   const balanceColor = useMemo(() => {
-    if (currentUserBalance > 0.01) return 'text-green-600 dark:text-green-400';
-    if (currentUserBalance < -0.01) return 'text-red-600 dark:text-red-400';
-    return 'text-text-primary-light dark:text-text-primary-dark';
+    if (currentUserBalance > 0.01) return 'text-teal-primary';
+    if (currentUserBalance < -0.01) return 'text-orange-500';
+    return 'text-charcoal dark:text-text-primary-dark';
   }, [currentUserBalance]);
 
   const balanceDescription = useMemo(() => {
@@ -893,8 +895,8 @@ const App: React.FC = () => {
   
   if (authLoading || loading) {
     return (
-        <div className="flex justify-center items-center min-h-screen">
-            <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
+        <div className="flex justify-center items-center min-h-screen bg-cream">
+            <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-teal-primary"></div>
         </div>
     );
   }
@@ -908,13 +910,22 @@ const App: React.FC = () => {
       case 'dashboard':
         if (!activeGroup) {
           return (
-            <main className="bg-content-light dark:bg-content-dark rounded-lg shadow-md overflow-hidden">
-                <div className="p-4 text-center max-w-sm mx-auto">
+            <motion.main 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white dark:bg-content-dark rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden"
+            >
+                <div className="p-6 text-center max-w-sm mx-auto">
                     {/* Compact Welcome Header */}
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-4">
-                      <div className="p-4 text-center">
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="bg-surface dark:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 mb-6"
+                    >
+                      <div className="p-6 text-center">
                         <div className="flex justify-center mb-2">
-                          <div className="bg-white dark:bg-gray-900 rounded-lg p-2 shadow-sm">
+                          <div className="bg-white dark:bg-gray-900 rounded-2xl p-3 shadow-sm">
                             <img 
                               src="/splitbi-logo.png" 
                               alt="Splitbi Logo" 
@@ -922,80 +933,104 @@ const App: React.FC = () => {
                             />
                           </div>
                         </div>
-                        <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <h2 className="text-base font-serif font-bold text-charcoal dark:text-gray-300">
                           Welcome to Splitbi!
                         </h2>
                       </div>
-                    </div>
+                    </motion.div>
                     
-                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mb-3">
+                    <p className="text-sm text-sage dark:text-text-secondary-dark mb-4">
                         Let's create your first group to start tracking shared expenses.
                     </p>
                     
-                    <div className="bg-primary/5 dark:bg-primary/10 rounded-lg p-4 mb-4 text-left">
-                        <p className="font-semibold text-text-primary-light dark:text-text-primary-dark mb-3">
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="bg-teal-light dark:bg-primary/10 rounded-2xl p-6 mb-6 text-left"
+                    >
+                        <p className="font-serif font-bold text-charcoal dark:text-text-primary-dark mb-3">
                             💡 What are groups?
                         </p>
-                        <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-4">
+                        <p className="text-sm text-sage dark:text-text-secondary-dark mb-4">
                             Groups help you organize expenses for different situations:
                         </p>
-                        <ul className="space-y-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                        <ul className="space-y-2 text-sm text-sage dark:text-text-secondary-dark">
                             <li className="flex items-start gap-2">
-                                <span className="text-primary font-bold">•</span>
+                                <span className="text-teal-primary font-bold">•</span>
                                 <span><strong>Roommates</strong> - Track rent, utilities, groceries</span>
                             </li>
                             <li className="flex items-start gap-2">
-                                <span className="text-primary font-bold">•</span>
+                                <span className="text-teal-primary font-bold">•</span>
                                 <span><strong>Trip with Friends</strong> - Hotels, meals, activities</span>
                             </li>
                             <li className="flex items-start gap-2">
-                                <span className="text-primary font-bold">•</span>
+                                <span className="text-teal-primary font-bold">•</span>
                                 <span><strong>Family Expenses</strong> - Shared household costs</span>
                             </li>
                             <li className="flex items-start gap-2">
-                                <span className="text-primary font-bold">•</span>
+                                <span className="text-teal-primary font-bold">•</span>
                                 <span><strong>Events</strong> - Weddings, parties, celebrations</span>
                             </li>
                         </ul>
-                    </div>
+                    </motion.div>
 
-                    <button
-                        onClick={() => setActiveScreen('groups')}
-                        className="w-full px-6 py-4 bg-primary text-white font-semibold rounded-lg shadow-lg hover:bg-primary-600 transition-all hover:scale-105"
+                    <motion.button
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setActiveScreen('groups')}
+                      className="w-full px-6 py-3 bg-teal-primary text-white font-medium rounded-full shadow-sm hover:bg-teal-dark transition-colors"
                     >
                         + Create Your First Group
-                    </button>
+                    </motion.button>
                     
-                    <p className="mt-4 text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                    <p className="mt-4 text-xs text-sage dark:text-text-secondary-dark">
                         Click the <strong>Groups</strong> tab at the bottom to get started
                     </p>
                 </div>
-            </main>
+            </motion.main>
           )
         }
 
         return (
-          <div className="space-y-3">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
             {/* Balance Card */}
-            <div className="bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg shadow-sm border border-slate-200 dark:border-gray-600 p-4">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-600 p-6"
+            >
               <div className="text-center">
-                <p className="text-base font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider mb-2">
+                <p className="text-sm font-serif font-bold text-charcoal dark:text-slate-200 uppercase tracking-wider mb-2">
                   Your Balance
                 </p>
-                <p className={`text-3xl font-bold mb-1 ${balanceColor}`}>
+                <p className={`text-3xl font-serif font-bold mb-1 ${balanceColor}`}>
                   {formatCurrency(Math.abs(currentUserBalance), activeGroup?.currency || 'USD')}
                 </p>
-                <p className="text-base font-medium text-slate-600 dark:text-slate-300">
+                <p className="text-base font-medium text-sage dark:text-slate-300">
                   {balanceDescription}
                 </p>
               </div>
-            </div>
+            </motion.div>
 
             {/* Groups Card */}
-            <div className="bg-slate-50 dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 p-3">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Groups</h3>
-                <button 
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 p-6"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-serif font-bold text-charcoal dark:text-slate-100">Groups</h3>
+                <motion.button 
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => {
                     if (activeGroupId) {
                       setEditingGroupDebt(calculateGroupDebt(activeGroupId));
@@ -1003,24 +1038,29 @@ const App: React.FC = () => {
                       setIsGroupManagementModalOpen(true);
                     }
                   }}
-                  className="text-sm text-primary hover:text-primary-600 transition-colors font-medium"
+                  className="text-sm text-teal-primary hover:text-teal-dark transition-colors font-medium"
                 >
                   Manage →
-                </button>
+                </motion.button>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                {groups.map(group => (
-                  <button
+              <div className="grid grid-cols-2 gap-4">
+                {groups.map((group, index) => (
+                  <motion.button
                     key={group.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 + index * 0.1 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => handleSetActiveGroup(group.id)}
-                    className={`flex items-center gap-2 p-2 rounded-md transition-all text-left border ${
+                    className={`flex items-center gap-3 p-3 rounded-2xl transition-all text-left border ${
                       activeGroupId === group.id 
-                        ? 'bg-primary/10 border-primary/30 text-primary shadow-sm' 
-                        : 'hover:bg-white dark:hover:bg-gray-700 border-slate-200 dark:border-gray-600'
+                        ? 'bg-teal-light border-teal-primary text-teal-primary shadow-sm' 
+                        : 'hover:bg-surface dark:hover:bg-gray-700 border-stone-200 dark:border-stone-600'
                     }`}
                   >
-                    <div className="flex-shrink-0 w-6 h-6 rounded bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm">
-                      <span className="text-xs">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm">
+                      <span className="text-sm">
                         {group.name.toLowerCase().includes('room') ? '🏠' :
                          group.name.toLowerCase().includes('trip') || group.name.toLowerCase().includes('travel') ? '✈️' :
                          group.name.toLowerCase().includes('family') ? '👨‍👩‍👧‍👦' :
@@ -1029,49 +1069,65 @@ const App: React.FC = () => {
                       </span>
                     </div>
                     <div className="flex-grow min-w-0">
-                      <p className="text-base font-bold truncate text-slate-800 dark:text-slate-100">{group.name}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                      <p className="text-base font-serif font-bold truncate text-charcoal dark:text-slate-100">{group.name}</p>
+                      <p className="text-xs text-sage dark:text-slate-400">
                         ({group.members.length})
                       </p>
                     </div>
                     {activeGroupId === group.id && (
-                      <div className="flex-shrink-0 w-1.5 h-1.5 bg-primary rounded-full"></div>
+                      <div className="flex-shrink-0 w-2 h-2 bg-teal-primary rounded-full"></div>
                     )}
-                  </button>
+                  </motion.button>
                 ))}
                 
                 {/* Create New Group - Full Width */}
-                <button
+                <motion.button
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + groups.length * 0.1 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setActiveScreen('groups')}
-                  className="col-span-2 flex items-center justify-center gap-2 p-2 rounded-md hover:bg-white dark:hover:bg-gray-700 transition-colors border-2 border-dashed border-slate-300 dark:border-gray-600"
+                  className="col-span-2 flex items-center justify-center gap-2 p-3 rounded-2xl hover:bg-surface dark:hover:bg-gray-700 transition-colors border-2 border-dashed border-stone-200 dark:border-stone-600"
                 >
-                  <div className="w-6 h-6 rounded bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm">
-                    <span className="text-slate-400 text-xs">+</span>
+                  <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm">
+                    <span className="text-sage text-sm">+</span>
                   </div>
-                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Create New Group</span>
-                </button>
+                  <span className="text-sm font-medium text-sage dark:text-slate-400">Create New Group</span>
+                </motion.button>
               </div>
-            </div>
+            </motion.div>
 
             {/* Recent Expenses Card */}
-            <div className="bg-slate-50 dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700">
-              <div className="p-3 border-b border-slate-200 dark:border-gray-700">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700"
+            >
+              <div className="p-6 border-b border-stone-200 dark:border-stone-700">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                  <h3 className="text-lg font-serif font-bold text-charcoal dark:text-slate-100">
                     Recent Expenses
                   </h3>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-gray-700 px-2 py-0.5 rounded-full border border-slate-200 dark:border-gray-600">
+                  <span className="text-xs text-sage dark:text-slate-400 bg-surface dark:bg-gray-700 px-3 py-1 rounded-full border border-stone-200 dark:border-stone-600">
                     {activeGroupExpenses.length} total
                   </span>
                 </div>
               </div>
-              <div className="p-3">
-                {activeGroupExpenses.slice(0, 3).map(expense => {
+              <div className="p-6">
+                {activeGroupExpenses.slice(0, 3).map((expense, index) => {
                   const payer = activeGroupMembers.find(m => m.id === expense.paidBy);
                   return (
-                    <div key={expense.id} className="flex items-center gap-2 py-2 border-b border-slate-100 dark:border-gray-700 last:border-b-0">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-md bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm">
-                        <span className="text-slate-600 dark:text-slate-300 text-sm">
+                    <motion.div 
+                      key={expense.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 + index * 0.1 }}
+                      className="flex items-center gap-3 py-3 border-b border-stone-200 dark:border-stone-700 last:border-b-0"
+                    >
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-teal-light dark:bg-gray-600 flex items-center justify-center shadow-sm">
+                        <span className="text-teal-primary dark:text-slate-300 text-base">
                           {expense.category === 'Food' ? '🍕' :
                            expense.category === 'Transport' ? '🚗' :
                            expense.category === 'Entertainment' ? '🎬' :
@@ -1080,108 +1136,127 @@ const App: React.FC = () => {
                         </span>
                       </div>
                       <div className="flex-grow min-w-0">
-                        <p className="text-base font-bold truncate text-slate-800 dark:text-slate-100">{expense.description}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-base font-serif font-bold truncate text-charcoal dark:text-slate-100">{expense.description}</p>
+                        <p className="text-xs text-sage dark:text-slate-400">
                           Paid by {payer?.name?.replace(' (You)', '')}
                         </p>
                       </div>
                       <div className="flex-shrink-0">
-                        <p className="text-base font-bold text-slate-800 dark:text-slate-100">
+                        <p className="text-base font-serif font-bold text-charcoal dark:text-slate-100">
                           {formatCurrency(expense.amount, activeGroup?.currency || 'USD')}
                         </p>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
                 {activeGroupExpenses.length === 0 && (
-                  <div className="text-center py-4">
-                    <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center shadow-sm border border-slate-200 dark:border-gray-600">
-                      <span className="text-slate-400 text-lg">💰</span>
+                  <div className="text-center py-6">
+                    <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-teal-light dark:bg-gray-700 flex items-center justify-center shadow-sm border border-stone-200 dark:border-stone-600">
+                      <span className="text-teal-primary text-xl">💰</span>
                     </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">No expenses yet</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Add your first expense to get started</p>
+                    <p className="text-sm text-sage dark:text-slate-400">No expenses yet</p>
+                    <p className="text-xs text-sage dark:text-slate-500 mt-1">Add your first expense to get started</p>
                   </div>
                 )}
                 {activeGroupExpenses.length > 3 && (
-                  <div className="pt-2 border-t border-slate-100 dark:border-gray-700">
-                    <button
+                  <div className="pt-3 border-t border-stone-200 dark:border-stone-700">
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
                       onClick={() => {/* TODO: Implement view all */}}
-                      className="w-full text-sm text-primary hover:text-primary-600 transition-colors font-medium py-1"
+                      className="w-full text-sm text-teal-primary hover:text-teal-dark transition-colors font-medium py-2"
                     >
                       View All Expenses →
-                    </button>
+                    </motion.button>
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
 
             {/* Quick Actions Card */}
-            <div className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-3">
-              <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 mb-2">Quick Actions</h3>
-              <div className="flex gap-2">
-                <button
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-600 p-6"
+            >
+              <h3 className="text-lg font-serif font-bold text-charcoal dark:text-slate-100 mb-4">Quick Actions</h3>
+              <div className="flex gap-3">
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setActiveScreen('add')}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-green-600 hover:bg-green-700 text-white rounded-md shadow-sm transition-all text-sm font-medium"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-teal-primary hover:bg-teal-dark text-white rounded-full shadow-sm transition-colors text-sm font-medium"
                 >
                   <span className="text-sm">+</span>
                   <span>Add Expense</span>
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
                   onClick={handleOpenSettleUp}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md shadow-sm transition-all text-sm font-medium"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-white border border-stone-200 hover:border-teal-primary text-charcoal rounded-full shadow-sm transition-colors text-sm font-medium"
                 >
                   <span className="text-sm">$</span>
                   <span>Settle Up</span>
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setActiveScreen('profile')}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm transition-all text-sm font-medium"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-white border border-stone-200 hover:border-teal-primary text-charcoal rounded-full shadow-sm transition-colors text-sm font-medium"
                 >
                   <span className="text-sm">⚙</span>
                   <span>Users</span>
-                </button>
+                </motion.button>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         );
       case 'add':
         if (!activeGroup || !activeGroupId) {
              return (
-                 <main className="bg-content-light dark:bg-content-dark rounded-2xl shadow-lg overflow-hidden">
-                    <div className="p-10 text-center">
-                        <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">Choose a Group</h2>
-                        <p className="mt-2 text-text-secondary-light dark:text-text-secondary-dark">Select a group to add your expense.</p>
-                        <button
+                 <motion.main 
+                   initial={{ opacity: 0, y: 20 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   className="bg-white dark:bg-content-dark rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden"
+                 >
+                    <div className="p-8 text-center">
+                        <h2 className="text-2xl font-serif font-bold text-charcoal dark:text-text-primary-dark">Choose a Group</h2>
+                        <p className="mt-2 text-sage dark:text-text-secondary-dark">Select a group to add your expense.</p>
+                        <motion.button
+                          whileTap={{ scale: 0.98 }}
                           onClick={() => setActiveScreen('groups')}
-                          className="mt-6 inline-flex items-center gap-2 px-5 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
+                          className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-teal-primary text-white rounded-full font-medium hover:bg-teal-dark transition-colors"
                         >
                           Go to Groups
-                        </button>
+                        </motion.button>
                     </div>
-                 </main>
+                 </motion.main>
              )
         }
         return (
-          <main className="bg-content-light dark:bg-content-dark rounded-2xl shadow-lg overflow-hidden">
+          <motion.main 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white dark:bg-content-dark rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden"
+          >
             <div className="p-6">
-              <div className="mb-4 flex items-center justify-between">
+              <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                  <h2 className="text-2xl font-serif font-bold text-charcoal dark:text-text-primary-dark">
                 {editingExpense ? 'Edit Expense' : 'Add New Expense'}
               </h2>
-                  <span className="hidden sm:inline text-primary">→</span>
-                  <span className="hidden sm:inline text-sm px-2 py-1 rounded-full border border-primary/20 bg-primary/10 dark:bg-primary/20 text-primary font-semibold">
+                  <span className="hidden sm:inline text-teal-primary">→</span>
+                  <span className="hidden sm:inline text-sm px-3 py-1 rounded-full border border-teal-primary/20 bg-teal-light dark:bg-primary/20 text-teal-primary font-semibold">
                     {activeGroup?.name}
                   </span>
                 </div>
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setActiveScreen('dashboard')}
-                  className="p-2 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="p-2 text-sage hover:text-charcoal dark:text-gray-400 dark:hover:text-gray-200 rounded-full hover:bg-stone-100 dark:hover:bg-gray-800"
                   aria-label="Close and return to dashboard"
                   title="Close"
                 >
                   ×
-                </button>
+                </motion.button>
               </div>
               <AddExpenseForm 
                 members={activeGroupMembers}
@@ -1265,18 +1340,22 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="bg-surface-light dark:bg-surface-dark font-sans text-text-primary-light dark:text-text-primary-dark transition-colors duration-300">
+    <div className="bg-cream dark:bg-surface-dark font-sans text-charcoal dark:text-text-primary-dark transition-colors duration-300" style={{ backgroundColor: '#FDFCF9' }}>
       <div className="container mx-auto max-w-md sm:max-w-lg lg:max-w-xl px-3 relative min-h-screen flex flex-col pt-4">
         <main className="flex-grow">
             <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
             
             {/* Clean Professional Header */}
-            <header className="bg-gray-50 dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 mb-4 relative">
+            <motion.header 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-surface dark:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 mb-6 relative"
+            >
               {/* Header Content */}
-              <div className="p-4 text-center">
+              <div className="p-6 text-center">
                 {/* Logo */}
-                <div className="flex justify-center mb-2">
-                  <div className="bg-white dark:bg-gray-900 rounded-lg p-3 shadow-sm">
+                <div className="flex justify-center mb-3">
+                  <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm">
                     <img 
                       src="/splitbi-logo.png" 
                       alt="Splitbi" 
@@ -1286,20 +1365,21 @@ const App: React.FC = () => {
                 </div>
                 
                 {/* Tagline */}
-                <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-3">
+                <p className="text-sm text-sage dark:text-gray-300 font-medium mb-4">
                   Splitting expenses, made easy
                 </p>
                 
                 {/* User Welcome */}
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="text-xs text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-200 transition-colors flex items-center gap-1 mx-auto"
+                  className="text-xs text-sage dark:text-gray-300 hover:text-charcoal dark:hover:text-gray-200 transition-colors flex items-center gap-1 mx-auto"
                 >
-                  Welcome back, <span className="font-semibold text-gray-800 dark:text-gray-200">{currentUser.name}</span>
+                  Welcome back, <span className="font-semibold text-charcoal dark:text-gray-200">{currentUser.name}</span>
                   <svg className={`w-3 h-3 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
-                </button>
+                </motion.button>
                 
               </div>
               
@@ -1307,12 +1387,17 @@ const App: React.FC = () => {
               {showUserMenu && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-                  <div className="absolute z-50 left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-border-light dark:border-border-dark overflow-hidden">
-                    <div className="p-3 border-b border-border-light dark:border-border-dark bg-gray-50 dark:bg-gray-900/50">
-                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">Signed in as</p>
-                      <p className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark truncate">{currentUser.email}</p>
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute z-50 left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-stone-100 dark:border-stone-700 overflow-hidden"
+                  >
+                    <div className="p-4 border-b border-stone-200 dark:border-stone-700 bg-surface dark:bg-gray-900/50">
+                      <p className="text-xs text-sage dark:text-text-secondary-dark">Signed in as</p>
+                      <p className="text-sm font-semibold text-charcoal dark:text-text-primary-dark truncate">{currentUser.email}</p>
                     </div>
-                    <button
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
                       onClick={() => {
                         setShowUserMenu(false);
                         logout();
@@ -1323,8 +1408,8 @@ const App: React.FC = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                       </svg>
                       Logout
-                    </button>
-                  </div>
+                    </motion.button>
+                  </motion.div>
                 </>
               )}
 
@@ -1352,82 +1437,92 @@ const App: React.FC = () => {
             </header>
             {/* Install Banner - Show to new users */}
             {!sessionStorage.getItem('install-banner-dismissed') && (
-              <div className="mb-6 bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 border border-primary/20 rounded-xl p-4">
-                <div className="flex items-start gap-3">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 bg-gradient-to-r from-teal-light to-teal-light/50 dark:from-primary/20 dark:to-primary/10 border border-teal-primary/20 rounded-2xl p-6"
+              >
+                <div className="flex items-start gap-4">
                   <div className="flex-shrink-0 text-2xl">📱</div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-text-primary-light dark:text-text-primary-dark mb-1">
+                    <h3 className="font-serif font-bold text-charcoal dark:text-text-primary-dark mb-2">
                       Install Splitbi on your device!
                     </h3>
-                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-3">
+                    <p className="text-sm text-sage dark:text-text-secondary-dark mb-4">
                       Get instant access from your home screen. Works offline too!
                     </p>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-3">
                       
-                        <a href="/install.html"
-                        target="_blank"
-                        className="inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors">
+                        <motion.a 
+                          href="/install.html"
+                          target="_blank"
+                          whileTap={{ scale: 0.98 }}
+                          className="inline-flex items-center px-6 py-3 bg-teal-primary text-white text-sm font-medium rounded-full hover:bg-teal-dark transition-colors"
+                        >
                         📖 See How to Install
-                      </a>
-                      <button
+                      </motion.a>
+                      <motion.button
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => {
                           sessionStorage.setItem('install-banner-dismissed', 'true');
                           window.location.reload();
                         }}
-                        className="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-text-primary-light dark:text-text-primary-dark text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                        className="inline-flex items-center px-6 py-3 bg-white dark:bg-gray-700 border border-stone-200 dark:border-stone-600 text-charcoal dark:text-text-primary-dark text-sm font-medium rounded-full hover:bg-surface dark:hover:bg-gray-600 transition-colors"
                       >
                         Maybe Later
-                      </button>
+                      </motion.button>
                     </div>
                   </div>
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       sessionStorage.setItem('install-banner-dismissed', 'true');
                       window.location.reload();
                     }}
-                    className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xl leading-none"
+                    className="flex-shrink-0 text-sage hover:text-charcoal dark:hover:text-gray-300 text-xl leading-none"
                     aria-label="Close"
                   >
                     ×
-                  </button>
+                  </motion.button>
                 </div>
-              </div>
+              </motion.div>
             )}
             {renderContent()}
             
         </main>
 
-        <footer className="text-center pt-8 pb-4 text-gray-500 dark:text-gray-400 text-sm space-y-3">
+        <footer className="text-center pt-8 pb-4 text-sage dark:text-gray-400 text-sm space-y-3">
           <div className="flex items-center justify-center gap-4 text-xs">
             <a 
               href="/install.html" 
               target="_blank"
-              className="text-primary hover:underline font-bold flex items-center gap-1"
+              className="text-teal-primary hover:underline font-medium flex items-center gap-1"
             >
               📱 Install App
             </a>
-            <span className="text-gray-300 dark:text-gray-600">•</span>
+            <span className="text-stone-300 dark:text-gray-600">•</span>
             <a 
               href="https://forms.gle/1w3Vk6FhrQDppagw5"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:underline font-bold flex items-center gap-1"
+              className="text-teal-primary hover:underline font-medium flex items-center gap-1"
             >
               💬 Send Feedback
             </a>
-            <span className="text-gray-300 dark:text-gray-600">•</span>
-            <button
+            <span className="text-stone-300 dark:text-gray-600">•</span>
+            <motion.button
+              whileTap={{ scale: 0.98 }}
               onClick={() => setIsHelpModalOpen(true)}
-              className="text-primary hover:underline font-bold flex items-center gap-1"
+              className="text-teal-primary hover:underline font-medium flex items-center gap-1"
             >
               ❓ Help & FAQ
-            </button>
+            </motion.button>
           </div>
           <div className="flex items-center justify-center gap-2 text-xs">
-            <span className="font-bold">© 2025</span>
-            <span className="text-gray-300 dark:text-gray-600">•</span>
-            <span className="font-bold">Built with <span className="text-red-500 animate-pulse">❤️</span> by</span>
-            <span className="font-bold text-primary">Sujit Gangadharan</span>
+            <span className="font-medium">© 2025</span>
+            <span className="text-stone-300 dark:text-gray-600">•</span>
+            <span className="font-medium">Built with <span className="text-red-500 animate-pulse">❤️</span> by</span>
+            <span className="font-medium text-teal-primary">Sujit Gangadharan</span>
           </div>
         </footer>
         <div className="h-20" />

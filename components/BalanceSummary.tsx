@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { motion } from 'framer-motion';
 import type { FinalExpense, Group, User } from '../types';
 import { ChevronRightIcon, CogIcon, ExportIcon } from './icons';
 import { formatCurrency } from '../utils/currencyFormatter';
@@ -24,23 +25,24 @@ const BalanceItem: React.FC<{ user: User; balance: number; currentUserId: string
         ? `gets back ${formatCurrency(balance, currency)}` 
         : `owes ${formatCurrency(-balance, currency)}`;
     
-    const textColor = Math.abs(balance) < 0.01 ? 'text-text-secondary-light dark:text-text-secondary-dark' : balance > 0 ? 'text-success' : 'text-error';
+    const textColor = Math.abs(balance) < 0.01 ? 'text-sage dark:text-text-secondary-dark' : balance > 0 ? 'text-teal-primary' : 'text-orange-500';
 
     return (
-        <button 
+        <motion.button 
+            whileTap={{ scale: 0.98 }}
             onClick={() => onViewDetail(user)}
             disabled={isCurrentUser}
-            className="w-full flex items-center justify-between py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 disabled:hover:bg-transparent disabled:cursor-default transition-colors group"
+            className="w-full flex items-center justify-between py-3 px-4 rounded-2xl hover:bg-surface dark:hover:bg-gray-800 disabled:hover:bg-transparent disabled:cursor-default transition-colors group"
         >
             <div className="flex items-center">
-                <img src={user.avatarUrl} alt={user.name} className="w-8 h-8 rounded-full mr-3"/>
-                <span className="text-sm font-medium text-text-primary-light dark:text-text-primary-dark">{user.name.replace(' (You)', '')}</span>
+                <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full mr-3"/>
+                <span className="text-sm font-medium text-charcoal dark:text-text-primary-dark">{user.name.replace(' (You)', '')}</span>
             </div>
             <div className="flex items-center space-x-2">
                 <span className={`font-semibold ${textColor}`}>{balanceText}</span>
-                {!isCurrentUser && <ChevronRightIcon className="w-5 h-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />}
+                {!isCurrentUser && <ChevronRightIcon className="w-5 h-5 text-sage group-hover:text-teal-primary dark:group-hover:text-gray-300 transition-colors" />}
             </div>
-        </button>
+        </motion.button>
     );
 };
 
@@ -81,80 +83,93 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ expenses, group, member
         }, 0);
     }, [balances]);
     
-    let balanceColor = 'text-text-primary-light dark:text-text-primary-dark';
+    let balanceColor = 'text-charcoal dark:text-text-primary-dark';
     let balanceDescription = 'You are all settled up.';
     if (currentUserBalance > 0.01) {
-        balanceColor = 'text-success';
+        balanceColor = 'text-teal-primary';
         balanceDescription = 'Overall, you are owed';
     } else if (currentUserBalance < -0.01) {
-        balanceColor = 'text-error';
+        balanceColor = 'text-orange-500';
         balanceDescription = 'Overall, you owe';
     }
     const formattedBalance = formatCurrency(Math.abs(currentUserBalance), group.currency);
 
     return (
-        <div className="bg-content-light dark:bg-content-dark rounded-lg shadow-md">
-            <div className="p-3 flex justify-between items-center border-b border-border-light dark:border-border-dark">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-content-dark rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700"
+        >
+            <div className="p-6 flex justify-between items-center border-b border-stone-200 dark:border-stone-700">
                  <div>
-                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider mb-0.5">
+                    <p className="text-xs text-sage dark:text-text-secondary-dark uppercase tracking-wider mb-1">
                       Members
                     </p>
-                    <p className="text-base font-semibold text-text-primary-light dark:text-text-primary-dark">{members.length}</p>
+                    <p className="text-base font-serif font-bold text-charcoal dark:text-text-primary-dark">{members.length}</p>
                  </div>
-                 <div className="flex gap-1.5">
-                    <button
+                 <div className="flex gap-2">
+                    <motion.button
+                        whileTap={{ scale: 0.98 }}
                         onClick={onManageGroupClick}
-                        className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-white bg-gray-700 dark:bg-gray-600 hover:bg-gray-800 dark:hover:bg-gray-700 rounded-md transition-colors"
+                        className="flex items-center gap-1 px-4 py-2 text-xs font-medium text-white bg-stone-600 dark:bg-gray-600 hover:bg-stone-700 dark:hover:bg-gray-700 rounded-full transition-colors"
                         aria-label={`Manage current group: ${group.name}`}
                         title={`Manage current group: ${group.name}`}
                     >
-                        <CogIcon className="w-3 h-3" />
-                        <span className="hidden sm:inline">Manage Group</span>
-                    </button>
-                    <button
+                        <CogIcon className="w-4 h-4" />
+                        <span className="hidden sm:inline">Manage</span>
+                    </motion.button>
+                    <motion.button
+                        whileTap={{ scale: 0.98 }}
                         onClick={onExportClick}
-                        className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-white bg-primary hover:bg-primary-600 rounded-md transition-colors"
+                        className="flex items-center gap-1 px-4 py-2 text-xs font-medium text-white bg-teal-primary hover:bg-teal-dark rounded-full transition-colors"
                         aria-label="Export to CSV"
                     >
-                        <ExportIcon className="w-3 h-3" />
+                        <ExportIcon className="w-4 h-4" />
                         <span className="hidden sm:inline">Export</span>
-                    </button>
+                    </motion.button>
                 </div>
             </div>
            
-            <div className="p-4">
-                <div className="text-center mb-4">
-                    <p className="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">Your Balance</p>
-                    <p className={`text-2xl font-bold mt-1 ${balanceColor}`}>{formattedBalance}</p>
-                    <p className="mt-1 text-xs text-text-secondary-light dark:text-text-secondary-dark">{balanceDescription}</p>
+            <div className="p-6">
+                <div className="text-center mb-6">
+                    <p className="text-xs font-medium text-sage dark:text-text-secondary-dark uppercase tracking-wider">Your Balance</p>
+                    <p className={`text-3xl font-serif font-bold mt-2 ${balanceColor}`}>{formattedBalance}</p>
+                    <p className="mt-2 text-sm text-sage dark:text-text-secondary-dark">{balanceDescription}</p>
                 </div>
                 
-                <div className="mb-4">
-                     <button
+                <div className="mb-6">
+                     <motion.button
+                        whileTap={{ scale: 0.98 }}
                         onClick={onSettleUpClick}
                         disabled={totalDebt < 0.01}
-                        className="w-full max-w-xs mx-auto flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-all"
+                        className="w-full max-w-xs mx-auto flex justify-center py-3 px-6 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-teal-primary hover:bg-teal-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-primary disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
                     >
                         Settle Up
-                    </button>
+                    </motion.button>
                 </div>
 
-                <div className="divide-y divide-border-light dark:divide-border-dark">
+                <div className="space-y-2">
                     {members
                         .filter(member => member.id !== currentUserId)
-                        .map(member => (
-                            <BalanceItem 
-                                key={member.id} 
-                                user={member} 
-                                balance={balances.get(member.id) || 0}
-                                currentUserId={currentUserId}
-                                currency={group.currency}
-                                onViewDetail={onViewDetail}
-                            />
+                        .map((member, index) => (
+                            <motion.div
+                              key={member.id}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                            >
+                              <BalanceItem 
+                                  user={member} 
+                                  balance={balances.get(member.id) || 0}
+                                  currentUserId={currentUserId}
+                                  currency={group.currency}
+                                  onViewDetail={onViewDetail}
+                              />
+                            </motion.div>
                     ))}
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 };
 

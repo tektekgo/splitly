@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import type { Group } from '../types';
 import CurrencySelector from './CurrencySelector';
 import { DEFAULT_CURRENCY } from '../utils/currencyFormatter';
@@ -31,15 +32,20 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
-      <div className="bg-content-light dark:bg-content-dark rounded-2xl shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white dark:bg-content-dark rounded-2xl shadow-lg border border-stone-100 dark:border-stone-700 w-full max-w-md" 
+        onClick={e => e.stopPropagation()}
+      >
         <form onSubmit={handleSubmit}>
-            <div className="p-6 border-b border-border-light dark:border-border-dark">
-            <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">Create a New Group</h2>
+            <div className="p-6 border-b border-stone-200 dark:border-stone-700">
+            <h2 className="text-2xl font-serif font-bold text-charcoal dark:text-text-primary-dark">Create a New Group</h2>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-6">
                 <div>
-                    <label htmlFor="newGroupName" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Group Name</label>
+                    <label htmlFor="newGroupName" className="block text-sm font-medium text-sage dark:text-text-secondary-dark mb-2">Group Name</label>
                     <input
                         id="newGroupName"
                         type="text"
@@ -47,41 +53,43 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
                         onChange={(e) => setGroupName(e.target.value)}
                         placeholder="e.g., Family, Ski Trip, etc."
                         required
-                        className="block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+                        className="block w-full px-4 py-3 bg-surface dark:bg-gray-800 border border-stone-200 dark:border-stone-600 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-primary focus:border-teal-primary sm:text-sm"
                     />
                 </div>
                 
                 <div>
-                    <label htmlFor="groupCurrency" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Currency</label>
+                    <label htmlFor="groupCurrency" className="block text-sm font-medium text-sage dark:text-text-secondary-dark mb-2">Currency</label>
                     <CurrencySelector
                         value={currency}
                         onChange={setCurrency}
                         className="mt-1"
                     />
-                    <p className="mt-1 text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                    <p className="mt-2 text-xs text-sage dark:text-text-secondary-dark">
                         All expenses in this group will use this currency
                     </p>
                 </div>
             </div>
 
-            <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-border-light dark:border-border-dark flex justify-end gap-3 rounded-b-2xl">
-                <button
+            <div className="p-6 bg-surface dark:bg-gray-900/50 border-t border-stone-200 dark:border-stone-700 flex justify-end gap-3 rounded-b-2xl">
+                <motion.button
+                    whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={onClose}
-                    className="px-5 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
+                    className="px-6 py-3 bg-white dark:bg-gray-700 border border-stone-200 dark:border-stone-600 text-charcoal dark:text-gray-200 font-medium rounded-full hover:bg-surface dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-stone-400 transition-colors"
                 >
                     Cancel
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                    whileTap={{ scale: 0.98 }}
                     type="submit"
                     disabled={!groupName.trim()}
-                    className="px-5 py-2 bg-primary text-white font-semibold rounded-lg shadow-md hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                    className="px-6 py-3 bg-teal-primary text-white font-medium rounded-full shadow-sm hover:bg-teal-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-primary disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
                 >
                     Create Group
-                </button>
+                </motion.button>
             </div>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 };

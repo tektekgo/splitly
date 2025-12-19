@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { FinalExpense, User } from '../types';
 import { CategoryIcon, EditIcon, DeleteIcon } from './icons';
 
@@ -28,44 +29,55 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, members, onDelete, o
     }
 
     return (
-        <li 
-            className="flex items-center justify-between p-3 bg-content-light dark:bg-content-dark hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg shadow-sm border border-border-light dark:border-border-dark transition-all cursor-pointer group"
+        <motion.li 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileHover={{ scale: 1.02 }}
+            className="flex items-center justify-between p-4 bg-white dark:bg-content-dark hover:bg-surface dark:hover:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 transition-all cursor-pointer group"
             onClick={() => onView(expense)}
         >
-            <div className="flex items-center gap-3 flex-grow min-w-0">
-                <div className="flex-shrink-0 p-2 bg-primary/10 rounded-full">
-                     <CategoryIcon category={expense.category} className="w-5 h-5 text-primary" />
+            <div className="flex items-center gap-4 flex-grow min-w-0">
+                <div className="flex-shrink-0 p-3 bg-teal-light rounded-full">
+                     <CategoryIcon category={expense.category} className="w-5 h-5 text-teal-primary" />
                 </div>
                 <div className="min-w-0">
-                    <p className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark truncate">{expense.description}</p>
-                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                    <p className="text-base font-serif font-bold text-charcoal dark:text-text-primary-dark truncate">{expense.description}</p>
+                    <p className="text-sm text-sage dark:text-text-secondary-dark">
                         Paid by {payerName}
                     </p>
                 </div>
             </div>
             <div className="text-right flex-shrink-0 ml-4 flex items-center gap-2">
                 <div>
-                    <p className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">
+                    <p className="text-lg font-serif font-bold text-charcoal dark:text-text-primary-dark">
                         ${expense.amount.toFixed(2)}
                     </p>
                     { Math.abs(netEffect) < 0.01 ?
-                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark font-medium">No cost to you</p>
+                    <p className="text-sm text-sage dark:text-text-secondary-dark font-medium">No cost to you</p>
                     : netEffect > 0 ?
-                    <p className="text-sm text-success font-medium">You get back ${netEffect.toFixed(2)}</p>
+                    <p className="text-sm text-teal-primary font-medium">You get back ${netEffect.toFixed(2)}</p>
                     :
-                    <p className="text-sm text-error font-medium">You owe ${(-netEffect).toFixed(2)}</p>
+                    <p className="text-sm text-orange-500 font-medium">You owe ${(-netEffect).toFixed(2)}</p>
                     }
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={(e) => handleActionClick(e, () => onEdit(expense))} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <motion.button 
+                      whileTap={{ scale: 0.95 }}
+                      onClick={(e) => handleActionClick(e, () => onEdit(expense))} 
+                      className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-gray-700 text-sage hover:text-charcoal dark:text-gray-400 dark:hover:text-gray-200"
+                    >
                         <EditIcon className="w-5 h-5"/>
-                    </button>
-                     <button onClick={(e) => handleActionClick(e, () => onDelete(expense.id))} className="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 text-gray-500 hover:text-error">
+                    </motion.button>
+                     <motion.button 
+                       whileTap={{ scale: 0.95 }}
+                       onClick={(e) => handleActionClick(e, () => onDelete(expense.id))} 
+                       className="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 text-sage hover:text-red-500"
+                    >
                         <DeleteIcon className="w-5 h-5"/>
-                    </button>
+                    </motion.button>
                 </div>
             </div>
-        </li>
+        </motion.li>
     );
 };
 

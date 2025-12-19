@@ -6,6 +6,7 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   GoogleAuthProvider,
+  signInWithCredential,
   onAuthStateChanged
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
@@ -70,9 +71,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, []);
 
-  const signInWithGoogle = async () => {
+  /*const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
+  };*/
+  const signInWithGoogle = async () => {
+    // Check if running in Capacitor (native app)
+    if (typeof (window as any).Capacitor !== 'undefined') {
+      // Use native Google Auth plugin
+      const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
+      const googleUser = await GoogleAuth.signIn();
+      
+      // Create Firebase credential from Google token
+      const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+      await signInWithCredential(auth, credential);
+    } else {
+      // Use web popup (PWA/browser)
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    }
   };
 
   const signInWithEmail = async (email: string, password: string) => {

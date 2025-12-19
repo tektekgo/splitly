@@ -22,45 +22,60 @@
     <link rel="icon" type="image/png" href="/splitbi-logo.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?v=2"></script>
     <script>
+      // Configure Tailwind BEFORE it processes classes
       tailwind.config = {
-        darkMode: 'class', // Enable class-based dark mode
+        darkMode: 'class',
         theme: {
           extend: {
             colors: {
+              cream: '#FDFCF9',
+              surface: '#FFFBF5',
+              'teal-primary': '#0D9488',
+              'teal-accent': '#5EEAD4',
+              'teal-light': '#CCFBF1',
+              'teal-dark': '#0F766E',
+              charcoal: '#1F2937',
+              sage: '#6B7280',
               primary: {
-                DEFAULT: '#14B8A6', // Teal-500
-                '50': '#F0FDFA',
-                '100': '#CCFBF1',
-                '200': '#99F6E4',
-                '300': '#5EEAD4',
-                '400': '#2DD4BF',
-                '500': '#14B8A6',
-                '600': '#0D9488',
-                '700': '#0F766E',
-                '800': '#115E59',
-                '900': '#134E4A',
-                '950': '#042F2E'
+                DEFAULT: '#0D9488',
+                50: '#F0FDFA',
+                100: '#CCFBF1',
+                200: '#99F6E4',
+                300: '#5EEAD4',
+                400: '#2DD4BF',
+                500: '#0D9488',
+                600: '#0D9488',
+                700: '#0F766E',
+                800: '#115E59',
+                900: '#134E4A',
+                950: '#042F2E'
               },
               success: '#10B981',
               error: '#EF4444',
               warning: '#F59E0B',
-              // Light theme colors
-              'surface-light': '#F8F9FA',
+              'surface-light': '#FDFCF9',
               'content-light': '#FFFFFF',
               'text-primary-light': '#1F2937',
               'text-secondary-light': '#6B7280',
               'border-light': '#E5E7EB',
-              // Dark theme colors
               'surface-dark': '#121212',
               'content-dark': '#1E1E1E',
               'text-primary-dark': '#F9FAFB',
               'text-secondary-dark': '#9CA3AF',
               'border-dark': '#374151',
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              serif: ['Libre Baskerville', 'serif'],
             }
           }
         }
+      }
+      // Force Tailwind to refresh after config
+      if (typeof tailwind !== 'undefined') {
+        tailwind.refresh();
       }
     </script>
     <script>
@@ -71,19 +86,9 @@
         document.documentElement.classList.remove('dark')
       }
     </script>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "firebase/": "https://aistudiocdn.com/firebase@^10.12.3/"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
+<link rel="stylesheet" href="/index.css?v=2">
 </head>
-  <body class="bg-surface-light dark:bg-surface-dark">
+  <body class="bg-cream dark:bg-surface-dark">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
     <!-- Service Worker Registration -->

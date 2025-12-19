@@ -1,3 +1,14 @@
+# Environment variables - NEVER commit these
+.env
+.env.local
+.env.production
+.env.test
+.env.development
+
+# Firebase sensitive files
+android/app/google-services.json
+google-services.json
+
 # Logs
 logs
 *.log

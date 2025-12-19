@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Splitbi</string>
+    <string name="title_activity_main">Splitbi</string>
+    <string name="package_name">app.splitbi.splitbi</string>
+    <string name="custom_url_scheme">app.splitbi.splitbi</string>
+</resources>

@@ -63,23 +63,21 @@ const LoginScreen: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-surface dark:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 mb-6"
+          className="flex items-center justify-center gap-3 mb-4"
         >
-          {/* Header Content */}
-          <div className="p-6 text-center">
-            {/* Logo */}
-            <div className="flex justify-center mb-3">
-              <div className="bg-white dark:bg-gray-900 rounded-2xl p-3 shadow-sm">
-                <img 
-                  src="/splitbi-logo.png" 
-                  alt="Splitbi Logo" 
-                  className="h-24 sm:h-28 w-auto"
-                />
-              </div>
-            </div>
-            
-            {/* Tagline */}
-            <p className="text-sm text-sage dark:text-gray-300 font-medium">
+          {/* Logo */}
+          <div className="bg-gradient-to-br from-white to-primary/5 dark:from-gray-900 dark:to-primary/10 rounded-xl p-2 shadow-md ring-1 ring-primary/20 dark:ring-primary/30">
+            <img 
+              src="/splitBi-logo-notext-svg.svg" 
+              alt="SplitBi Logo" 
+              className="h-12 w-12 sm:h-14 sm:w-14"
+            />
+          </div>
+          <div className="text-left">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-charcoal dark:text-gray-100 tracking-tight">
+              Split<span className="text-primary">Bi</span>
+            </h1>
+            <p className="text-xs text-primary dark:text-primary-300 font-semibold tracking-wide uppercase">
               Splitting expenses, made easy
             </p>
           </div>
@@ -141,7 +139,7 @@ const LoginScreen: React.FC = () => {
             whileTap={{ scale: 0.98 }}
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-teal-primary text-white font-medium rounded-full hover:bg-teal-dark focus:outline-none focus:ring-2 focus:ring-teal-primary disabled:bg-gray-400 transition-colors min-h-12"
+            className="w-full py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-400 transition-colors min-h-12"
           >
             {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
           </motion.button>
@@ -151,7 +149,7 @@ const LoginScreen: React.FC = () => {
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => setIsSignUp(!isSignUp)}
-            className="text-teal-primary hover:underline text-sm"
+            className="text-primary hover:underline text-sm"
           >
             {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
           </motion.button>

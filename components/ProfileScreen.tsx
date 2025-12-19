@@ -40,8 +40,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
     }, [users, currentUser]);
 
     return (
-        <main className="bg-slate-50 dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700">
-            <div className="p-3 space-y-3">
+        <div className="overflow-hidden">
+            <div className="px-4 py-3 sm:px-6 sm:py-4 space-y-3">
                 {/* Header */}
                 <div>
                     <h2 className="text-base font-bold text-text-primary-light dark:text-text-primary-dark mb-2">
@@ -127,22 +127,22 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                 <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-slate-200 dark:border-gray-600">
                     <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">Invite Real Users</h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-                        Send email invites to people who will create their own Splitbi accounts
+                        Send email invites to people who will create their own Split<span className="text-primary">Bi</span> accounts
                     </p>
                     <div className="space-y-2">
                         <button
                             onClick={() => onOpenInviteModal?.()}
-                            className="w-full flex items-center justify-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                            className="w-full flex items-center justify-center gap-2 p-2 bg-teal-light dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-md hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
                         >
-                            <span className="text-blue-600 dark:text-blue-400">📧</span>
-                            <span className="text-base font-bold text-blue-700 dark:text-blue-400">Send Email Invite</span>
+                            <span className="text-primary dark:text-primary-400">📧</span>
+                            <span className="text-base font-bold text-primary dark:text-primary-400">Send Email Invite</span>
                         </button>
                         <button
                             onClick={() => onOpenGroupSelector?.()}
-                            className="w-full flex items-center justify-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                            className="w-full flex items-center justify-center gap-2 p-2 bg-teal-light dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-md hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
                         >
-                            <span className="text-green-600 dark:text-green-400">👥</span>
-                            <span className="text-base font-bold text-green-700 dark:text-green-400">Manage Group Members</span>
+                            <span className="text-primary dark:text-primary-400">👥</span>
+                            <span className="text-base font-bold text-primary dark:text-primary-400">Manage Group Members</span>
                         </button>
                     </div>
                 </div>
@@ -155,9 +155,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                             {groupInvites.map(invite => {
                                 const isExpired = new Date(invite.expiresAt) < new Date();
                                 const statusColor = invite.status === 'pending' 
-                                    ? (isExpired ? 'text-orange-600 dark:text-orange-400' : 'text-blue-600 dark:text-blue-400')
+                                    ? (isExpired ? 'text-orange-500 dark:text-orange-400' : 'text-primary dark:text-primary-400')
                                     : invite.status === 'accepted' 
-                                    ? 'text-green-600 dark:text-green-400'
+                                    ? 'text-primary dark:text-primary-400'
                                     : 'text-red-600 dark:text-red-400';
                                 
                                 const statusText = invite.status === 'pending' 
@@ -229,18 +229,18 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                                     }
                                 }}
                                 disabled={loadingStats}
-                                className="w-full px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+                                className="w-full px-4 py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-700 disabled:bg-gray-400 transition-colors"
                             >
                                 {loadingStats ? '⏳ Loading...' : '📊 View Database Stats'}
                             </button>
 
                             {/* Currency Migration Status */}
                             {stats && (
-                                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-lg">
-                                    <p className="text-sm text-blue-900 dark:text-blue-100 font-medium">
+                                <div className="mt-3 p-3 bg-teal-light dark:bg-primary-900/20 border border-primary-300 dark:border-primary-700 rounded-lg">
+                                    <p className="text-sm text-primary dark:text-primary-100 font-medium">
                                         💰 Currency Migration Status:
                                     </p>
-                                    <p className="text-xs text-blue-800 dark:text-blue-200 mt-1">
+                                    <p className="text-xs text-primary-800 dark:text-primary-200 mt-1">
                                         Groups needing migration: {stats.currencyMigrationNeeded.groupsNeedMigration}
                                         <br />
                                         Expenses needing migration: {stats.currencyMigrationNeeded.expensesNeedMigration}
@@ -259,7 +259,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                                                     }
                                                 }
                                             }}
-                                            className="mt-2 px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+                                            className="mt-2 px-3 py-1 bg-primary text-white text-xs font-medium rounded-full hover:bg-primary-700 transition-colors"
                                         >
                                             🚀 Run Currency Migration
                                         </button>
@@ -306,7 +306,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                         <div className="grid grid-cols-1 gap-3">
                             <button
                                 onClick={exportAllData}
-                                className="px-4 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
+                                className="px-4 py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-700 transition-colors"
                             >
                                 📥 Export All Data (Backup)
                             </button>
@@ -345,7 +345,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                 </div>
                 )}
             </div>
-        </main>
+        </div>
     );
 };
 

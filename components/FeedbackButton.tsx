@@ -5,10 +5,13 @@ const FeedbackButton: React.FC = () => {
 
   return (
     <>
-      {/* Floating Feedback Button */}
+      {/* Floating Feedback Button - Positioned relative to content container */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-28 md:bottom-24 right-4 z-50 bg-primary text-white p-4 md:p-3 rounded-full shadow-xl hover:bg-primary-600 transition-all hover:scale-110"
+        className="fixed bottom-28 md:bottom-24 z-50 bg-primary text-white p-3 md:p-2.5 rounded-full shadow-xl hover:bg-primary-600 transition-all hover:scale-110"
+        style={{ 
+          right: 'clamp(0.5rem, calc((100vw - 28rem) / 2 + 0.5rem), calc(100vw - 26.5rem))'
+        }}
         aria-label="Send Feedback"
         >     
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -26,7 +29,7 @@ const FeedbackButton: React.FC = () => {
                   💬 Send Feedback
                 </h3>
                 <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mt-1">
-                  Help me make Splitbi better!
+                  Help me make Split<span className="text-primary">Bi</span> better!
                 </p>
               </div>
               <button
@@ -47,7 +50,7 @@ const FeedbackButton: React.FC = () => {
                 </p>
                 <div className="space-y-2">
                   
-                    <a href="mailto:gsujit@gmail.com?subject=Splitbi Bug Report&body=Please describe the bug you encountered:%0D%0A%0D%0A"
+                    <a href="mailto:gsujit@gmail.com?subject=SplitBi Bug Report&body=Please describe the bug you encountered:%0D%0A%0D%0A"
                     className="block w-full text-left px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
                   >
                     <span className="text-lg mr-2">🐛</span>
@@ -55,16 +58,16 @@ const FeedbackButton: React.FC = () => {
                   </a>
                   
                   
-                    <a href="mailto:gsujit@gmail.com?subject=Splitbi Feature Request&body=I would love to see this feature:%0D%0A%0D%0A"
-                    className="block w-full text-left px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                    <a href="mailto:gsujit@gmail.com?subject=SplitBi Feature Request&body=I would love to see this feature:%0D%0A%0D%0A"
+                    className="block w-full text-left px-4 py-3 bg-teal-light dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
                   >
                     <span className="text-lg mr-2">💡</span>
                     <span className="font-medium text-text-primary-light dark:text-text-primary-dark">Request a Feature</span>
                   </a>
                   
                   
-                    <a href="mailto:gsujit@gmail.com?subject=Splitbi General Feedback&body=Here's my feedback about Splitbi:%0D%0A%0D%0A"
-                    className="block w-full text-left px-4 py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                    <a href="mailto:gsujit@gmail.com?subject=SplitBi General Feedback&body=Here's my feedback about SplitBi:%0D%0A%0D%0A"
+                    className="block w-full text-left px-4 py-3 bg-teal-light dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
                   >
                     <span className="text-lg mr-2">😊</span>
                     <span className="font-medium text-text-primary-light dark:text-text-primary-dark">General Feedback</span>

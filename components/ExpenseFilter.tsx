@@ -25,7 +25,7 @@ const ExpenseFilter: React.FC<ExpenseFilterProps> = ({
   categories,
 }) => {
   return (
-    <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-border-light dark:border-border-dark">
+    <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-stone-200 dark:border-gray-600">
       <div>
         <div className="flex items-center mb-2">
           <label htmlFor="search" className="text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">

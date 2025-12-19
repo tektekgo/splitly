@@ -21,7 +21,7 @@ const ExpenseDetailModal: React.FC<ExpenseDetailModalProps> = ({ isOpen, onClose
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
-      <div className="bg-content-light dark:bg-content-dark rounded-2xl shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md border border-stone-100 dark:border-gray-700" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-border-light dark:border-border-dark">
             <div className="flex items-center gap-4">
                  <div className="flex-shrink-0 p-3 bg-primary/10 rounded-full">
@@ -68,7 +68,7 @@ const ExpenseDetailModal: React.FC<ExpenseDetailModalProps> = ({ isOpen, onClose
             </div>
         </div>
 
-        <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-border-light dark:border-border-dark text-right rounded-b-2xl">
+        <div className="p-4 bg-gray-50 dark:bg-gray-700 border-t border-stone-200 dark:border-gray-600 text-right rounded-b-2xl">
             <button
                 onClick={onClose}
                 className="px-5 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"

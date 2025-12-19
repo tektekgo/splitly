@@ -28,50 +28,56 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, members, onDelete, o
         action();
     }
 
+    const statusBadge = Math.abs(netEffect) < 0.01 
+        ? { text: 'No cost to you', color: 'text-sage bg-stone-100 dark:bg-gray-700' }
+        : netEffect > 0 
+        ? { text: `You get back $${netEffect.toFixed(2)}`, color: 'text-primary bg-teal-light dark:bg-primary/20' }
+        : { text: `You owe $${(-netEffect).toFixed(2)}`, color: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20' };
+
     return (
         <motion.li 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            whileHover={{ scale: 1.02 }}
-            className="flex items-center justify-between p-4 bg-white dark:bg-content-dark hover:bg-surface dark:hover:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 transition-all cursor-pointer group"
+            whileHover={{ scale: 1.01, y: -2 }}
+            className="flex items-center justify-between p-4 bg-white dark:bg-gray-700 hover:bg-primary/5 dark:hover:bg-gray-600 rounded-xl transition-all cursor-pointer group border-2 border-stone-200 dark:border-gray-600 shadow-sm hover:shadow-md"
             onClick={() => onView(expense)}
         >
-            <div className="flex items-center gap-4 flex-grow min-w-0">
-                <div className="flex-shrink-0 p-3 bg-teal-light rounded-full">
-                     <CategoryIcon category={expense.category} className="w-5 h-5 text-teal-primary" />
+            <div className="flex items-center gap-3 flex-grow min-w-0">
+                <div className="flex-shrink-0 p-3 bg-gradient-to-br from-primary-100 via-primary-50 to-white dark:from-primary/40 dark:via-primary/30 dark:to-gray-700 rounded-xl ring-2 ring-primary/20 dark:ring-primary/30 shadow-sm">
+                     <CategoryIcon category={expense.category} className="w-5 h-5 text-primary dark:text-primary-300" />
                 </div>
-                <div className="min-w-0">
-                    <p className="text-base font-serif font-bold text-charcoal dark:text-text-primary-dark truncate">{expense.description}</p>
-                    <p className="text-sm text-sage dark:text-text-secondary-dark">
-                        Paid by {payerName}
-                    </p>
+                <div className="min-w-0 flex-grow">
+                    <p className="text-base font-sans font-extrabold text-charcoal dark:text-gray-100 truncate mb-0.5">{expense.description}</p>
+                    <div className="flex items-center gap-1.5">
+                        <p className="text-xs text-sage dark:text-text-secondary-dark">
+                            {payerName}
+                        </p>
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${statusBadge.color}`}>
+                            {statusBadge.text}
+                        </span>
+                    </div>
                 </div>
             </div>
-            <div className="text-right flex-shrink-0 ml-4 flex items-center gap-2">
-                <div>
-                    <p className="text-lg font-serif font-bold text-charcoal dark:text-text-primary-dark">
+            <div className="text-right flex-shrink-0 ml-3 flex items-center gap-2">
+                <div className="text-right">
+                    <p className="text-lg font-sans font-extrabold text-charcoal dark:text-gray-100">
                         ${expense.amount.toFixed(2)}
                     </p>
-                    { Math.abs(netEffect) < 0.01 ?
-                    <p className="text-sm text-sage dark:text-text-secondary-dark font-medium">No cost to you</p>
-                    : netEffect > 0 ?
-                    <p className="text-sm text-teal-primary font-medium">You get back ${netEffect.toFixed(2)}</p>
-                    :
-                    <p className="text-sm text-orange-500 font-medium">You owe ${(-netEffect).toFixed(2)}</p>
-                    }
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <motion.button 
-                      whileTap={{ scale: 0.95 }}
+                      whileTap={{ scale: 0.9 }}
+                      whileHover={{ scale: 1.1 }}
                       onClick={(e) => handleActionClick(e, () => onEdit(expense))} 
-                      className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-gray-700 text-sage hover:text-charcoal dark:text-gray-400 dark:hover:text-gray-200"
+                      className="p-2.5 rounded-xl hover:bg-stone-100 dark:hover:bg-gray-600 text-sage hover:text-charcoal dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
                     >
                         <EditIcon className="w-5 h-5"/>
                     </motion.button>
                      <motion.button 
-                       whileTap={{ scale: 0.95 }}
+                       whileTap={{ scale: 0.9 }}
+                       whileHover={{ scale: 1.1 }}
                        onClick={(e) => handleActionClick(e, () => onDelete(expense.id))} 
-                       className="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 text-sage hover:text-red-500"
+                       className="p-2.5 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/50 text-sage hover:text-red-500 transition-colors"
                     >
                         <DeleteIcon className="w-5 h-5"/>
                     </motion.button>

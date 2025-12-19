@@ -1,6 +1,6 @@
 {
-    "name": "Splitbi - Expense Tracker",
-    "short_name": "Splitbi",
+    "name": "SplitBi - Expense Tracker",
+    "short_name": "SplitBi",
     "description": "Split expenses easily with friends and family. Track shared costs, settle debts, and manage group finances effortlessly.",
     "start_url": "/",
     "display": "standalone",

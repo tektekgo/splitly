@@ -31,7 +31,7 @@ const generateInviteEmailHTML = (data: EmailInviteData): string => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Splitbi Invitation</title>
+    <title>SplitBi Invitation</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -158,7 +158,7 @@ const generateInviteEmailHTML = (data: EmailInviteData): string => {
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo">Splitbi</div>
+            <div class="logo">SplitBi</div>
             <div class="tagline">Splitting expenses, made easy</div>
         </div>
         
@@ -166,7 +166,7 @@ const generateInviteEmailHTML = (data: EmailInviteData): string => {
             <h1 class="invitation-title">You're Invited! 🎉</h1>
             
             <p class="invitation-text">
-                <strong>${data.inviterName}</strong> has invited you to join their expense group on Splitbi. 
+                <strong>${data.inviterName}</strong> has invited you to join their expense group on SplitBi. 
                 Start tracking and splitting shared expenses together!
             </p>
             
@@ -177,21 +177,21 @@ const generateInviteEmailHTML = (data: EmailInviteData): string => {
             
             <div style="text-align: center;">
                 <a href="${data.inviteUrl}" class="cta-button">
-                    Join Group on Splitbi
+                    Join Group on SplitBi
                 </a>
             </div>
             
             <div class="divider"></div>
             
             <p style="font-size: 14px; color: #6b7280; text-align: center;">
-                This invitation will expire in 7 days. If you don't have a Splitbi account yet, 
+                This invitation will expire in 7 days. If you don't have a SplitBi account yet, 
                 you'll be able to create one when you click the button above.
             </p>
         </div>
         
         <div class="footer">
             <p class="footer-text">
-                This email was sent by <a href="https://splitbi.app" class="footer-link">Splitbi</a>
+                This email was sent by <a href="https://splitbi.app" class="footer-link">SplitBi</a>
             </p>
             <p class="footer-text">
                 If you didn't expect this invitation, you can safely ignore this email.
@@ -208,11 +208,11 @@ const generateInviteEmailHTML = (data: EmailInviteData): string => {
  */
 const generateInviteEmailText = (data: EmailInviteData): string => {
   return `
-Splitbi - Expense Splitting Made Easy
+SplitBi - Expense Splitting Made Easy
 
 You're Invited! 🎉
 
-${data.inviterName} has invited you to join their expense group "${data.groupName}" on Splitbi.
+${data.inviterName} has invited you to join their expense group "${data.groupName}" on SplitBi.
 
 Start tracking and splitting shared expenses together!
 
@@ -221,10 +221,10 @@ Invited by: ${data.inviterName}
 
 Join now: ${data.inviteUrl}
 
-This invitation will expire in 7 days. If you don't have a Splitbi account yet, you'll be able to create one when you visit the link above.
+This invitation will expire in 7 days. If you don't have a SplitBi account yet, you'll be able to create one when you visit the link above.
 
 ---
-This email was sent by Splitbi (https://splitbi.app)
+This email was sent by SplitBi (https://splitbi.app)
 If you didn't expect this invitation, you can safely ignore this email.
   `.trim();
 };
@@ -251,9 +251,9 @@ export const sendGroupInviteEmail = functions.https.onCall(async (data: EmailInv
 
   try {
     const { data: emailData, error } = await resend.emails.send({
-      from: 'Splitbi <onboarding@resend.dev>',
+      from: 'SplitBi <onboarding@resend.dev>',
       to: [data.invitedEmail],
-      subject: `${data.inviterName} invited you to join "${data.groupName}" on Splitbi`,
+      subject: `${data.inviterName} invited you to join "${data.groupName}" on SplitBi`,
       html: generateInviteEmailHTML(data),
       text: generateInviteEmailText(data),
     });

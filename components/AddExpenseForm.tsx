@@ -232,7 +232,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
 
       <div>
         <SplitMethodTabs activeMethod={splitMethod} onSelectMethod={setSplitMethod} />
-        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-border-light dark:border-border-dark">
+        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-stone-200 dark:border-gray-600">
           {renderSplitMethod()}
         </div>
       </div>

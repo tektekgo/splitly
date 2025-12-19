@@ -31,7 +31,7 @@ export function logError(action: string, error: any, details?: any) {
   };
 
   // Log to console for development
-  console.error('🚨 Splitbi Error:', errorLog);
+  console.error('🚨 SplitBI Error:', errorLog);
 
   // In production, you could send to an external service
   // For now, we'll store in localStorage for debugging

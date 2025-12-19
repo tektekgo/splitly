@@ -71,7 +71,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, expenses, me
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
-      <div className="bg-content-light dark:bg-content-dark rounded-2xl shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md border border-stone-100 dark:border-gray-700" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
           <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">Export Group Data</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -80,7 +80,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, expenses, me
         </div>
 
         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-            <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+            <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-stone-100 dark:border-gray-600">
                 <p className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark mb-2">Filter by Date (Optional)</p>
                 <div className="grid grid-cols-2 gap-3">
                     <input
@@ -108,7 +108,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, expenses, me
             <button
                 onClick={() => exportExpenseLogToCSV(filteredExpenses, members)}
                 disabled={filteredExpenses.length === 0}
-                className="w-full flex items-center justify-start gap-3 text-left p-4 rounded-xl border-2 border-transparent bg-gray-50 dark:bg-gray-900/50 hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-transparent transition-all"
+                className="w-full flex items-center justify-start gap-3 text-left p-4 rounded-xl border-2 border-transparent bg-gray-50 dark:bg-gray-700 hover:border-primary dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-transparent transition-all"
             >
                 <ExportIcon className="w-8 h-8 text-primary flex-shrink-0"/>
                 <div>
@@ -122,7 +122,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, expenses, me
             <button
                 onClick={() => exportSettlementToCSV(filteredDebts, members, group.currency)}
                 disabled={filteredDebts.length === 0}
-                className="w-full flex items-center justify-start gap-3 text-left p-4 rounded-xl border-2 border-transparent bg-gray-50 dark:bg-gray-900/50 hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-transparent transition-all"
+                className="w-full flex items-center justify-start gap-3 text-left p-4 rounded-xl border-2 border-transparent bg-gray-50 dark:bg-gray-700 hover:border-primary dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-transparent transition-all"
             >
                 <ExportIcon className="w-8 h-8 text-primary flex-shrink-0"/>
                 <div>
@@ -134,7 +134,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, expenses, me
             </button>
         </div>
 
-        <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-border-light dark:border-border-dark text-right rounded-b-2xl">
+        <div className="p-4 bg-gray-50 dark:bg-gray-700 border-t border-stone-200 dark:border-gray-600 text-right rounded-b-2xl">
             <button
                 onClick={onClose}
                 className="px-5 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"

@@ -32,40 +32,40 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({ notifications, groupInv
     const pendingInvites = groupInvites.filter(inv => inv.status === 'pending');
 
     return (
-        <main className="bg-content-light dark:bg-content-dark rounded-2xl shadow-lg overflow-hidden">
-            <div className="p-6">
-                <h2 className="text-base font-bold text-text-primary-light dark:text-text-primary-dark mb-6">
+        <div className="overflow-hidden">
+            <div className="px-4 py-3 sm:px-6 sm:py-4">
+                <h2 className="text-lg sm:text-xl font-extrabold text-charcoal dark:text-gray-100 mb-4 tracking-tight">
                     Activity Feed
                 </h2>
 
                 {/* Pending Group Invites */}
                 {pendingInvites.length > 0 && (
                     <div className="mb-6">
-                        <h3 className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark mb-3 flex items-center gap-2">
+                        <h3 className="text-lg font-extrabold text-charcoal dark:text-gray-100 mb-4 flex items-center gap-2 tracking-tight">
                             📧 Pending Invites
-                            <span className="px-2 py-0.5 bg-primary text-white text-xs font-bold rounded-full">
+                            <span className="px-3 py-1 bg-gradient-to-r from-primary to-primary-700 text-white text-xs font-bold rounded-full shadow-md">
                                 {pendingInvites.length}
                             </span>
                         </h3>
                         <ul className="space-y-3">
                             {pendingInvites.map(invite => (
-                                <li key={invite.id} className="p-4 rounded-lg bg-primary/5 dark:bg-primary/10 border border-primary/20">
+                                <li key={invite.id} className="p-5 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/25 dark:to-primary/15 border-2 border-primary/30 dark:border-primary/40 shadow-md">
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="flex-grow">
-                                            <p className="font-medium text-text-primary-light dark:text-text-primary-dark mb-1">
+                                            <p className="font-medium text-charcoal dark:text-gray-100 mb-1">
                                                 {invite.inviterName} invited you to join
                                             </p>
-                                            <p className="text-lg font-bold text-primary mb-2">
+                                            <p className="text-xl font-extrabold text-primary dark:text-primary-300 mb-2 tracking-tight">
                                                 {invite.groupName}
                                             </p>
-                                            <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                                            <p className="text-xs text-sage dark:text-gray-400">
                                                 Invited {formatTimeAgo(invite.createdAt)}
                                             </p>
                                         </div>
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => onAcceptInvite(invite.id)}
-                                                className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
+                                                className="px-5 py-2.5 bg-gradient-to-r from-primary to-primary-700 text-white text-sm font-bold rounded-xl shadow-md hover:shadow-lg hover:from-primary-700 hover:to-primary-800 transition-all"
                                             >
                                                 Accept
                                             </button>
@@ -84,14 +84,14 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({ notifications, groupInv
                 )}
 
                 {/* Activity Notifications */}
-                <h3 className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark mb-3">
+                <h3 className="text-lg font-extrabold text-charcoal dark:text-gray-100 mb-4 tracking-tight">
                     Recent Activity
                 </h3>
                 {notifications.length === 0 ? (
-                    <div className="text-center py-16 px-6 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                        <BellIcon className="mx-auto h-12 w-12 text-gray-400" />
-                        <h3 className="mt-4 text-sm font-medium text-text-primary-light dark:text-text-primary-dark">No recent activity</h3>
-                        <p className="mt-1 text-sm text-text-secondary-light dark:text-text-secondary-dark">New expenses and payments will appear here.</p>
+                    <div className="text-center py-16 px-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-stone-100 dark:border-gray-600">
+                        <BellIcon className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+                        <h3 className="mt-4 text-sm font-medium text-charcoal dark:text-gray-100">No recent activity</h3>
+                        <p className="mt-1 text-sm text-sage dark:text-gray-400">New expenses and payments will appear here.</p>
                     </div>
                 ) : (
                     <ul className="space-y-4">
@@ -99,10 +99,10 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({ notifications, groupInv
                             const isInvite = notification.type === NotificationType.GroupInvite;
                             
                             return (
-                                <li key={notification.id} className="flex items-start gap-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+                                <li key={notification.id} className="flex items-start gap-4 p-5 rounded-xl bg-white dark:bg-gray-700 border-2 border-stone-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-all">
                                     <div className={`flex-shrink-0 w-3 h-3 rounded-full mt-1.5 ${notification.read ? 'bg-gray-300 dark:bg-gray-600' : 'bg-primary'}`}></div>
                                     <div className="flex-grow">
-                                        <p className="text-sm text-text-primary-light dark:text-text-primary-dark">
+                                        <p className="text-sm text-charcoal dark:text-gray-100">
                                             {isInvite && <span className="mr-1">📧</span>}
                                             {notification.message}
                                         </p>
@@ -114,7 +114,7 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({ notifications, groupInv
                     </ul>
                 )}
             </div>
-        </main>
+        </div>
     );
 };
 

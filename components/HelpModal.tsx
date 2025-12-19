@@ -23,7 +23,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
-      <div className="bg-content-light dark:bg-content-dark rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-stone-100 dark:border-gray-700" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10">
           <div>
@@ -31,7 +31,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
               🧠 Help & FAQ
             </h2>
             <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mt-1">
-              Everything you need to know about Splitbi
+              Everything you need to know about Split<span className="text-primary">Bi</span>
             </p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
@@ -63,8 +63,8 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
         <div className="p-6 overflow-y-auto max-h-[60vh]">
           {activeTab === 'getting-started' && (
             <div className="space-y-6">
-              <Section title="Welcome to Splitbi! 🎉">
-                <p>Splitbi helps you track and split shared expenses with roommates, friends, and family. Here's how to get started:</p>
+              <Section title={<>Welcome to Split<span className="text-primary">Bi</span>! 🎉</>}>
+                <p>Split<span className="text-primary">Bi</span> helps you track and split shared expenses with roommates, friends, and family. Here's how to get started:</p>
               </Section>
 
               <Section title="Step 1: Create Your First Group">
@@ -78,7 +78,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
 
               <Section title="Step 2: Add People">
                 <p className="mb-2">You have two options:</p>
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-2">
+                <div className="bg-teal-light dark:bg-primary-900/20 p-4 rounded-lg mb-2">
                   <strong>Option A: Guest Users (No Login)</strong>
                   <ul className="list-disc list-inside mt-2 text-sm">
                     <li>Go to <strong>People</strong> tab</li>
@@ -87,7 +87,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                     <li>You manage everything for them</li>
                   </ul>
                 </div>
-                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                <div className="bg-teal-light dark:bg-primary-900/20 p-4 rounded-lg">
                   <strong>Option B: Invite Real Users (With Login)</strong>
                   <ul className="list-disc list-inside mt-2 text-sm">
                     <li>Open group → Click <strong>Manage</strong></li>
@@ -118,24 +118,24 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                 </ol>
               </Section>
 
-              <Section title="How do I install Splitbi as an app?">
-                <p className="mb-3">Installing makes Splitbi work like a native app - faster and more convenient!</p>
+              <Section title={<>How do I install Split<span className="text-primary">Bi</span> as an app?</>}>
+                <p className="mb-3">Installing makes Split<span className="text-primary">Bi</span> work like a native app - faster and more convenient!</p>
                 
                 <div className="space-y-3">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                    <strong className="text-blue-900 dark:text-blue-100">🪟 Windows (Chrome/Edge):</strong>
+                  <div className="bg-teal-light dark:bg-primary-900/20 p-3 rounded-lg">
+                    <strong className="text-primary dark:text-primary-100">🪟 Windows (Chrome/Edge):</strong>
                     <ol className="list-decimal list-inside mt-2 text-sm space-y-1">
                       <li>Look for an install icon (⊕ or 🖥️⤓) in the address bar</li>
                       <li>Click it → Click "Install"</li>
-                      <li>Or: Menu (⋮) → "Apps" → "Install Splitbi"</li>
+                      <li>Or: Menu (⋮) → "Apps" → "Install Split<span className='text-primary'>Bi</span>"</li>
                     </ol>
-                    <p className="text-xs mt-2 text-blue-800 dark:text-blue-200">
+                    <p className="text-xs mt-2 text-primary-800 dark:text-primary-200">
                       💡 See "Open In App"? It's already installed - click that!
                     </p>
                   </div>
 
-                  <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
-                    <strong className="text-green-900 dark:text-green-100">🤖 Android (Chrome):</strong>
+                  <div className="bg-teal-light dark:bg-primary-900/20 p-3 rounded-lg">
+                    <strong className="text-primary dark:text-primary-100">🤖 Android (Chrome):</strong>
                     <ol className="list-decimal list-inside mt-2 text-sm space-y-1">
                       <li>Tap menu (⋮) → "Install app"</li>
                       <li>Or tap banner at bottom: "Install"</li>
@@ -181,21 +181,21 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
 
               <Section title="Guest Users vs Real Users">
                 <div className="space-y-4">
-                  <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-stone-100 dark:border-gray-600">
                     <strong className="text-primary">Guest Users (No Login)</strong>
                     <ul className="list-disc list-inside mt-2 text-sm">
                       <li>You create them in the People tab</li>
-                      <li>They never see Splitbi</li>
+                      <li>They never see Split<span className="text-primary">Bi</span></li>
                       <li>You manage all their expenses</li>
                       <li>Great for: partners, kids, anyone who doesn't want an account</li>
                       <li>Shows "Guest" badge</li>
                     </ul>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-stone-100 dark:border-gray-600">
                     <strong className="text-primary">Real Users (With Login)</strong>
                     <ul className="list-disc list-inside mt-2 text-sm">
                       <li>You invite them by email</li>
-                      <li>They create their own Splitbi account</li>
+                      <li>They create their own Split<span className="text-primary">Bi</span> account</li>
                       <li>They can add expenses themselves</li>
                       <li>They see their own balances</li>
                       <li>Great for: roommates, friends who want to participate</li>
@@ -247,7 +247,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                     <li>Invite real John (john@email.com) to those groups</li>
                     <li>Once real John joins, delete the guest "John" from People tab</li>
                   </ol>
-                  <p className="text-xs bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mt-3">
+                  <p className="text-xs bg-teal-light dark:bg-primary-900/20 p-3 rounded-lg mt-3">
                     💡 <strong>Tip:</strong> If guest John has unsettled balances, record a settlement payment to bring them to $0.00 before deleting. This preserves the expense history while allowing cleanup.
                   </p>
                 </div>
@@ -276,11 +276,11 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
 
               <Section title="Split Methods">
                 <div className="space-y-3">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                  <div className="bg-teal-light dark:bg-primary-900/20 p-3 rounded-lg">
                     <strong>Equal Split</strong>
                     <p className="text-sm mt-1">Everyone pays the same amount. Example: $60 dinner split 3 ways = $20 each.</p>
                   </div>
-                  <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                  <div className="bg-teal-light dark:bg-primary-900/20 p-3 rounded-lg">
                     <strong>Unequal Split (Custom Amounts)</strong>
                     <p className="text-sm mt-1">Set exact amounts for each person. Example: Alice $30, Bob $20, Carol $10.</p>
                   </div>
@@ -353,12 +353,12 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                 </ol>
               </Section>
 
-              <Section title="Can I invite someone who already uses Splitbi?">
+              <Section title={<>Can I invite someone who already uses Split<span className="text-primary">Bi</span>?</>}>
                 <p className="mb-2">Yes! Just enter their email. They'll get a notification immediately and can accept right away.</p>
-                <p className="text-sm text-blue-600 dark:text-blue-400">✨ The system automatically detects existing users - no duplicates are created!</p>
+                <p className="text-sm text-primary dark:text-primary-400">✨ The system automatically detects existing users - no duplicates are created!</p>
               </Section>
 
-              <Section title="What if they don't have a Splitbi account?">
+              <Section title={<>What if they don't have a Split<span className="text-primary">Bi</span> account?</>}>
                 <p>No problem! The invite will wait for them. When they sign up using the invited email address, they'll see the invite and can accept it.</p>
               </Section>
 
@@ -375,7 +375,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
           {activeTab === 'privacy' && (
             <div className="space-y-6">
               <Section title="Is my data private? 🔐">
-                <p className="font-semibold text-primary mb-2">Yes! Splitbi is privacy-first.</p>
+                <p className="font-semibold text-primary mb-2">Yes! Split<span className="text-primary">Bi</span> is privacy-first.</p>
                 <ul className="list-disc list-inside space-y-2">
                   <li>You can only see your own data and groups you're part of</li>
                   <li>No global user directory - no one can search for you</li>
@@ -415,7 +415,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                   <ul className="list-disc list-inside text-sm space-y-1">
                     <li>No login required</li>
                     <li>Someone else manages their expenses</li>
-                    <li>They never see Splitbi</li>
+                    <li>They never see Split<span className="text-primary">Bi</span></li>
                     <li>Only visible to the person who created them</li>
                     <li>No email or password needed</li>
                   </ul>
@@ -438,7 +438,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border-light dark:border-border-dark bg-gray-50 dark:bg-gray-900/50">
+        <div className="p-4 border-t border-stone-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
           <div className="text-center space-y-3">
             {onRestartTour && (
               <button
@@ -463,7 +463,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
 };
 
 // Helper component for FAQ sections
-const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+const Section: React.FC<{ title: React.ReactNode; children: React.ReactNode }> = ({ title, children }) => (
   <div>
     <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-3 flex items-center">
       {title}

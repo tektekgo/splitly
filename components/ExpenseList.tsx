@@ -17,11 +17,11 @@ interface ExpenseListProps {
 const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, members, onDeleteExpense, onEditExpense, onViewExpense, hasActiveFilters, originalExpenseCount, currentUserId }) => {
   if (originalExpenseCount === 0) {
     return (
-      <div className="text-center py-16 px-6 bg-surface dark:bg-gray-900/50 rounded-2xl">
-        <svg className="mx-auto h-12 w-12 text-sage" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <div className="text-center py-16 px-6 bg-surface dark:bg-gray-800 rounded-2xl border border-stone-100 dark:border-gray-700">
+        <svg className="mx-auto h-12 w-12 text-sage dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
         </svg>
-        <h3 className="mt-3 text-base font-serif font-bold text-charcoal dark:text-text-primary-dark">No expenses recorded</h3>
+        <h3 className="mt-3 text-base font-sans font-bold text-charcoal dark:text-text-primary-dark">No expenses recorded</h3>
         <p className="mt-1 text-sm text-sage dark:text-text-secondary-dark">Tap the + button at the bottom center to add your first expense.</p>
       </div>
     );
@@ -29,9 +29,9 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, members, onDeleteEx
 
   if (expenses.length === 0 && hasActiveFilters) {
      return (
-      <div className="text-center py-12 px-4 bg-surface dark:bg-gray-900/50 rounded-2xl">
-        <FilterIcon className="mx-auto h-10 w-10 text-sage" />
-        <h3 className="mt-3 text-base font-serif font-bold text-charcoal dark:text-text-primary-dark">No Matching Expenses</h3>
+      <div className="text-center py-12 px-4 bg-surface dark:bg-gray-800 rounded-2xl border border-stone-100 dark:border-gray-700">
+        <FilterIcon className="mx-auto h-10 w-10 text-sage dark:text-gray-400" />
+        <h3 className="mt-3 text-base font-sans font-bold text-charcoal dark:text-text-primary-dark">No Matching Expenses</h3>
         <p className="mt-1 text-sm text-sage dark:text-text-secondary-dark">Try adjusting your search or filter criteria.</p>
       </div>
     );

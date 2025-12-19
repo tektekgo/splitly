@@ -87,7 +87,7 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
-      <div className="bg-content-light dark:bg-content-dark rounded-2xl shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg border border-stone-100 dark:border-gray-700" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
           <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">Manage Group</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -110,7 +110,7 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                 <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark mb-2">Members</h3>
                 <ul className="space-y-2">
                     {currentMembers.map(member => (
-                        <li key={member.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                        <li key={member.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-stone-100 dark:border-gray-600">
                             <div className="flex items-center">
                                 <img src={member.avatarUrl} alt={member.name} className="w-8 h-8 rounded-full mr-3" />
                                 <span className="font-medium text-text-primary-light dark:text-text-primary-dark">{member.name}</span>
@@ -135,7 +135,7 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                         📧 Invite by Email
                       </h4>
                       <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-1">
-                        Invite someone who has (or will create) a Splitbi account
+                        Invite someone who has (or will create) a Split<span className="text-primary">Bi</span> account
                       </p>
                     </div>
                   </div>
@@ -150,7 +150,7 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
 
                 {/* Show pending invites for this group */}
                 {groupInvites.filter(inv => inv.groupId === group.id && inv.status === 'pending').length > 0 && (
-                  <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                  <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-stone-100 dark:border-gray-600">
                     <p className="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark mb-2">
                       Pending Invites:
                     </p>
@@ -183,7 +183,7 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                   Don't see someone? Create new member
                 </button>
               ) : (
-                <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-stone-100 dark:border-gray-600">
                   <label className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark mb-2">
                     New Member Name
                   </label>
@@ -259,7 +259,7 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
             )}
         </div>
 
-        <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-border-light dark:border-border-dark rounded-b-2xl">
+        <div className="p-4 bg-gray-50 dark:bg-gray-700 border-t border-stone-200 dark:border-gray-600 rounded-b-2xl">
             {showDeleteConfirm ? (
                 <div className="w-full text-center">
                     <p className="font-semibold text-text-primary-light dark:text-text-primary-dark">Are you sure you want to delete this group?</p>

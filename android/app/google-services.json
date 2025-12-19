@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "116751855385",
+    "project_id": "splitlyapp-cc612",
+    "storage_bucket": "splitlyapp-cc612.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:116751855385:android:8af2d3ceb4bedde4d2df88",
+        "android_client_info": {
+          "package_name": "app.splitbi.splitbi"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "116751855385-jui3nnb6f763ur1gkank103h7834271t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAigEQSxBqpi2BSm0_uokA9Dfwfe0sMIGg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "116751855385-jui3nnb6f763ur1gkank103h7834271t.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

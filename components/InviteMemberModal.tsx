@@ -47,7 +47,7 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ isOpen, onClose, 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
-      <div className="bg-content-light dark:bg-content-dark rounded-2xl shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md border border-stone-100 dark:border-gray-700" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
           <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">Invite Member</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -58,7 +58,7 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ isOpen, onClose, 
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="bg-teal-light dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-4">
             <p className="text-sm text-text-primary-light dark:text-text-primary-dark">
               <strong>Inviting to:</strong> {group.name}
             </p>
@@ -89,9 +89,9 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ isOpen, onClose, 
             )}
           </div>
 
-          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-stone-100 dark:border-gray-600">
             <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-              💡 <strong>Tip:</strong> If they don't have a Splitbi account yet, they can sign up using this email to see the invite.
+              💡 <strong>Tip:</strong> If they don't have a Split<span className="text-primary">Bi</span> account yet, they can sign up using this email to see the invite.
             </p>
           </div>
 

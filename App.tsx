@@ -36,20 +36,75 @@ import OnboardingTour from './components/OnboardingTour';
 
 const genAI = new GoogleGenerativeAI((import.meta as any).env?.VITE_GEMINI_API_KEY || "");
 
+// Group type icon component
+const GroupIcon: React.FC<{ groupName: string; className?: string }> = ({ groupName, className = 'w-5 h-5' }) => {
+    const name = groupName.toLowerCase();
+    if (name.includes('room') || name.includes('home') || name.includes('house')) {
+        return (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z" />
+            </svg>
+        );
+    } else if (name.includes('trip') || name.includes('travel') || name.includes('vacation')) {
+        return (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V21l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
+            </svg>
+        );
+    } else if (name.includes('family')) {
+        return (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zm4 18v-6h2.5l-2.54-7.63A1.5 1.5 0 0018.54 7H16.5c-.8 0-1.54.5-1.85 1.26L12.5 14H11v-4c0-.55-.45-1-1-1H6c-.55 0-1 .45-1 1v4H2v2h6v8h2v-8h2.5l1.35-4H14v6h2v8h2zm-11.5 0v-6H6v6h2.5z"/>
+            </svg>
+        );
+    } else if (name.includes('work') || name.includes('office') || name.includes('business')) {
+        return (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z" />
+            </svg>
+        );
+    } else {
+        return <UsersIcon className={className} />;
+    }
+};
+
 type Theme = 'light' | 'dark';
 type Screen = 'dashboard' | 'add' | 'groups' | 'profile' | 'activity';
 
-const ThemeToggle: React.FC<{ theme: Theme, toggleTheme: () => void }> = ({ theme, toggleTheme }) => (
+const ThemeToggle: React.FC<{ theme: Theme, toggleTheme: () => void }> = ({ theme, toggleTheme }) => {
+  const isDark = theme === 'dark';
+  
+  return (
     <motion.button
       onClick={toggleTheme}
       whileTap={{ scale: 0.98 }}
-      className="absolute top-8 right-4 p-3 rounded-full text-sage hover:bg-teal-light focus:outline-none focus:ring-2 focus:ring-teal-primary z-50 cursor-pointer shadow-sm border border-stone-200 dark:border-stone-600"
+      className="relative inline-flex h-7 w-14 items-center rounded-full bg-stone-200 dark:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer shadow-sm border border-stone-300 dark:border-gray-600"
       aria-label="Toggle theme"
-      style={{ pointerEvents: 'auto' }}
     >
-      {theme === 'light' ? <MoonIcon className="w-6 h-6" /> : <SunIcon className="w-6 h-6" />}
+      <motion.span
+        className={`absolute flex h-6 w-6 items-center justify-center rounded-full bg-white dark:bg-gray-800 shadow-md transition-colors ${
+          isDark ? 'text-yellow-400' : 'text-stone-600'
+        }`}
+        initial={false}
+        animate={{
+          x: isDark ? 28 : 2,
+        }}
+        transition={{
+          type: "spring",
+          stiffness: 500,
+          damping: 30
+        }}
+      >
+        {isDark ? (
+          <MoonIcon className="h-4 w-4" />
+        ) : (
+          <SunIcon className="h-4 w-4" />
+        )}
+      </motion.span>
+      <span className="sr-only">Toggle theme</span>
     </motion.button>
-);
+  );
+};
 
 const App: React.FC = () => {
   const { currentUser, loading: authLoading, logout } = useAuth();
@@ -320,7 +375,7 @@ const App: React.FC = () => {
 
   const currentUserBalance = balances.get(currentUser?.id) || 0;
   const balanceColor = useMemo(() => {
-    if (currentUserBalance > 0.01) return 'text-teal-primary';
+    if (currentUserBalance > 0.01) return 'text-primary';
     if (currentUserBalance < -0.01) return 'text-orange-500';
     return 'text-charcoal dark:text-text-primary-dark';
   }, [currentUserBalance]);
@@ -913,7 +968,7 @@ const App: React.FC = () => {
             <motion.main 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-content-dark rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden"
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-gray-700 overflow-hidden"
             >
                 <div className="p-6 text-center max-w-sm mx-auto">
                     {/* Compact Welcome Header */}
@@ -927,14 +982,14 @@ const App: React.FC = () => {
                         <div className="flex justify-center mb-2">
                           <div className="bg-white dark:bg-gray-900 rounded-2xl p-3 shadow-sm">
                             <img 
-                              src="/splitbi-logo.png" 
-                              alt="Splitbi Logo" 
+                              src="/splitBi-logo-main-svg.svg" 
+                              alt="SplitBi Logo" 
                               className="h-24 sm:h-28 w-auto"
                             />
                           </div>
                         </div>
-                        <h2 className="text-base font-serif font-bold text-charcoal dark:text-gray-300">
-                          Welcome to Splitbi!
+                        <h2 className="text-base font-sans font-bold text-charcoal dark:text-gray-300">
+                          Welcome to Split<span className="text-primary">Bi</span>!
                         </h2>
                       </div>
                     </motion.div>
@@ -947,9 +1002,9 @@ const App: React.FC = () => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
-                      className="bg-teal-light dark:bg-primary/10 rounded-2xl p-6 mb-6 text-left"
+                      className="bg-primary/10 dark:bg-primary/10 rounded-2xl p-6 mb-6 text-left"
                     >
-                        <p className="font-serif font-bold text-charcoal dark:text-text-primary-dark mb-3">
+                        <p className="font-sans font-bold text-charcoal dark:text-text-primary-dark mb-3">
                             💡 What are groups?
                         </p>
                         <p className="text-sm text-sage dark:text-text-secondary-dark mb-4">
@@ -957,19 +1012,19 @@ const App: React.FC = () => {
                         </p>
                         <ul className="space-y-2 text-sm text-sage dark:text-text-secondary-dark">
                             <li className="flex items-start gap-2">
-                                <span className="text-teal-primary font-bold">•</span>
+                                <span className="text-primary font-bold">•</span>
                                 <span><strong>Roommates</strong> - Track rent, utilities, groceries</span>
                             </li>
                             <li className="flex items-start gap-2">
-                                <span className="text-teal-primary font-bold">•</span>
+                                <span className="text-primary font-bold">•</span>
                                 <span><strong>Trip with Friends</strong> - Hotels, meals, activities</span>
                             </li>
                             <li className="flex items-start gap-2">
-                                <span className="text-teal-primary font-bold">•</span>
+                                <span className="text-primary font-bold">•</span>
                                 <span><strong>Family Expenses</strong> - Shared household costs</span>
                             </li>
                             <li className="flex items-start gap-2">
-                                <span className="text-teal-primary font-bold">•</span>
+                                <span className="text-primary font-bold">•</span>
                                 <span><strong>Events</strong> - Weddings, parties, celebrations</span>
                             </li>
                         </ul>
@@ -981,7 +1036,7 @@ const App: React.FC = () => {
                       transition={{ delay: 0.3 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setActiveScreen('groups')}
-                      className="w-full px-6 py-3 bg-teal-primary text-white font-medium rounded-full shadow-sm hover:bg-teal-dark transition-colors"
+                      className="w-full px-6 py-3 bg-primary text-white font-medium rounded-full shadow-sm hover:bg-primary-700 transition-colors"
                     >
                         + Create Your First Group
                     </motion.button>
@@ -994,257 +1049,43 @@ const App: React.FC = () => {
           )
         }
 
-        return (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-4"
-          >
-            {/* Balance Card */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-600 p-6"
-            >
-              <div className="text-center">
-                <p className="text-sm font-serif font-bold text-charcoal dark:text-slate-200 uppercase tracking-wider mb-2">
-                  Your Balance
-                </p>
-                <p className={`text-3xl font-serif font-bold mb-1 ${balanceColor}`}>
-                  {formatCurrency(Math.abs(currentUserBalance), activeGroup?.currency || 'USD')}
-                </p>
-                <p className="text-base font-medium text-sage dark:text-slate-300">
-                  {balanceDescription}
-                </p>
-              </div>
-            </motion.div>
-
-            {/* Groups Card */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 p-6"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-serif font-bold text-charcoal dark:text-slate-100">Groups</h3>
-                <motion.button 
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    if (activeGroupId) {
-                      setEditingGroupDebt(calculateGroupDebt(activeGroupId));
-                      setEditingGroupId(activeGroupId);
-                      setIsGroupManagementModalOpen(true);
-                    }
-                  }}
-                  className="text-sm text-teal-primary hover:text-teal-dark transition-colors font-medium"
-                >
-                  Manage →
-                </motion.button>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                {groups.map((group, index) => (
-                  <motion.button
-                    key={group.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 + index * 0.1 }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handleSetActiveGroup(group.id)}
-                    className={`flex items-center gap-3 p-3 rounded-2xl transition-all text-left border ${
-                      activeGroupId === group.id 
-                        ? 'bg-teal-light border-teal-primary text-teal-primary shadow-sm' 
-                        : 'hover:bg-surface dark:hover:bg-gray-700 border-stone-200 dark:border-stone-600'
-                    }`}
-                  >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm">
-                      <span className="text-sm">
-                        {group.name.toLowerCase().includes('room') ? '🏠' :
-                         group.name.toLowerCase().includes('trip') || group.name.toLowerCase().includes('travel') ? '✈️' :
-                         group.name.toLowerCase().includes('family') ? '👨‍👩‍👧‍👦' :
-                         group.name.toLowerCase().includes('work') || group.name.toLowerCase().includes('office') ? '💼' :
-                         '👥'}
-                      </span>
-                    </div>
-                    <div className="flex-grow min-w-0">
-                      <p className="text-base font-serif font-bold truncate text-charcoal dark:text-slate-100">{group.name}</p>
-                      <p className="text-xs text-sage dark:text-slate-400">
-                        ({group.members.length})
-                      </p>
-                    </div>
-                    {activeGroupId === group.id && (
-                      <div className="flex-shrink-0 w-2 h-2 bg-teal-primary rounded-full"></div>
-                    )}
-                  </motion.button>
-                ))}
-                
-                {/* Create New Group - Full Width */}
-                <motion.button
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + groups.length * 0.1 }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setActiveScreen('groups')}
-                  className="col-span-2 flex items-center justify-center gap-2 p-3 rounded-2xl hover:bg-surface dark:hover:bg-gray-700 transition-colors border-2 border-dashed border-stone-200 dark:border-stone-600"
-                >
-                  <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm">
-                    <span className="text-sage text-sm">+</span>
-                  </div>
-                  <span className="text-sm font-medium text-sage dark:text-slate-400">Create New Group</span>
-                </motion.button>
-              </div>
-            </motion.div>
-
-            {/* Recent Expenses Card */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700"
-            >
-              <div className="p-6 border-b border-stone-200 dark:border-stone-700">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-serif font-bold text-charcoal dark:text-slate-100">
-                    Recent Expenses
-                  </h3>
-                  <span className="text-xs text-sage dark:text-slate-400 bg-surface dark:bg-gray-700 px-3 py-1 rounded-full border border-stone-200 dark:border-stone-600">
-                    {activeGroupExpenses.length} total
-                  </span>
-                </div>
-              </div>
-              <div className="p-6">
-                {activeGroupExpenses.slice(0, 3).map((expense, index) => {
-                  const payer = activeGroupMembers.find(m => m.id === expense.paidBy);
-                  return (
-                    <motion.div 
-                      key={expense.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 + index * 0.1 }}
-                      className="flex items-center gap-3 py-3 border-b border-stone-200 dark:border-stone-700 last:border-b-0"
-                    >
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-teal-light dark:bg-gray-600 flex items-center justify-center shadow-sm">
-                        <span className="text-teal-primary dark:text-slate-300 text-base">
-                          {expense.category === 'Food' ? '🍕' :
-                           expense.category === 'Transport' ? '🚗' :
-                           expense.category === 'Entertainment' ? '🎬' :
-                           expense.category === 'Shopping' ? '🛍️' :
-                           '💰'}
-                        </span>
-                      </div>
-                      <div className="flex-grow min-w-0">
-                        <p className="text-base font-serif font-bold truncate text-charcoal dark:text-slate-100">{expense.description}</p>
-                        <p className="text-xs text-sage dark:text-slate-400">
-                          Paid by {payer?.name?.replace(' (You)', '')}
-                        </p>
-                      </div>
-                      <div className="flex-shrink-0">
-                        <p className="text-base font-serif font-bold text-charcoal dark:text-slate-100">
-                          {formatCurrency(expense.amount, activeGroup?.currency || 'USD')}
-                        </p>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-                {activeGroupExpenses.length === 0 && (
-                  <div className="text-center py-6">
-                    <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-teal-light dark:bg-gray-700 flex items-center justify-center shadow-sm border border-stone-200 dark:border-stone-600">
-                      <span className="text-teal-primary text-xl">💰</span>
-                    </div>
-                    <p className="text-sm text-sage dark:text-slate-400">No expenses yet</p>
-                    <p className="text-xs text-sage dark:text-slate-500 mt-1">Add your first expense to get started</p>
-                  </div>
-                )}
-                {activeGroupExpenses.length > 3 && (
-                  <div className="pt-3 border-t border-stone-200 dark:border-stone-700">
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {/* TODO: Implement view all */}}
-                      className="w-full text-sm text-teal-primary hover:text-teal-dark transition-colors font-medium py-2"
-                    >
-                      View All Expenses →
-                    </motion.button>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-
-            {/* Quick Actions Card */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-600 p-6"
-            >
-              <h3 className="text-lg font-serif font-bold text-charcoal dark:text-slate-100 mb-4">Quick Actions</h3>
-              <div className="flex gap-3">
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setActiveScreen('add')}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-teal-primary hover:bg-teal-dark text-white rounded-full shadow-sm transition-colors text-sm font-medium"
-                >
-                  <span className="text-sm">+</span>
-                  <span>Add Expense</span>
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleOpenSettleUp}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-white border border-stone-200 hover:border-teal-primary text-charcoal rounded-full shadow-sm transition-colors text-sm font-medium"
-                >
-                  <span className="text-sm">$</span>
-                  <span>Settle Up</span>
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setActiveScreen('profile')}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-white border border-stone-200 hover:border-teal-primary text-charcoal rounded-full shadow-sm transition-colors text-sm font-medium"
-                >
-                  <span className="text-sm">⚙</span>
-                  <span>Users</span>
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
-        );
+        return null; // Dashboard content is rendered inline in the unified container
       case 'add':
         if (!activeGroup || !activeGroupId) {
              return (
-                 <motion.main 
+                 <motion.div 
                    initial={{ opacity: 0, y: 20 }}
                    animate={{ opacity: 1, y: 0 }}
-                   className="bg-white dark:bg-content-dark rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden"
+                   className="overflow-hidden"
                  >
-                    <div className="p-8 text-center">
-                        <h2 className="text-2xl font-serif font-bold text-charcoal dark:text-text-primary-dark">Choose a Group</h2>
-                        <p className="mt-2 text-sage dark:text-text-secondary-dark">Select a group to add your expense.</p>
+                    <div className="p-6 sm:p-8 text-center">
+                        <h2 className="text-xl sm:text-2xl font-extrabold text-charcoal dark:text-gray-100 tracking-tight">Choose a Group</h2>
+                        <p className="mt-2 text-sage dark:text-gray-400">Select a group to add your expense.</p>
                         <motion.button
                           whileTap={{ scale: 0.98 }}
                           onClick={() => setActiveScreen('groups')}
-                          className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-teal-primary text-white rounded-full font-medium hover:bg-teal-dark transition-colors"
+                          className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-700 text-white rounded-full font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg"
                         >
                           Go to Groups
                         </motion.button>
                     </div>
-                 </motion.main>
+                 </motion.div>
              )
         }
         return (
-          <motion.main 
+          <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-content-dark rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden"
+            className="overflow-hidden"
           >
-            <div className="p-6">
-              <div className="mb-6 flex items-center justify-between">
+            <div className="p-4 sm:p-6">
+              <div className="mb-4 sm:mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-serif font-bold text-charcoal dark:text-text-primary-dark">
-                {editingExpense ? 'Edit Expense' : 'Add New Expense'}
-              </h2>
-                  <span className="hidden sm:inline text-teal-primary">→</span>
-                  <span className="hidden sm:inline text-sm px-3 py-1 rounded-full border border-teal-primary/20 bg-teal-light dark:bg-primary/20 text-teal-primary font-semibold">
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-charcoal dark:text-gray-100 tracking-tight">
+                    {editingExpense ? 'Edit Expense' : 'Add Expense'}
+                  </h2>
+                  <span className="hidden sm:inline text-primary">→</span>
+                  <span className="hidden sm:inline text-sm px-3 py-1 rounded-full border border-primary/20 bg-primary-100 dark:bg-primary/20 text-primary font-semibold">
                     {activeGroup?.name}
                   </span>
                 </div>
@@ -1269,33 +1110,35 @@ const App: React.FC = () => {
                 onBack={() => setActiveScreen('dashboard')}
               />
             </div>
-          </main>
+          </motion.div>
         );
       case 'groups':
         return (
           <GroupsScreen 
-            groups={groups}
-            users={users}
-            activeGroupId={activeGroupId}
-            currentUserId={currentUser.id}
-            onSelectGroup={handleSelectGroupFromGroupsScreen}
-            onCreateGroup={handleCreateGroup}
-            onManageGroupMembers={(groupId) => {
-              setEditingGroupId(groupId);
-              setIsGroupManagementModalOpen(true);
-            }}
-          />
+              groups={groups}
+              users={users}
+              activeGroupId={activeGroupId}
+              currentUserId={currentUser.id}
+              onSelectGroup={handleSelectGroupFromGroupsScreen}
+              onCreateGroup={handleCreateGroup}
+              onManageGroupMembers={(groupId) => {
+                setEditingGroupId(groupId);
+                setIsGroupManagementModalOpen(true);
+              }}
+            />
         );
       case 'activity':
-          return <ActivityScreen 
-            notifications={notifications} 
-            groupInvites={groupInvites.filter(invite => invite.invitedEmail === currentUser.email?.toLowerCase())}
-            onAcceptInvite={handleAcceptInvite}
-            onDeclineInvite={handleDeclineInvite}
-          />;
+          return (
+              <ActivityScreen 
+                notifications={notifications} 
+                groupInvites={groupInvites.filter(invite => invite.invitedEmail === currentUser.email?.toLowerCase())}
+                onAcceptInvite={handleAcceptInvite}
+                onDeclineInvite={handleDeclineInvite}
+              />
+          );
       case 'profile':
         return (
-            <ProfileScreen
+              <ProfileScreen
                 users={users}
                 onCreateUser={handleCreateUser}
                 onDeleteGuestUser={handleDeleteGuestUser}
@@ -1332,7 +1175,7 @@ const App: React.FC = () => {
                     }
                   }
                 }}
-            />
+              />
         );
       default:
         return null;
@@ -1340,47 +1183,56 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="bg-cream dark:bg-surface-dark font-sans text-charcoal dark:text-text-primary-dark transition-colors duration-300" style={{ backgroundColor: '#FDFCF9' }}>
-      <div className="container mx-auto max-w-md sm:max-w-lg lg:max-w-xl px-3 relative min-h-screen flex flex-col pt-4">
-        <main className="flex-grow">
-            <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-            
-            {/* Clean Professional Header */}
-            <motion.header 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-surface dark:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 mb-6 relative"
-            >
+    <div className="bg-cream dark:bg-surface-dark font-sans text-charcoal dark:text-text-primary-dark transition-colors duration-300 min-h-screen flex items-center justify-center pb-32" style={{ backgroundColor: '#FDFCF9' }}>
+      <div className="w-full max-w-md sm:max-w-lg lg:max-w-xl mx-auto relative flex flex-col min-h-screen">
+        {/* Unified Container - Everything as One */}
+        <div className="bg-gradient-to-b from-white via-stone-50/30 to-stone-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-t-3xl overflow-hidden shadow-lg border-x border-t border-stone-200 dark:border-gray-700 flex flex-col flex-grow mb-28">
+          {/* Integrated Header - Compact & Modern */}
+          <motion.header 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-br from-primary/15 via-primary/8 to-white dark:from-primary/20 dark:via-primary/12 dark:to-gray-800 px-4 pt-3 pb-3 border-b-2 border-primary/20 dark:border-primary/30"
+          >
               {/* Header Content */}
-              <div className="p-6 text-center">
-                {/* Logo */}
-                <div className="flex justify-center mb-3">
-                  <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                {/* Logo - Compact */}
+                <div className="flex items-center gap-2.5">
+                  <motion.div 
+                    whileHover={{ scale: 1.05 }}
+                    className="bg-gradient-to-br from-white to-primary/5 dark:from-gray-900 dark:to-primary/10 rounded-xl p-2 shadow-md ring-1 ring-primary/20 dark:ring-primary/30"
+                  >
                     <img 
-                      src="/splitbi-logo.png" 
-                      alt="Splitbi" 
-                      className="h-28 sm:h-32 w-auto"
+                      src="/splitBi-logo-notext-svg.svg" 
+                      alt="SplitBi" 
+                      className="h-10 w-10 sm:h-12 sm:w-12"
                     />
+                  </motion.div>
+                  <div>
+                    <h1 className="text-lg sm:text-xl font-extrabold text-charcoal dark:text-gray-100 tracking-tight">
+                      Split<span className="text-primary">Bi</span>
+                    </h1>
+                    <p className="text-xs text-primary dark:text-primary-300 font-semibold tracking-wide uppercase hidden sm:block">
+                      Splitting expenses, made easy
+                    </p>
                   </div>
                 </div>
                 
-                {/* Tagline */}
-                <p className="text-sm text-sage dark:text-gray-300 font-medium mb-4">
-                  Splitting expenses, made easy
-                </p>
-                
-                {/* User Welcome */}
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="text-xs text-sage dark:text-gray-300 hover:text-charcoal dark:hover:text-gray-200 transition-colors flex items-center gap-1 mx-auto"
-                >
-                  Welcome back, <span className="font-semibold text-charcoal dark:text-gray-200">{currentUser.name}</span>
-                  <svg className={`w-3 h-3 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </motion.button>
-                
+                {/* Right side: User Menu + Theme Toggle */}
+                <div className="flex flex-col items-end gap-1.5">
+                  <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    whileHover={{ scale: 1.02 }}
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/90 dark:bg-gray-800 backdrop-blur-sm text-xs text-sage dark:text-gray-300 hover:text-charcoal dark:hover:text-gray-200 transition-all border border-primary/20 dark:border-primary/30 shadow-sm"
+                  >
+                    <span className="font-semibold text-charcoal dark:text-gray-200 hidden sm:inline">{currentUser.name}</span>
+                    <span className="font-semibold text-charcoal dark:text-gray-200 sm:hidden">{currentUser.name.split(' ')[0]}</span>
+                    <svg className={`w-3 h-3 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </motion.button>
+                </div>
               </div>
               
               {/* User Menu Dropdown */}
@@ -1390,7 +1242,7 @@ const App: React.FC = () => {
                   <motion.div 
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="absolute z-50 left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-stone-100 dark:border-stone-700 overflow-hidden"
+                    className="absolute z-50 right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-stone-200 dark:border-gray-700 overflow-hidden"
                   >
                     <div className="p-4 border-b border-stone-200 dark:border-stone-700 bg-surface dark:bg-gray-900/50">
                       <p className="text-xs text-sage dark:text-text-secondary-dark">Signed in as</p>
@@ -1434,19 +1286,251 @@ const App: React.FC = () => {
                   </button>
                 </div>
               )}
-            </header>
-            {/* Install Banner - Show to new users */}
-            {!sessionStorage.getItem('install-banner-dismissed') && (
+            </motion.header>
+            
+            {/* Dashboard Content - Part of Same Container */}
+            {activeScreen === 'dashboard' && activeGroup && (
+              <>
+                {/* Balance Section */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="bg-gradient-to-br from-primary/8 via-white to-primary/5 dark:from-primary/15 dark:via-gray-700 dark:to-primary/10 px-4 py-4 sm:px-6 sm:py-5 rounded-t-2xl border-b-2 border-primary/20 dark:border-primary/30"
+                >
+                  <div className="text-center">
+                    <p className="text-xs font-bold text-primary dark:text-primary-300 uppercase tracking-widest mb-3">
+                      Your Balance
+                    </p>
+                    <div className="relative inline-block">
+                      <p className={`text-5xl sm:text-6xl font-sans font-extrabold mb-2 tracking-tight ${balanceColor}`}>
+                        {formatCurrency(Math.abs(currentUserBalance), activeGroup?.currency || 'USD')}
+                      </p>
+                      {currentUserBalance > 0.01 && (
+                        <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-pulse"></div>
+                      )}
+                    </div>
+                    <p className="text-base font-semibold text-charcoal dark:text-gray-200 mt-2">
+                      {balanceDescription}
+                    </p>
+                  </div>
+                </motion.div>
+
+                {/* Groups Section */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+              className="px-4 py-3 sm:px-6 sm:py-4 bg-white dark:bg-gray-700 border-t-2 border-stone-200 dark:border-gray-600"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg sm:text-xl font-sans font-extrabold text-charcoal dark:text-gray-100 tracking-tight">Groups</h3>
+                    <motion.button 
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        if (activeGroupId) {
+                          setEditingGroupDebt(calculateGroupDebt(activeGroupId));
+                          setEditingGroupId(activeGroupId);
+                          setIsGroupManagementModalOpen(true);
+                        }
+                      }}
+                      className="text-sm text-primary dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-400 transition-colors font-bold"
+                    >
+                      Manage →
+                    </motion.button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {groups.map((group, index) => (
+                      <motion.button
+                        key={group.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 + index * 0.1 }}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleSetActiveGroup(group.id)}
+                        className={`flex items-center gap-3 p-4 rounded-2xl transition-all text-left border-2 ${
+                          activeGroupId === group.id 
+                            ? 'bg-gradient-to-br from-primary-100 via-primary-50 to-white dark:from-primary/40 dark:via-primary/30 dark:to-gray-700 border-primary dark:border-primary-400 text-primary dark:text-primary-200 shadow-xl ring-2 ring-primary/30 dark:ring-primary/40' 
+                            : 'bg-white dark:bg-gray-700 hover:bg-primary/5 dark:hover:bg-gray-600 border-stone-300 dark:border-gray-600 hover:border-primary/60 dark:hover:border-primary/50 shadow-lg hover:shadow-xl'
+                        }`}
+                      >
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border-2 ${
+                          activeGroupId === group.id 
+                            ? 'bg-white dark:bg-primary/20 border-primary dark:border-primary-400' 
+                            : 'bg-white dark:bg-gray-600 border-stone-200 dark:border-gray-500'
+                        }`}>
+                          <GroupIcon 
+                            groupName={group.name} 
+                            className={`w-5 h-5 ${
+                              activeGroupId === group.id 
+                                ? 'text-primary dark:text-primary-300' 
+                                : 'text-charcoal dark:text-gray-300'
+                            }`}
+                          />
+                        </div>
+                        <div className="flex-grow min-w-0">
+                          <p className={`text-base font-sans font-extrabold truncate ${
+                            activeGroupId === group.id 
+                              ? 'text-primary dark:text-primary-200' 
+                              : 'text-charcoal dark:text-gray-100'
+                          }`}>{group.name}</p>
+                          <p className={`text-sm font-medium mt-0.5 ${
+                            activeGroupId === group.id 
+                              ? 'text-primary/70 dark:text-primary-300' 
+                              : 'text-sage dark:text-gray-400'
+                          }`}>
+                            {group.members.length} member{group.members.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        {activeGroupId === group.id && (
+                          <div className="flex-shrink-0 w-2 h-2 bg-primary dark:bg-primary-300 rounded-full animate-pulse shadow-lg"></div>
+                        )}
+                      </motion.button>
+                    ))}
+                    
+                    {/* Create New Group - Full Width */}
+                    <motion.button
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 + groups.length * 0.1 }}
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setActiveScreen('groups')}
+                      className="col-span-2 flex items-center justify-center gap-2.5 p-3.5 rounded-xl bg-gradient-to-r from-stone-50 to-white dark:from-gray-700 dark:to-gray-700 hover:from-primary/10 hover:to-primary/5 dark:hover:from-primary/20 dark:hover:to-primary/10 transition-all border-2 border-dashed border-stone-300 dark:border-gray-600 hover:border-primary dark:hover:border-primary-400 shadow-sm hover:shadow-md"
+                    >
+                      <div className="w-7 h-7 rounded-full bg-white dark:bg-gray-600 flex items-center justify-center">
+                        <span className="text-sage text-xs">+</span>
+                      </div>
+                      <span className="text-sm font-medium text-sage dark:text-slate-400">Create New Group</span>
+                    </motion.button>
+                  </div>
+                </motion.div>
+
+                {/* Recent Expenses Section */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+              className="px-4 py-3 sm:px-6 sm:py-4 bg-white dark:bg-gray-700 border-t-2 border-stone-200 dark:border-gray-600"
+            >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg sm:text-xl font-sans font-extrabold text-charcoal dark:text-gray-100 tracking-tight">
+                    Recent Expenses
+                  </h3>
+                    <span className="text-xs font-bold text-primary dark:text-primary-300 bg-primary/10 dark:bg-primary/20 px-3 py-1.5 rounded-full border-2 border-primary/30 dark:border-primary/40">
+                      {activeGroupExpenses.length} total
+                    </span>
+                  </div>
+                  <div>
+                  <div className="space-y-1.5">
+                    {activeGroupExpenses.slice(0, 3).map((expense, index) => {
+                      const payer = activeGroupMembers.find(m => m.id === expense.paidBy);
+                      return (
+                        <motion.div 
+                          key={expense.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.4 + index * 0.1 }}
+                          className="flex items-center gap-3 py-2.5 hover:bg-primary/10 dark:hover:bg-primary/30 rounded-xl transition-all -mx-2 px-3 border border-transparent hover:border-primary/20 dark:hover:border-primary/30"
+                        >
+                          <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-primary-100 to-primary-50 dark:from-primary/40 dark:to-primary/30 flex items-center justify-center border-2 border-primary/30 dark:border-primary/40 shadow-sm">
+                            <span className="text-primary dark:text-primary-200 text-base">
+                              {expense.category === 'Food' ? '🍕' :
+                               expense.category === 'Transport' ? '🚗' :
+                               expense.category === 'Entertainment' ? '🎬' :
+                               expense.category === 'Shopping' ? '🛍️' :
+                               '💰'}
+                            </span>
+                          </div>
+                          <div className="flex-grow min-w-0">
+                            <p className="text-base font-sans font-extrabold truncate text-charcoal dark:text-gray-100">{expense.description}</p>
+                            <p className="text-xs font-medium text-sage dark:text-gray-400 mt-0.5">
+                              {payer?.name?.replace(' (You)', '')}
+                            </p>
+                          </div>
+                          <div className="flex-shrink-0">
+                            <p className="text-lg font-sans font-extrabold text-charcoal dark:text-gray-100">
+                              {formatCurrency(expense.amount, activeGroup?.currency || 'USD')}
+                            </p>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                    </div>
+                    {activeGroupExpenses.length === 0 && (
+                      <div className="text-center py-6">
+                        <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-primary-50 dark:bg-primary/20 flex items-center justify-center border border-primary/20 dark:border-primary/30">
+                          <span className="text-primary dark:text-primary-300 text-lg">💰</span>
+                        </div>
+                        <p className="text-sm text-sage dark:text-gray-400">No expenses yet</p>
+                        <p className="text-xs text-sage dark:text-gray-500 mt-1">Add your first expense to get started</p>
+                      </div>
+                    )}
+                    {activeGroupExpenses.length > 3 && (
+                      <div className="pt-3">
+                        <motion.button
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => {/* TODO: Implement view all */}}
+                          className="w-full text-sm text-primary hover:text-primary-700 transition-colors font-medium py-2"
+                        >
+                          View All Expenses →
+                        </motion.button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+
+                {/* Quick Actions Section */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="px-4 py-3 sm:px-6 sm:py-4 bg-gradient-to-br from-white via-primary/5 to-white dark:from-gray-700 dark:via-primary/10 dark:to-gray-700 border-t-2 border-stone-200 dark:border-gray-600"
+              >
+                  <h3 className="text-base sm:text-lg font-sans font-extrabold text-charcoal dark:text-gray-100 mb-3 tracking-tight">Quick Actions</h3>
+                  <div className="flex gap-3">
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setActiveScreen('add')}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-primary to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all text-sm font-bold"
+                    >
+                      <span className="text-base">+</span>
+                      <span>Add</span>
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleOpenSettleUp}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-white dark:bg-gray-700 border-2 border-stone-300 dark:border-gray-600 hover:border-primary dark:hover:border-primary-400 hover:bg-primary/10 dark:hover:bg-primary/20 text-charcoal dark:text-gray-200 rounded-xl transition-all text-sm font-bold shadow-md hover:shadow-lg"
+                    >
+                      <span className="text-base">$</span>
+                      <span>Settle</span>
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setActiveScreen('profile')}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-white dark:bg-gray-700 border-2 border-stone-300 dark:border-gray-600 hover:border-primary dark:hover:border-primary-400 hover:bg-primary/10 dark:hover:bg-primary/20 text-charcoal dark:text-gray-200 rounded-xl transition-all text-sm font-bold shadow-md hover:shadow-lg"
+                    >
+                      <span className="text-base">⚙</span>
+                      <span>Users</span>
+                    </motion.button>
+                  </div>
+                </motion.div>
+              </>
+            )}
+            
+            {/* Install Banner - Show to new users - Last element on dashboard, so rounded bottom */}
+            {activeScreen === 'dashboard' && !sessionStorage.getItem('install-banner-dismissed') && (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-6 bg-gradient-to-r from-teal-light to-teal-light/50 dark:from-primary/20 dark:to-primary/10 border border-teal-primary/20 rounded-2xl p-6"
+                className="px-4 py-3 sm:px-6 sm:py-4 bg-gradient-to-r from-teal-light to-teal-light/50 dark:from-primary/20 dark:to-primary/10 border-t-2 border-teal-primary/20 dark:border-primary/30"
               >
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0 text-2xl">📱</div>
                   <div className="flex-1">
-                    <h3 className="font-serif font-bold text-charcoal dark:text-text-primary-dark mb-2">
-                      Install Splitbi on your device!
+                    <h3 className="font-sans font-bold text-charcoal dark:text-text-primary-dark mb-2">
+                      Install Split<span className="text-primary">Bi</span> on your device!
                     </h3>
                     <p className="text-sm text-sage dark:text-text-secondary-dark mb-4">
                       Get instant access from your home screen. Works offline too!
@@ -1457,7 +1541,7 @@ const App: React.FC = () => {
                           href="/install.html"
                           target="_blank"
                           whileTap={{ scale: 0.98 }}
-                          className="inline-flex items-center px-6 py-3 bg-teal-primary text-white text-sm font-medium rounded-full hover:bg-teal-dark transition-colors"
+                          className="inline-flex items-center px-6 py-3 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary-700 transition-colors"
                         >
                         📖 See How to Install
                       </motion.a>
@@ -1487,52 +1571,19 @@ const App: React.FC = () => {
                 </div>
               </motion.div>
             )}
-            {renderContent()}
             
-        </main>
-
-        <footer className="text-center pt-8 pb-4 text-sage dark:text-gray-400 text-sm space-y-3">
-          <div className="flex items-center justify-center gap-4 text-xs">
-            <a 
-              href="/install.html" 
-              target="_blank"
-              className="text-teal-primary hover:underline font-medium flex items-center gap-1"
-            >
-              📱 Install App
-            </a>
-            <span className="text-stone-300 dark:text-gray-600">•</span>
-            <a 
-              href="https://forms.gle/1w3Vk6FhrQDppagw5"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-teal-primary hover:underline font-medium flex items-center gap-1"
-            >
-              💬 Send Feedback
-            </a>
-            <span className="text-stone-300 dark:text-gray-600">•</span>
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsHelpModalOpen(true)}
-              className="text-teal-primary hover:underline font-medium flex items-center gap-1"
-            >
-              ❓ Help & FAQ
-            </motion.button>
-          </div>
-          <div className="flex items-center justify-center gap-2 text-xs">
-            <span className="font-medium">© 2025</span>
-            <span className="text-stone-300 dark:text-gray-600">•</span>
-            <span className="font-medium">Built with <span className="text-red-500 animate-pulse">❤️</span> by</span>
-            <span className="font-medium text-teal-primary">Sujit Gangadharan</span>
-          </div>
-        </footer>
-        <div className="h-20" />
+            {/* Other Screens - Integrated into same container */}
+            {(activeScreen !== 'dashboard' || !activeGroup) && renderContent()}
+        </div>
       </div>
 
       <BottomNav 
         activeScreen={activeScreen} 
         onNavigate={setActiveScreen} 
         notificationCount={unreadNotificationCount} 
+        onHelpClick={() => setIsHelpModalOpen(true)}
       />
+      
       {/* Floating Feedback Button - Always accessible */}
       <FeedbackButton />
       

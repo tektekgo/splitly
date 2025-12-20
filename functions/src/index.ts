@@ -14,6 +14,32 @@ if (!apiKey) {
 
 const resend = new Resend(apiKey);
 
+/**
+ * Escape HTML special characters to prevent XSS attacks
+ */
+const escapeHtml = (text: string): string => {
+  const map: { [key: string]: string } = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+  };
+  return text.replace(/[&<>"']/g, (char) => map[char]);
+};
+
+/**
+ * Sanitize email subject line to prevent header injection attacks
+ * Removes newlines, carriage returns, and other control characters
+ */
+const sanitizeEmailSubject = (subject: string): string => {
+  return subject
+    .replace(/[\r\n]/g, ' ') // Replace newlines and carriage returns with spaces
+    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
+    .trim()
+    .substring(0, 200); // Limit length to prevent abuse
+};
+
 export interface EmailInviteData {
   invitedEmail: string;
   inviterName: string;
@@ -379,14 +405,14 @@ const generateFeedbackEmailHTML = (data: FeedbackData): string => {
         <div class="content">
             <div class="feedback-type">${typeLabels[data.type]}</div>
             
-            <div class="subject">${data.subject}</div>
+            <div class="subject">${escapeHtml(data.subject)}</div>
             
-            <div class="message">${data.message}</div>
+            <div class="message">${escapeHtml(data.message)}</div>
             
             ${data.userEmail || data.userName ? `
             <div class="user-info">
-                ${data.userName ? `<strong>From:</strong> ${data.userName}<br>` : ''}
-                ${data.userEmail ? `<strong>Email:</strong> ${data.userEmail}` : ''}
+                ${data.userName ? `<strong>From:</strong> ${escapeHtml(data.userName)}<br>` : ''}
+                ${data.userEmail ? `<strong>Email:</strong> ${escapeHtml(data.userEmail)}` : ''}
             </div>
             ` : ''}
         </div>
@@ -400,6 +426,22 @@ const generateFeedbackEmailHTML = (data: FeedbackData): string => {
 </body>
 </html>
   `;
+};
+
+/**
+ * Sanitize plain text to prevent email format issues
+ * Removes control characters but preserves newlines for message formatting
+ */
+const sanitizePlainText = (text: string, preserveNewlines: boolean = false): string => {
+  if (preserveNewlines) {
+    // For message content, preserve newlines but remove other control chars
+    return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  }
+  // For other fields, replace newlines with spaces
+  return text
+    .replace(/[\r\n]/g, ' ')
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    .trim();
 };
 
 /**
@@ -417,13 +459,13 @@ SplitBi - Feedback Submission
 
 ${typeLabels[data.type]}
 
-Subject: ${data.subject}
+Subject: ${sanitizePlainText(data.subject)}
 
 Message:
-${data.message}
+${sanitizePlainText(data.message, true)}
 
 ${data.userName || data.userEmail ? `
-From: ${data.userName || 'Anonymous'}${data.userEmail ? ` (${data.userEmail})` : ''}
+From: ${data.userName ? sanitizePlainText(data.userName) : 'Anonymous'}${data.userEmail ? ` (${sanitizePlainText(data.userEmail)})` : ''}
 ` : ''}
 
 ---
@@ -454,11 +496,15 @@ export const sendFeedbackEmail = functions.https.onCall(async (data: FeedbackDat
   }
 
   try {
+    // Sanitize subject to prevent header injection
+    const sanitizedSubject = sanitizeEmailSubject(data.subject);
+    const emailSubject = `[SplitBi ${data.type === 'bug' ? 'Bug' : data.type === 'feature' ? 'Feature' : 'Feedback'}] ${sanitizedSubject}`;
+    
     const { data: emailData, error } = await resend.emails.send({
       from: 'SplitBi Feedback <onboarding@resend.dev>',
       to: ['feedback@splitbi.app'],
       reply_to: data.userEmail || undefined,
-      subject: `[SplitBi ${data.type === 'bug' ? 'Bug' : data.type === 'feature' ? 'Feature' : 'Feedback'}] ${data.subject}`,
+      subject: emailSubject,
       html: generateFeedbackEmailHTML(data),
       text: generateFeedbackEmailText(data),
     });

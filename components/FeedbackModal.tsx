@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { sendFeedbackEmail, type FeedbackData } from '../utils/emailService';
@@ -18,9 +18,10 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reset form when modal opens/closes
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       setFeedbackType('general');
       setSubject('');
@@ -31,6 +32,23 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
       setSuccess(false);
     }
   }, [isOpen, currentUser]);
+
+  // Cleanup timeout on unmount or when modal closes
+  useEffect(() => {
+    // Clear timeout when modal closes
+    if (!isOpen && timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,8 +80,13 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
       setSuccess(true);
       
       // Close modal after 2 seconds
-      setTimeout(() => {
+      // Clear any existing timeout first
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
         onClose();
+        timeoutRef.current = null;
       }, 2000);
     } catch (err: any) {
       setError(err.message || 'Failed to send feedback. Please try again.');
@@ -272,4 +295,3 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
 };
 
 export default FeedbackModal;
-

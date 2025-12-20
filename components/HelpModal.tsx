@@ -179,44 +179,53 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                 <p>On the Dashboard, click the group name at the top to open a dropdown menu. Select any group to switch instantly!</p>
               </Section>
 
-              <Section title="Guest Users vs Real Users">
+              <Section title="Understanding User Types">
+                <div className="space-y-4 mb-4">
+                  <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                    <strong>Member</strong> = Anyone in a group (can be a Real User or Guest User)
+                  </p>
+                </div>
                 <div className="space-y-4">
                   <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-stone-100 dark:border-gray-600">
-                    <strong className="text-primary">Guest Users (No Login)</strong>
+                    <strong className="text-primary">Guest User (No Login Required)</strong>
                     <ul className="list-disc list-inside mt-2 text-sm">
-                      <li>You create them in the People tab</li>
-                      <li>They never see Split<span className="text-primary">Bi</span></li>
-                      <li>You manage all their expenses</li>
+                      <li>You create them in the People tab or when adding members to a group</li>
+                      <li>They never see Split<span className="text-primary">Bi</span> - you manage everything for them</li>
+                      <li>You add expenses on their behalf</li>
                       <li>Great for: partners, kids, anyone who doesn't want an account</li>
-                      <li>Shows "Guest" badge</li>
+                      <li>Shows "Guest" badge in the app</li>
+                      <li>Only visible to you (the creator)</li>
                     </ul>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-stone-100 dark:border-gray-600">
-                    <strong className="text-primary">Real Users (With Login)</strong>
+                    <strong className="text-primary">Real User (With Login)</strong>
                     <ul className="list-disc list-inside mt-2 text-sm">
-                      <li>You invite them by email</li>
-                      <li>They create their own Split<span className="text-primary">Bi</span> account</li>
+                      <li>You invite them by email from a group</li>
+                      <li>They create their own Split<span className="text-primary">Bi</span> account (Google or Email sign-up)</li>
                       <li>They can add expenses themselves</li>
-                      <li>They see their own balances</li>
-                      <li>Great for: roommates, friends who want to participate</li>
-                      <li>Shows "Logged In" status</li>
+                      <li>They see their own balances and groups</li>
+                      <li>Great for: roommates, friends who want to participate actively</li>
+                      <li>Shows their email or "Logged In" status</li>
                     </ul>
                   </div>
                 </div>
               </Section>
 
-              <Section title="How do I add someone to a group?">
+              <Section title="How do I add a member to a group?">
                 <ol className="list-decimal list-inside space-y-2">
                   <li>Open the group (from Dashboard or Groups tab)</li>
                   <li>Click the <strong>Manage</strong> button (gear icon)</li>
-                  <li>Choose either:
+                  <li>In the "Add Members" section, choose one of three options:
                     <ul className="list-disc list-inside ml-6 mt-2">
-                      <li><strong>Create new member</strong> (guest user - no email)</li>
-                      <li><strong>Invite by Email</strong> (real user with account)</li>
-                      <li><strong>Add existing member</strong> (from dropdown if you have guest users)</li>
+                      <li><strong>Invite Real User</strong> - Invite by email (they'll create an account)</li>
+                      <li><strong>Add Guest User</strong> - Create a new Guest User (no login needed)</li>
+                      <li><strong>Add Existing Member</strong> - Add a Guest User you already created</li>
                     </ul>
                   </li>
                 </ol>
+                <p className="mt-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                  <strong>Remember:</strong> A "Member" is anyone in your group - they can be either a Real User or a Guest User.
+                </p>
               </Section>
 
               <Section title="Can I delete a guest user?">

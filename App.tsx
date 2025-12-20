@@ -26,7 +26,7 @@ import { formatCurrency } from './utils/currencyFormatter';
 import { logError } from './utils/errorLogger';
 import { sendGroupInviteEmail } from './utils/emailService';
 import { db } from './firebase';
-import { collection, getDocs, doc, writeBatch, addDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, getDoc, doc, writeBatch, addDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAuth } from './contexts/AuthContext';
 import LoginScreen from './components/LoginScreen';
@@ -142,6 +142,10 @@ const App: React.FC = () => {
   const [editingExpense, setEditingExpense] = useState<FinalExpense | null>(null);
   const [viewingExpense, setViewingExpense] = useState<FinalExpense | null>(null);
   const [viewingBalanceForUser, setViewingBalanceForUser] = useState<User | null>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [isBannerHovered, setIsBannerHovered] = useState(false);
+  const bannerDismissTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const tourAutoFinishTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch initial data from Firestore
   useEffect(() => {
@@ -150,6 +154,14 @@ const App: React.FC = () => {
           setLoading(false);
           return;
         }
+        
+        // Initialize with empty arrays to prevent crashes
+        let usersData: User[] = [];
+        let groupsData: Group[] = [];
+        let expensesData: FinalExpense[] = [];
+        let notificationsData: Notification[] = [];
+        let invitesData: GroupInvite[] = [];
+        
         try {
             console.log("Fetching data from Firestore...");
             
@@ -159,29 +171,56 @@ const App: React.FC = () => {
             // 1. Current user themselves (for profile display)
             // 2. Simulated/guest users created by current user (for group management)
             // This ensures users can't see or add other real users without permission
-            const usersQuery = query(
-                collection(db, 'users'),
-                where('createdBy', '==', currentUser.id)
-            );
-            const simulatedUsersSnapshot = await getDocs(usersQuery);
             
-            // Get current user's document
-            const currentUserDoc = await getDocs(
-                query(collection(db, 'users'), where('__name__', '==', currentUser.id))
-            );
+            // Get current user's document by ID first (most important)
+            const currentUserDocRef = doc(db, 'users', currentUser.id);
+            let currentUserDocSnap;
+            try {
+                currentUserDocSnap = await getDoc(currentUserDocRef);
+            } catch (error: any) {
+                console.warn("Could not fetch current user document (may not exist yet):", error);
+                // Document might not exist yet - this is OK for brand new users
+                currentUserDocSnap = { exists: () => false } as any;
+            }
+            
+            // Fetch simulated users created by current user (may be empty for new users)
+            let simulatedUsersSnapshot;
+            try {
+                const usersQuery = query(
+                    collection(db, 'users'),
+                    where('createdBy', '==', currentUser.id)
+                );
+                simulatedUsersSnapshot = await getDocs(usersQuery);
+            } catch (error: any) {
+                console.warn("Could not fetch simulated users (may be blocked by security rules):", error);
+                // Create empty snapshot - new users won't have simulated users anyway
+                simulatedUsersSnapshot = { docs: [] } as any;
+            }
             
             // Combine current user + their simulated users
-            const allUserDocs = [...currentUserDoc.docs, ...simulatedUsersSnapshot.docs];
+            // Both DocumentSnapshot and QueryDocumentSnapshot have .id and .data() methods
+            const allUserDocs: any[] = [];
+            if (currentUserDocSnap.exists()) {
+                allUserDocs.push(currentUserDocSnap);
+            }
+            allUserDocs.push(...simulatedUsersSnapshot.docs);
             const usersSnapshot = { docs: allUserDocs };
             
             console.log(`Loaded ${allUserDocs.length} users (1 real + ${simulatedUsersSnapshot.docs.length} guest)`);
             
             // Fetch only groups where current user is a member
-            const groupsQuery = query(
-                collection(db, 'groups'), 
-                where('members', 'array-contains', currentUser.id)
-            );
-            const groupsSnapshot = await getDocs(groupsQuery);
+            let groupsSnapshot;
+            try {
+                const groupsQuery = query(
+                    collection(db, 'groups'), 
+                    where('members', 'array-contains', currentUser.id)
+                );
+                groupsSnapshot = await getDocs(groupsQuery);
+            } catch (error: any) {
+                console.warn("Could not fetch groups (may be blocked by security rules):", error);
+                // Create empty snapshot - new users won't have groups anyway
+                groupsSnapshot = { docs: [] } as any;
+            }
             
             // Get group IDs for fetching expenses
             const groupIds = groupsSnapshot.docs.map(doc => doc.id);
@@ -189,41 +228,76 @@ const App: React.FC = () => {
             // Fetch expenses only for user's groups
             let expensesData: FinalExpense[] = [];
             if (groupIds.length > 0) {
-                // Firestore 'in' queries support max 10 items at a time
-                const batchSize = 10;
-                for (let i = 0; i < groupIds.length; i += batchSize) {
-                    const batch = groupIds.slice(i, i + batchSize);
-                    const expensesQuery = query(
-                        collection(db, 'expenses'),
-                        where('groupId', 'in', batch)
-                    );
-                    const expensesSnapshot = await getDocs(expensesQuery);
-                    expensesData.push(...expensesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FinalExpense)));
+                try {
+                    // Firestore 'in' queries support max 10 items at a time
+                    const batchSize = 10;
+                    for (let i = 0; i < groupIds.length; i += batchSize) {
+                        const batch = groupIds.slice(i, i + batchSize);
+                        const expensesQuery = query(
+                            collection(db, 'expenses'),
+                            where('groupId', 'in', batch)
+                        );
+                        const expensesSnapshot = await getDocs(expensesQuery);
+                        expensesData.push(...expensesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FinalExpense)));
+                    }
+                } catch (error: any) {
+                    console.warn("Could not fetch expenses (may be blocked by security rules):", error);
+                    // Continue with empty expenses array
                 }
             }
             
-            // Fetch notifications
-            const notificationsSnapshot = await getDocs(collection(db, 'notifications'));
+            // Fetch notifications (filtered by user's groups via invites)
+            // Note: Notifications don't have userId field, so we fetch all and filter client-side
+            // Security rules may block this - handle gracefully
+            let notificationsSnapshot: { docs: any[] };
+            try {
+                const notificationsQuery = await getDocs(collection(db, 'notifications'));
+                notificationsSnapshot = notificationsQuery;
+            } catch (error: any) {
+                console.warn("Could not fetch notifications (may be blocked by security rules):", error);
+                // Create empty snapshot to prevent errors
+                notificationsSnapshot = { docs: [] };
+            }
 
             // Fetch group invites (sent by or to current user)
-            const sentInvitesQuery = query(
-                collection(db, 'groupInvites'),
-                where('invitedBy', '==', currentUser.id)
-            );
-            const receivedInvitesQuery = query(
-                collection(db, 'groupInvites'),
-                where('invitedEmail', '==', currentUser.email?.toLowerCase())
-            );
-            
-            const [sentInvitesSnapshot, receivedInvitesSnapshot] = await Promise.all([
-                getDocs(sentInvitesQuery),
-                getDocs(receivedInvitesQuery)
-            ]);
+            let sentInvitesSnapshot, receivedInvitesSnapshot;
+            try {
+                const sentInvitesQuery = query(
+                    collection(db, 'groupInvites'),
+                    where('invitedBy', '==', currentUser.id)
+                );
+                const receivedInvitesQuery = query(
+                    collection(db, 'groupInvites'),
+                    where('invitedEmail', '==', currentUser.email?.toLowerCase())
+                );
+                
+                [sentInvitesSnapshot, receivedInvitesSnapshot] = await Promise.all([
+                    getDocs(sentInvitesQuery),
+                    getDocs(receivedInvitesQuery)
+                ]);
+            } catch (error: any) {
+                console.warn("Could not fetch group invites (may be blocked by security rules):", error);
+                // Create empty snapshots - new users won't have invites anyway
+                sentInvitesSnapshot = { docs: [] } as any;
+                receivedInvitesSnapshot = { docs: [] } as any;
+            }
 
             // Process all the data
-            const usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+            // Both DocumentSnapshot and QueryDocumentSnapshot have .id and .data() methods
+            let usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+            
+            // CRITICAL FIX: Ensure current user is always in the users array
+            // This prevents "Current user not found" errors for new users
+            // If current user document exists in Firestore, it's already in usersData
+            // If not (race condition or error), add currentUser from AuthContext
+            const currentUserInArray = usersData.find(u => u.id === currentUser.id);
+            if (!currentUserInArray) {
+                // Add current user from AuthContext to ensure it's always available
+                usersData = [currentUser, ...usersData];
+                console.log("Added current user from AuthContext to users array (document may not exist in Firestore yet)");
+            }
+            
             const groupsData = groupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
-            const notificationsData = notificationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification)).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             
             // Combine and deduplicate invites
             const allInviteDocs = [...sentInvitesSnapshot.docs, ...receivedInvitesSnapshot.docs];
@@ -236,6 +310,34 @@ const App: React.FC = () => {
             const invitesData = Array.from(uniqueInvites.values()).sort((a,b) => 
                 new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             );
+            
+            // Filter notifications: only show notifications related to user's groups or invites
+            // Notifications don't have userId field, so we filter based on inviteId -> groupId -> user membership
+            const userGroupIds = new Set(groupsData.map(g => g.id));
+            const userInviteIds = new Set(invitesData.map(inv => inv.id));
+            
+            // Safely map notifications - handle case where docs might be empty or undefined
+            const allNotifications = (notificationsSnapshot?.docs || []).map(doc => {
+                try {
+                    return { id: doc.id, ...doc.data() } as Notification;
+                } catch (e) {
+                    console.warn("Error processing notification:", e);
+                    return null;
+                }
+            }).filter((notif): notif is Notification => notif !== null);
+            
+            const filteredNotifications = allNotifications.filter(notif => {
+                // If notification has inviteId, check if it's for the user
+                if (notif.inviteId && userInviteIds.has(notif.inviteId)) {
+                    return true;
+                }
+                // For expense notifications, they're typically for group members
+                // Since we can't easily filter these without userId, skip them for now
+                // This is safe - notifications are not critical for app functionality
+                return false;
+            });
+            
+            const notificationsData = filteredNotifications.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
             // Sort expenses by date
             expensesData.sort((a,b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime());
@@ -253,15 +355,103 @@ const App: React.FC = () => {
                 return activeGroupsData.length > 0 ? activeGroupsData[0].id : null;
             });
             console.log("Data fetched successfully.");
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error fetching data from Firestore:", error);
-            alert("Could not fetch data from the database. Please check your Firebase connection and configuration.");
+            
+            // Even if fetch fails, ensure current user is in users array to prevent crashes
+            setUsers(prevUsers => {
+                const currentUserInUsers = prevUsers.find(u => u.id === currentUser.id);
+                if (!currentUserInUsers) {
+                    return [currentUser, ...prevUsers];
+                }
+                return prevUsers;
+            });
+            
+            // Set empty arrays for other data to prevent crashes
+            setGroups([]);
+            setExpenses([]);
+            setNotifications([]);
+            setGroupInvites([]);
+            
+            // Only show alert for critical errors, not permission errors
+            if (error?.code !== 'permission-denied') {
+                alert("Could not fetch data from the database. Please check your Firebase connection and configuration.");
+            } else {
+                console.warn("Permission denied - some data may not be available. This is normal for new users.");
+            }
         } finally {
             setLoading(false);
         }
     };
     fetchData();
   }, [currentUser]);
+
+  // Handle password reset link from email
+  useEffect(() => {
+    const handlePasswordReset = async () => {
+      // Check if URL contains password reset code
+      const urlParams = new URLSearchParams(window.location.search);
+      const mode = urlParams.get('mode');
+      const actionCode = urlParams.get('oobCode');
+      
+      if (mode === 'resetPassword' && actionCode) {
+        // Show password reset form
+        // We'll handle this in LoginScreen component
+        console.log('Password reset link detected');
+        // Store the action code in sessionStorage for LoginScreen to use
+        sessionStorage.setItem('passwordResetCode', actionCode);
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
+    
+    handlePasswordReset();
+  }, []);
+
+  // Auto-dismiss install banner after 10 seconds (with pause on hover/interaction)
+  // Follows Apple/Google best practices: auto-dismiss with pause on user interaction
+  useEffect(() => {
+    const AUTO_DISMISS_DELAY = 10000; // 10 seconds - gives users more time to read and interact
+    
+    // Check if banner should be shown (show on dashboard screen, regardless of activeGroup)
+    const isDismissed = sessionStorage.getItem('install-banner-dismissed');
+    const shouldShow = activeScreen === 'dashboard' && !isDismissed;
+    
+    // Update banner visibility
+    setShowInstallBanner(shouldShow);
+
+    if (!shouldShow) {
+      // Clear timeout if banner shouldn't be shown
+      if (bannerDismissTimeoutRef.current) {
+        clearTimeout(bannerDismissTimeoutRef.current);
+        bannerDismissTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    // Clear any existing timeout before starting a new one
+    if (bannerDismissTimeoutRef.current) {
+      clearTimeout(bannerDismissTimeoutRef.current);
+      bannerDismissTimeoutRef.current = null;
+    }
+
+    // Only start timer if banner is visible and not hovered
+    if (!isBannerHovered) {
+      bannerDismissTimeoutRef.current = setTimeout(() => {
+        setShowInstallBanner(false);
+        sessionStorage.setItem('install-banner-dismissed', 'true');
+        bannerDismissTimeoutRef.current = null;
+      }, AUTO_DISMISS_DELAY);
+    }
+
+    // Cleanup on unmount or when conditions change
+    return () => {
+      if (bannerDismissTimeoutRef.current) {
+        clearTimeout(bannerDismissTimeoutRef.current);
+        bannerDismissTimeoutRef.current = null;
+      }
+    };
+  }, [activeScreen, isBannerHovered]);
 
   // Check if user needs onboarding (first time user)
   useEffect(() => {
@@ -277,10 +467,43 @@ const App: React.FC = () => {
     }
   }, [currentUser, loading]);
 
-  const handleFinishOnboarding = () => {
+  const handleFinishOnboarding = useCallback(() => {
     setShowOnboarding(false);
     localStorage.setItem('onboarding-completed', 'true');
-  };
+    // Clear auto-finish timer if it exists
+    if (tourAutoFinishTimeoutRef.current) {
+      clearTimeout(tourAutoFinishTimeoutRef.current);
+      tourAutoFinishTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Auto-finish onboarding tour after 10 seconds if user doesn't interact
+  // Similar to banner auto-dismiss - gives users time but doesn't force them to complete
+  useEffect(() => {
+    const AUTO_FINISH_DELAY = 10000; // 10 seconds - same as banner
+    
+    if (!showOnboarding) {
+      // Clear timeout if tour is not running
+      if (tourAutoFinishTimeoutRef.current) {
+        clearTimeout(tourAutoFinishTimeoutRef.current);
+        tourAutoFinishTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    // Start auto-finish timer when tour starts
+    tourAutoFinishTimeoutRef.current = setTimeout(() => {
+      handleFinishOnboarding();
+    }, AUTO_FINISH_DELAY);
+
+    // Cleanup on unmount or when tour ends
+    return () => {
+      if (tourAutoFinishTimeoutRef.current) {
+        clearTimeout(tourAutoFinishTimeoutRef.current);
+        tourAutoFinishTimeoutRef.current = null;
+      }
+    };
+  }, [showOnboarding, handleFinishOnboarding]);
 
   // One-time hint: explain the + button purpose
   useEffect(() => {
@@ -428,7 +651,11 @@ const App: React.FC = () => {
 
   const handleSaveExpense = useCallback(async (expense: FinalExpense) => {
     const currentUserData = users.find(u => u.id === currentUser.id);
-    if (!currentUserData || !activeGroupId) return;
+    if (!currentUserData || !activeGroupId) {
+      console.error("Cannot save expense: missing currentUserData or activeGroupId", { currentUserData, activeGroupId });
+      alert("Failed to save expense: Missing user or group information.");
+      return;
+    }
 
     let message = '';
     let type: NotificationType;
@@ -437,33 +664,80 @@ const App: React.FC = () => {
     try {
         if (editingExpense) {
             const expenseDocRef = doc(db, 'expenses', editingExpense.id);
-            await updateDoc(expenseDocRef, expenseWithGroupId);
-            setExpenses(prevExpenses => prevExpenses.map(e => e.id === editingExpense.id ? expenseWithGroupId : e));
-            setEditingExpense(null);
-            message = `${currentUserData.name.replace(' (You)', '')} edited the expense "${expense.description}".`;
-            type = NotificationType.ExpenseEdited;
+            // Remove 'id' field before updating - Firestore doesn't allow updating document IDs
+            const { id, ...expenseDataWithoutId } = expenseWithGroupId;
+            console.log('Updating expense:', editingExpense.id, expenseDataWithoutId);
+            console.log('Current user:', currentUser.id, 'Active group:', activeGroupId);
+            
+            try {
+                // Try to update the expense
+                await updateDoc(expenseDocRef, expenseDataWithoutId);
+                const updatedExpense = { ...expenseWithGroupId, id: editingExpense.id };
+                setExpenses(prevExpenses => prevExpenses.map(e => e.id === editingExpense.id ? updatedExpense : e));
+                setEditingExpense(null);
+                message = `${currentUserData.name.replace(' (You)', '')} edited the expense "${expense.description}".`;
+                type = NotificationType.ExpenseEdited;
+            } catch (updateError: any) {
+                // If update fails with "not-found", create it as new
+                if (updateError?.code === 'not-found') {
+                    console.warn(`Expense document ${editingExpense.id} does not exist in Firestore. Creating as new expense instead.`);
+                    const docRef = await addDoc(collection(db, 'expenses'), expenseDataWithoutId);
+                    const newExpenseWithId = { ...expenseDataWithoutId, id: docRef.id };
+                    setExpenses(prevExpenses => {
+                        // Remove the old expense from local state if it exists
+                        const filtered = prevExpenses.filter(e => e.id !== editingExpense.id);
+                        return [newExpenseWithId, ...filtered];
+                    });
+                    setEditingExpense(null);
+                    message = `${currentUserData.name.replace(' (You)', '')} added a new expense: "${expense.description}" for $${expense.amount.toFixed(2)}.`;
+                    type = NotificationType.ExpenseAdded;
+                } else {
+                    // Re-throw other errors (like permission-denied)
+                    throw updateError;
+                }
+            }
         } else {
-            const docRef = await addDoc(collection(db, 'expenses'), expenseWithGroupId);
-            const newExpenseWithId = { ...expenseWithGroupId, id: docRef.id };
+            // Remove 'id' field before creating - Firestore will generate its own ID
+            const { id, ...expenseDataWithoutId } = expenseWithGroupId;
+            console.log('Creating expense:', expenseDataWithoutId);
+            console.log('Current user:', currentUser.id, 'Active group:', activeGroupId);
+            const docRef = await addDoc(collection(db, 'expenses'), expenseDataWithoutId);
+            const newExpenseWithId = { ...expenseDataWithoutId, id: docRef.id };
             setExpenses(prevExpenses => [newExpenseWithId, ...prevExpenses]);
             message = `${currentUserData.name.replace(' (You)', '')} added a new expense: "${expense.description}" for $${expense.amount.toFixed(2)}.`;
             type = NotificationType.ExpenseAdded;
         }
 
-        const newNotification: Omit<Notification, 'id'> = {
-            message,
-            type,
-            timestamp: new Date().toISOString(),
-            read: false,
-        };
-        const notificationDocRef = await addDoc(collection(db, 'notifications'), newNotification);
-        setNotifications(prev => [{ id: notificationDocRef.id, ...newNotification }, ...prev]);
-    } catch (error) {
+        // Create notification (wrap in try-catch to not fail expense save if notification fails)
+        try {
+            const newNotification: Omit<Notification, 'id'> = {
+                message,
+                type,
+                timestamp: new Date().toISOString(),
+                read: false,
+            };
+            const notificationDocRef = await addDoc(collection(db, 'notifications'), newNotification);
+            setNotifications(prev => [{ id: notificationDocRef.id, ...newNotification }, ...prev]);
+        } catch (notificationError: any) {
+            console.warn("Failed to create notification (expense was saved):", notificationError);
+            // Don't throw - expense was saved successfully
+        }
+    } catch (error: any) {
         console.error("Error saving expense: ", error);
-        alert("Failed to save expense. Please try again.");
+        const errorMessage = error?.message || error?.code || 'Unknown error';
+        console.error("Error details:", {
+            code: error?.code,
+            message: error?.message,
+            expense: expenseWithGroupId,
+            editingExpense: editingExpense?.id,
+            currentUserId: currentUser.id,
+            activeGroupId: activeGroupId
+        });
+        alert(`Failed to save expense: ${errorMessage}. Please check the console for details.`);
+        return; // Don't navigate away if there's an error
     }
     setActiveScreen('dashboard');
-  }, [editingExpense, users, activeGroupId]);
+  }, [editingExpense, users, activeGroupId, currentUser]);
 
   const handleDeleteExpense = useCallback(async (expenseId: string) => {
     if (window.confirm('Are you sure you want to delete this expense? This will affect group balances.')) {
@@ -676,37 +950,85 @@ const App: React.FC = () => {
   
   const handleCreateGroup = async (newGroupData: Omit<Group, 'id'>) => {
     try {
+        // Ensure currentUser exists
+        if (!currentUser || !currentUser.id) {
+            throw new Error('User not authenticated');
+        }
+
+        // Ensure the current user is in the members array (required by Firestore rules)
+        const members = newGroupData.members || [];
+        if (!members.includes(currentUser.id)) {
+            members.push(currentUser.id);
+        }
+
+        // Convert createdAt to ISO string if it's a Date object
+        const createdAt = newGroupData.createdAt 
+            ? (newGroupData.createdAt instanceof Date 
+                ? newGroupData.createdAt.toISOString() 
+                : typeof newGroupData.createdAt === 'string' 
+                    ? newGroupData.createdAt 
+                    : new Date().toISOString())
+            : new Date().toISOString();
+
         const groupDataWithCreator = {
             ...newGroupData,
+            members: members,
             createdBy: currentUser.id,
+            createdAt: createdAt,
+            archived: newGroupData.archived || false,
         };
+        
+        console.log('Creating group with data:', groupDataWithCreator);
         const docRef = await addDoc(collection(db, 'groups'), groupDataWithCreator);
         const newGroup = { ...groupDataWithCreator, id: docRef.id };
         setGroups(prev => [...prev, newGroup]);
         setActiveGroupId(newGroup.id);
-        setActiveScreen('dashboard');
+        setActiveScreen('groups'); // Navigate to groups screen after creation
         setIsCreateGroupModalOpen(false); // Close the modal after successful creation
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error creating group: ", error);
-        alert("Failed to create group. Please try again.");
+        const errorMessage = error?.message || error?.code || 'Unknown error';
+        console.error("Error details:", {
+            code: error?.code,
+            message: error?.message,
+            currentUser: currentUser?.id,
+            groupData: newGroupData
+        });
+        alert(`Failed to create group: ${errorMessage}. Please check the console for details.`);
     }
   }
 
   const handleCreateUser = async (name: string) => {
-    const newUserNoId = {
-        name: name,
-        avatarUrl: `https://i.pravatar.cc/150?u=${crypto.randomUUID()}`,
-        authType: 'simulated' as const,
-        createdBy: currentUser.id,
-        createdAt: new Date().toISOString()
-    };
     try {
+        // Ensure currentUser exists
+        if (!currentUser || !currentUser.id) {
+            throw new Error('User not authenticated');
+        }
+
+        const newUserNoId = {
+            name: name.trim(),
+            avatarUrl: `https://i.pravatar.cc/150?u=${crypto.randomUUID()}`,
+            authType: 'simulated' as const,
+            createdBy: currentUser.id,
+            createdAt: new Date().toISOString()
+        };
+
+        console.log('Creating simulated user with data:', newUserNoId);
         const docRef = await addDoc(collection(db, 'users'), newUserNoId);
-        setUsers(prev => [...prev, { id: docRef.id, ...newUserNoId }]);
-    } catch (error) {
-        logError('Create User', error, { userName: name, currentUserId: currentUser.id });
+        const newUser = { id: docRef.id, ...newUserNoId };
+        setUsers(prev => [...prev, newUser]);
+        console.log('Successfully created simulated user:', newUser.id);
+    } catch (error: any) {
+        logError('Create User', error, { userName: name, currentUserId: currentUser?.id });
         console.error("Error creating user: ", error);
-        alert("Failed to create user. Please try again.");
+        const errorMessage = error?.message || error?.code || 'Unknown error';
+        console.error("Error details:", {
+            code: error?.code,
+            message: error?.message,
+            currentUser: currentUser?.id,
+            userName: name
+        });
+        alert(`Failed to create user: ${errorMessage}. Please check the console for details.`);
     }
   };
 
@@ -944,9 +1266,9 @@ const App: React.FC = () => {
 
       // Add user to group
       const groupRef = doc(db, 'groups', invite.groupId);
-      const groupDoc = await getDocs(query(collection(db, 'groups'), where('__name__', '==', invite.groupId)));
-      if (!groupDoc.empty) {
-        const groupData = groupDoc.docs[0].data() as Group;
+      const groupDocSnap = await getDoc(groupRef); // FIX: use getDoc() instead of invalid __name__ query
+      if (groupDocSnap.exists()) {
+        const groupData = groupDocSnap.data() as Group;
         const updatedMembers = [...groupData.members, currentUser.id];
         await updateDoc(groupRef, { members: updatedMembers });
         
@@ -1012,7 +1334,6 @@ const App: React.FC = () => {
     setActiveGroupId(groupId);
     setEditingGroupId(groupId);
     setIsGroupManagementModalOpen(true);
-    // Go to group management - this is what user actually wants
   }
 
   const handleOpenSettleUp = () => setIsSettleUpModalOpen(true);
@@ -1089,6 +1410,11 @@ const App: React.FC = () => {
     return simplifyDebts(balances);
   }, [activeGroupExpenses, activeGroupMembers]);
 
+  // Calculate total debt for archive eligibility
+  const totalDebt = useMemo(() => {
+    return simplifiedDebts.reduce((sum, debt) => sum + Math.abs(debt.amount), 0);
+  }, [simplifiedDebts]);
+
   const hasActiveFilters = searchTerm !== '' || filterCategory !== 'all' || filterUser !== 'all';
 
   const unreadNotificationCount = useMemo(() => {
@@ -1117,44 +1443,33 @@ const App: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-gray-700 overflow-hidden"
             >
-                <div className="p-6 text-center max-w-sm mx-auto">
-                    {/* Compact Welcome Header */}
+                <div className="px-4 py-6 sm:px-6 sm:py-8">
+                    {/* Welcome Title - Similar size to balance amount */}
                     <motion.div 
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 }}
-                      className="bg-surface dark:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 mb-6"
+                      className="text-center mb-6"
                     >
-                      <div className="p-6 text-center">
-                        <div className="flex justify-center mb-2">
-                          <div className="bg-white dark:bg-gray-900 rounded-2xl p-3 shadow-sm">
-                            <img 
-                              src="/splitBi-logo-main-svg.svg" 
-                              alt="SplitBi Logo" 
-                              className="h-24 sm:h-28 w-auto"
-                            />
-                          </div>
-                        </div>
-                        <h2 className="text-base font-sans font-bold text-charcoal dark:text-gray-300">
-                          Welcome to Split<span className="text-primary">Bi</span>!
-                        </h2>
-                      </div>
+                        <h1 className="text-4xl sm:text-5xl font-sans font-extrabold tracking-tight text-charcoal dark:text-gray-100 mb-2">
+                          Welcome to Split<span className="text-primary">Bi</span>
+                        </h1>
+                        <p className="text-sm font-medium text-charcoal/80 dark:text-gray-300 mt-1.5">
+                          Let's create your first group to start tracking shared expenses
+                        </p>
                     </motion.div>
                     
-                    <p className="text-sm text-sage dark:text-text-secondary-dark mb-4">
-                        Let's create your first group to start tracking shared expenses.
-                    </p>
-                    
+                    {/* Groups Info Card */}
                     <motion.div 
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
-                      className="bg-primary/10 dark:bg-primary/10 rounded-2xl p-6 mb-6 text-left"
+                      className="bg-primary/10 dark:bg-primary/10 rounded-xl p-4 sm:p-5 mb-6"
                     >
-                        <p className="font-sans font-bold text-charcoal dark:text-text-primary-dark mb-3">
+                        <p className="text-base sm:text-lg font-sans font-extrabold text-charcoal dark:text-gray-100 tracking-tight mb-3">
                             💡 What are groups?
                         </p>
-                        <p className="text-sm text-sage dark:text-text-secondary-dark mb-4">
+                        <p className="text-sm text-sage dark:text-text-secondary-dark mb-3">
                             Groups help you organize expenses for different situations:
                         </p>
                         <ul className="space-y-2 text-sm text-sage dark:text-text-secondary-dark">
@@ -1177,20 +1492,20 @@ const App: React.FC = () => {
                         </ul>
                     </motion.div>
 
+                    {/* Create Group Button */}
                     <motion.button
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => setActiveScreen('groups')}
-                      className="w-full px-6 py-3 bg-primary text-white font-medium rounded-full shadow-sm hover:bg-primary-700 transition-colors"
+                      onClick={() => {
+                        setActiveScreen('groups');
+                        setIsCreateGroupModalOpen(true);
+                      }}
+                      className="w-full px-6 py-3 bg-primary text-white font-semibold rounded-xl shadow-sm hover:bg-primary-700 transition-colors"
                     >
                         + Create Your First Group
                     </motion.button>
-                    
-                    <p className="mt-4 text-xs text-sage dark:text-text-secondary-dark">
-                        Click the <strong>Groups</strong> tab at the bottom to get started
-                    </p>
                 </div>
             </motion.main>
           )
@@ -1570,6 +1885,20 @@ const App: React.FC = () => {
                       >
                         Create
                       </motion.button>
+                      {activeGroupId && activeGroup && !activeGroup.archived && totalDebt < 0.01 && (
+                        <motion.button 
+                          whileTap={{ scale: 0.98 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm('Archive this group? You can unarchive it later from the Archived Groups section.')) {
+                              handleArchiveGroup(activeGroupId);
+                            }
+                          }}
+                          className="text-xs sm:text-sm text-[#1E3450] dark:text-[#1E3450] hover:opacity-80 transition-colors font-semibold"
+                        >
+                          Archive
+                        </motion.button>
+                      )}
                       <motion.button 
                         whileTap={{ scale: 0.98 }}
                         onClick={(e) => {
@@ -1582,56 +1911,56 @@ const App: React.FC = () => {
                       </motion.button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-0.5">
                     {activeGroups.map((group, index) => (
-                      <motion.button
+                      <motion.div
                         key={group.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 + index * 0.1 }}
-                        whileHover={{ scale: 1.02, y: -1 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => handleSetActiveGroup(group.id)}
-                        className={`flex items-center gap-2.5 p-2.5 sm:p-3 rounded-xl transition-all text-left border ${
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 + index * 0.05 }}
+                        onClick={() => {
+                          setActiveGroupId(group.id);
+                          setActiveScreen('groups');
+                        }}
+                        className={`flex items-center gap-2 py-1.5 px-2 rounded transition-all cursor-pointer group ${
                           activeGroupId === group.id 
-                            ? 'bg-gradient-to-br from-primary-100 via-primary-50 to-white dark:from-primary/40 dark:via-primary/30 dark:to-gray-700 border-primary dark:border-primary-400 text-primary dark:text-primary-200 shadow-lg ring-1 ring-primary/30 dark:ring-primary/40' 
-                            : 'bg-white dark:bg-gray-700 hover:bg-primary/5 dark:hover:bg-gray-600 border-stone-200 dark:border-gray-600 hover:border-primary/50 dark:hover:border-primary/40 shadow-sm hover:shadow-md'
+                            ? 'bg-primary/10 dark:bg-primary/20' 
+                            : 'hover:bg-primary/5 dark:hover:bg-gray-600/50'
                         }`}
                       >
-                        <div className={`flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border ${
+                        <div className={`flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-colors ${
                           activeGroupId === group.id 
-                            ? 'bg-white dark:bg-primary/20 border-primary dark:border-primary-400 shadow-sm' 
-                            : 'bg-white dark:bg-gray-600 border-stone-200 dark:border-gray-500'
+                            ? 'bg-primary dark:bg-primary-400' 
+                            : 'bg-stone-200 dark:bg-gray-600 group-hover:bg-primary/20 dark:group-hover:bg-primary/30'
                         }`}>
                           <GroupIcon 
                             groupName={group.name} 
-                            className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                            className={`w-3 h-3 ${
                               activeGroupId === group.id 
-                                ? 'text-primary dark:text-primary-300' 
+                                ? 'text-white dark:text-gray-900' 
                                 : 'text-charcoal dark:text-gray-300'
                             }`}
                           />
                         </div>
-                        <div className="flex-grow min-w-0">
-                          <p className={`text-sm sm:text-base font-sans font-extrabold truncate leading-tight ${
+                        <div className="flex-grow min-w-0 flex items-center justify-between gap-2">
+                          <p className={`text-sm font-sans font-extrabold truncate ${
                             activeGroupId === group.id 
-                              ? 'text-primary dark:text-primary-200' 
+                              ? 'text-primary dark:text-primary-300' 
                               : 'text-charcoal dark:text-gray-100'
-                          }`}>{group.name}</p>
-                          <p className={`text-xs font-medium mt-0.5 ${
-                            activeGroupId === group.id 
-                              ? 'text-primary/70 dark:text-primary-300' 
-                              : 'text-sage dark:text-gray-400'
                           }`}>
-                            {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
+                            {group.name}
                           </p>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <span className="text-xs text-sage dark:text-gray-400">
+                              {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
+                            </span>
+                            {activeGroupId === group.id && (
+                              <span className="w-1.5 h-1.5 bg-primary dark:bg-primary-300 rounded-full"></span>
+                            )}
+                          </div>
                         </div>
-                        {activeGroupId === group.id && (
-                          <div className="flex-shrink-0 w-1.5 h-1.5 bg-primary dark:bg-primary-300 rounded-full animate-pulse"></div>
-                        )}
-                      </motion.button>
+                      </motion.div>
                     ))}
-                    
                   </div>
                 </motion.div>
 
@@ -1643,13 +1972,28 @@ const App: React.FC = () => {
               className="px-4 py-3 sm:px-6 sm:py-4 bg-white dark:bg-gray-700 border-t-2 border-stone-200 dark:border-gray-600"
             >
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg sm:text-xl font-sans font-extrabold text-charcoal dark:text-gray-100 tracking-tight">
-                    Recent Expenses
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg sm:text-xl font-sans font-extrabold text-charcoal dark:text-gray-100 tracking-tight">
+                      Recent Expenses
+                    </h3>
+                    <span className="text-xs text-sage dark:text-gray-400">(last 3)</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <motion.button 
+                      whileTap={{ scale: 0.98 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveScreen('add');
+                      }}
+                      className="text-xs sm:text-sm text-primary dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-400 transition-colors font-semibold"
+                    >
+                      Add Expense
+                    </motion.button>
                     <span className="text-xs font-bold text-primary dark:text-primary-300 bg-primary/10 dark:bg-primary/20 px-3 py-1.5 rounded-full border-2 border-primary/30 dark:border-primary/40">
                       {activeGroupExpenses.length} total
                     </span>
                   </div>
+                </div>
                   <div>
                   <div className="space-y-1.5">
                     {activeGroupExpenses.slice(0, 3).map((expense, index) => {
@@ -1660,7 +2004,8 @@ const App: React.FC = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.4 + index * 0.1 }}
-                          className="flex items-center gap-3 py-2.5 hover:bg-primary/10 dark:hover:bg-primary/30 rounded-xl transition-all -mx-2 px-3 border border-transparent hover:border-primary/20 dark:hover:border-primary/30"
+                          onClick={() => handleViewExpense(expense)}
+                          className="flex items-center gap-3 py-2.5 hover:bg-primary/10 dark:hover:bg-primary/30 rounded-xl transition-all -mx-2 px-3 border border-transparent hover:border-primary/20 dark:hover:border-primary/30 cursor-pointer"
                         >
                           <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-primary-100 to-primary-50 dark:from-primary/40 dark:to-primary/30 flex items-center justify-center border-2 border-primary/30 dark:border-primary/40 shadow-sm">
                             <span className="text-primary dark:text-primary-200 text-base">
@@ -1699,7 +2044,14 @@ const App: React.FC = () => {
                       <div className="pt-3">
                         <motion.button
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => {/* TODO: Implement view all */}}
+                          onClick={() => {
+                            // Scroll to expenses section or ensure we're viewing expenses
+                            // The expenses are already shown below, but we can scroll to them
+                            const expensesSection = document.getElementById('expenses-section');
+                            if (expensesSection) {
+                              expensesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }}
                           className="w-full text-sm text-primary hover:text-primary-700 transition-colors font-medium py-2"
                         >
                           View All Expenses →
@@ -1709,14 +2061,80 @@ const App: React.FC = () => {
                   </div>
                 </motion.div>
 
+                {/* Full Expenses List Section */}
+                {activeGroupExpenses.length > 0 && (
+                  <motion.div 
+                    id="expenses-section"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="px-4 py-3 sm:px-6 sm:py-4 bg-white dark:bg-gray-700 border-t-2 border-stone-200 dark:border-gray-600"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg sm:text-xl font-sans font-extrabold text-charcoal dark:text-gray-100 tracking-tight">
+                          All Expenses
+                        </h3>
+                        <span className="text-xs font-bold text-primary dark:text-primary-300 bg-primary/10 dark:bg-primary/20 px-3 py-1.5 rounded-full border-2 border-primary/30 dark:border-primary/40">
+                          {searchTerm !== '' || filterCategory !== 'all' || filterUser !== 'all' 
+                            ? `${filteredExpenses.length} of ${activeGroupExpenses.length}`
+                            : `${activeGroupExpenses.length} total`}
+                        </span>
+                      </div>
+                      <motion.button 
+                        whileTap={{ scale: 0.98 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveScreen('add');
+                        }}
+                        className="text-xs sm:text-sm text-primary dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-400 transition-colors font-semibold"
+                      >
+                        Add Expense
+                      </motion.button>
+                    </div>
+                    
+                    {/* Expense Filter */}
+                    <ExpenseFilter
+                      searchTerm={searchTerm}
+                      onSearchChange={setSearchTerm}
+                      filterCategory={filterCategory}
+                      onCategoryChange={setFilterCategory}
+                      filterUser={filterUser}
+                      onUserChange={setFilterUser}
+                      members={activeGroupMembers}
+                      categories={CATEGORIES}
+                    />
+                    
+                    {/* Expense List */}
+                    <div className="mt-4">
+                      <ExpenseList
+                        expenses={filteredExpenses}
+                        members={activeGroupMembers}
+                        onDeleteExpense={handleDeleteExpense}
+                        onEditExpense={(expense) => {
+                          setEditingExpense(expense);
+                          setActiveScreen('add');
+                        }}
+                        onViewExpense={handleViewExpense}
+                        hasActiveFilters={searchTerm !== '' || filterCategory !== 'all' || filterUser !== 'all'}
+                        originalExpenseCount={activeGroupExpenses.length}
+                        currentUserId={currentUser?.id || ''}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+
               </>
             )}
             
-            {/* Install Banner - Show to new users - Last element on dashboard, so rounded bottom */}
-            {activeScreen === 'dashboard' && !sessionStorage.getItem('install-banner-dismissed') && (
+            {/* Install Banner - Show to new users - Auto-dismisses after 10 seconds if ignored */}
+            {showInstallBanner && (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20, transition: { duration: 0.3 } }}
+                onMouseEnter={() => setIsBannerHovered(true)}
+                onMouseLeave={() => setIsBannerHovered(false)}
                 className="px-4 py-3 sm:px-6 sm:py-4 bg-gradient-to-r from-teal-light to-teal-light/50 dark:from-primary/20 dark:to-primary/10 border-t-2 border-teal-primary/20 dark:border-primary/30"
               >
                 <div className="flex items-start gap-4">
@@ -1729,20 +2147,23 @@ const App: React.FC = () => {
                       Get instant access from your home screen. Works offline too!
                     </p>
                     <div className="flex flex-wrap gap-3">
-                      
-                        <motion.a 
-                          href="/install.html"
-                          target="_blank"
-                          whileTap={{ scale: 0.98 }}
-                          className="inline-flex items-center px-6 py-3 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary-700 transition-colors"
-                        >
+                      <motion.a 
+                        href="/install.html"
+                        target="_blank"
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setIsBannerHovered(true)} // Pause timer on click
+                        className="inline-flex items-center px-6 py-3 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary-700 transition-colors"
+                      >
                         📖 See How to Install
                       </motion.a>
                       <motion.button
                         whileTap={{ scale: 0.98 }}
                         onClick={() => {
+                          setShowInstallBanner(false);
                           sessionStorage.setItem('install-banner-dismissed', 'true');
-                          window.location.reload();
+                          if (bannerDismissTimeoutRef.current) {
+                            clearTimeout(bannerDismissTimeoutRef.current);
+                          }
                         }}
                         className="inline-flex items-center px-6 py-3 bg-white dark:bg-gray-700 border border-stone-200 dark:border-stone-600 text-charcoal dark:text-text-primary-dark text-sm font-medium rounded-full hover:bg-surface dark:hover:bg-gray-600 transition-colors"
                       >
@@ -1753,10 +2174,13 @@ const App: React.FC = () => {
                   <motion.button
                     whileTap={{ scale: 0.98 }}
                     onClick={() => {
+                      setShowInstallBanner(false);
                       sessionStorage.setItem('install-banner-dismissed', 'true');
-                      window.location.reload();
+                      if (bannerDismissTimeoutRef.current) {
+                        clearTimeout(bannerDismissTimeoutRef.current);
+                      }
                     }}
-                    className="flex-shrink-0 text-sage hover:text-charcoal dark:hover:text-gray-300 text-xl leading-none"
+                    className="flex-shrink-0 text-sage hover:text-charcoal dark:hover:text-gray-300 text-xl leading-none transition-colors"
                     aria-label="Close"
                   >
                     ×

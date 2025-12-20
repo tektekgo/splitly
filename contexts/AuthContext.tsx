@@ -7,7 +7,10 @@ import {
   signOut,
   GoogleAuthProvider,
   signInWithCredential,
-  onAuthStateChanged
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  confirmPasswordReset,
+  verifyPasswordResetCode
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
@@ -20,6 +23,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, name: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -115,6 +119,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await setDoc(doc(db, 'users', user.uid), newUser);
   };
 
+  const resetPassword = async (email: string) => {
+    // Configure actionCodeSettings to handle password reset on localhost
+    // For localhost, we need to set handleCodeInApp to true and handle it ourselves
+    const actionCodeSettings = {
+      // URL you want to redirect back to after password reset
+      // For localhost development, use the current origin
+      url: window.location.origin,
+      // Set to true to handle the code in the app (required for localhost)
+      handleCodeInApp: true,
+    };
+    
+    await sendPasswordResetEmail(auth, email, actionCodeSettings);
+  };
+
   const logout = async () => {
     await signOut(auth);
   };
@@ -126,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,
+    resetPassword,
     logout
   };
 

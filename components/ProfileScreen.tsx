@@ -4,7 +4,8 @@ import type { User, GroupInvite } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import InfoTooltip from './InfoTooltip';
 import { DeleteIcon } from './icons';
-import { getDatabaseStats, exportAllData, findOrphanedData, runCurrencyMigrationAdmin, type DatabaseStats } from '../utils/adminTools';
+import { getDatabaseStats, exportAllData, findOrphanedData, runCurrencyMigrationAdmin, deleteUserAndData, getAllUsers, type DatabaseStats, type DeleteUserResult } from '../utils/adminTools';
+import VersionFooter from './VersionFooter';
 
 interface ProfileScreenProps {
     users: User[];
@@ -30,6 +31,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
         zelle: '',
         cashApp: '',
     });
+    const [showUserManagement, setShowUserManagement] = useState(false);
+    const [allUsers, setAllUsers] = useState<User[]>([]);
+    const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+    const [deletingUsers, setDeletingUsers] = useState(false);
+    const [deleteResults, setDeleteResults] = useState<DeleteUserResult[]>([]);
 
     // Check if current user is admin (set role: 'admin' in Firebase Console)
     const isAdmin = currentUser?.role === 'admin';
@@ -591,6 +597,26 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                             >
                                 🔍 Check for Orphaned Data
                             </button>
+
+                            <button
+                                onClick={async () => {
+                                    setShowUserManagement(true);
+                                    setLoadingStats(true);
+                                    try {
+                                        const users = await getAllUsers();
+                                        setAllUsers(users);
+                                        setSelectedUserIds(new Set());
+                                        setDeleteResults([]);
+                                    } catch (error) {
+                                        alert('Failed to load users');
+                                    } finally {
+                                        setLoadingStats(false);
+                                    }
+                                }}
+                                className="px-4 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                                🗑️ Manage & Delete Users
+                            </button>
                         </div>
 
                         <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg">
@@ -600,6 +626,262 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                         </div>
                 </div>
                 )}
+
+                {/* User Management Modal */}
+                {showUserManagement && (
+                    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-stone-200 dark:border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+                        >
+                            <div className="p-6 border-b border-stone-200 dark:border-gray-700">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-2xl font-bold text-red-900 dark:text-red-100">
+                                        🗑️ User Management
+                                    </h2>
+                                    <button
+                                        onClick={() => {
+                                            setShowUserManagement(false);
+                                            setSelectedUserIds(new Set());
+                                            setDeleteResults([]);
+                                        }}
+                                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                                    Select users to delete. This will remove the user and all associated data (groups, expenses, invites, notifications).
+                                </p>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-6">
+                                {loadingStats ? (
+                                    <div className="text-center py-8">
+                                        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+                                        <p className="mt-4 text-gray-600 dark:text-gray-400">Loading users...</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="mb-4 flex items-center justify-between">
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                {selectedUserIds.size} of {allUsers.length} selected
+                                            </span>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        const allIds = new Set(allUsers.map(u => u.id));
+                                                        allIds.delete(currentUser?.id || ''); // Don't select yourself
+                                                        setSelectedUserIds(allIds);
+                                                    }}
+                                                    className="text-xs px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+                                                >
+                                                    Select All
+                                                </button>
+                                                <button
+                                                    onClick={() => setSelectedUserIds(new Set())}
+                                                    className="text-xs px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+                                                >
+                                                    Deselect All
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                                            {allUsers.map(user => {
+                                                const isCurrentUser = user.id === currentUser?.id;
+                                                const isSelected = selectedUserIds.has(user.id);
+                                                const userType = user.authType === 'simulated' ? 'Guest' : user.authType === 'google' ? 'Google' : 'Email';
+                                                
+                                                return (
+                                                    <div
+                                                        key={user.id}
+                                                        className={`p-4 rounded-lg border-2 transition-all ${
+                                                            isSelected
+                                                                ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                                                                : 'border-stone-200 dark:border-gray-700 bg-white dark:bg-gray-700'
+                                                        } ${isCurrentUser ? 'opacity-50' : ''}`}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isSelected}
+                                                                onChange={(e) => {
+                                                                    const newSelected = new Set(selectedUserIds);
+                                                                    if (e.target.checked && !isCurrentUser) {
+                                                                        newSelected.add(user.id);
+                                                                    } else {
+                                                                        newSelected.delete(user.id);
+                                                                    }
+                                                                    setSelectedUserIds(newSelected);
+                                                                }}
+                                                                disabled={isCurrentUser}
+                                                                className="w-5 h-5 text-red-600 rounded focus:ring-red-500"
+                                                            />
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-2">
+                                                                    <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                                                                        {user.name}
+                                                                    </p>
+                                                                    {isCurrentUser && (
+                                                                        <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
+                                                                            You
+                                                                        </span>
+                                                                    )}
+                                                                    <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded">
+                                                                        {userType}
+                                                                    </span>
+                                                                </div>
+                                                                {user.email && (
+                                                                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                                                                        {user.email}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {deleteResults.length > 0 && (
+                                            <div className="mt-4 space-y-3">
+                                                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg">
+                                                    <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
+                                                        Deletion Results:
+                                                    </h3>
+                                                    <div className="space-y-2 text-sm">
+                                                        {deleteResults.map((result, idx) => (
+                                                            <div key={idx} className={result.success ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}>
+                                                                {result.success ? '✅' : '❌'} {result.userName}: {result.success ? 'Firestore data deleted' : result.errors.join(', ')}
+                                                                {result.success && (
+                                                                    <span className="text-xs text-gray-600 dark:text-gray-400 ml-2">
+                                                                        (Groups: {result.deleted.groups}, Expenses: {result.deleted.expenses}, Invites: {result.deleted.invites})
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                
+                                                {deleteResults.some(r => r.success && r.warning) && (
+                                                    <div className="p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-lg">
+                                                        <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2 flex items-center gap-2">
+                                                            <span>⚠️</span>
+                                                            <span>Important: Firebase Auth Accounts Not Deleted</span>
+                                                        </h3>
+                                                        <p className="text-sm text-red-800 dark:text-red-300 mb-2">
+                                                            The Firestore data was deleted, but the Firebase Authentication accounts still exist. 
+                                                            Users can still sign in with these email addresses.
+                                                        </p>
+                                                        <p className="text-xs text-red-700 dark:text-red-400">
+                                                            To delete Auth accounts, go to Firebase Console → Authentication → Users and delete them manually, 
+                                                            or create a Cloud Function with Admin SDK to delete them programmatically.
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="p-6 border-t border-stone-200 dark:border-gray-700 flex items-center justify-between">
+                                <button
+                                    onClick={() => {
+                                        setShowUserManagement(false);
+                                        setSelectedUserIds(new Set());
+                                        setDeleteResults([]);
+                                    }}
+                                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        if (selectedUserIds.size === 0) {
+                                            alert('Please select at least one user to delete');
+                                            return;
+                                        }
+
+                                        const confirmMessage = `⚠️ WARNING: This will permanently delete ${selectedUserIds.size} user(s) and ALL associated Firestore data:\n\n` +
+                                            `• User documents\n` +
+                                            `• Groups (or remove user from groups)\n` +
+                                            `• Expenses\n` +
+                                            `• Invites\n` +
+                                            `• Notifications\n\n` +
+                                            `⚠️ IMPORTANT: Firebase Authentication accounts will NOT be deleted.\n` +
+                                            `Users can still sign in. Delete Auth accounts manually in Firebase Console.\n\n` +
+                                            `This action CANNOT be undone!\n\n` +
+                                            `Are you absolutely sure?`;
+
+                                        if (!window.confirm(confirmMessage)) {
+                                            return;
+                                        }
+
+                                        setDeletingUsers(true);
+                                        setDeleteResults([]);
+
+                                        const results: DeleteUserResult[] = [];
+                                        for (const userId of selectedUserIds) {
+                                            try {
+                                                const result = await deleteUserAndData(userId, currentUser?.id || '');
+                                                results.push(result);
+                                                setDeleteResults([...results]);
+                                            } catch (error: any) {
+                                                results.push({
+                                                    success: false,
+                                                    userId,
+                                                    userName: 'Unknown',
+                                                    deleted: { user: false, groups: 0, expenses: 0, invites: 0, notifications: 0 },
+                                                    errors: [error.message || 'Unknown error']
+                                                });
+                                                setDeleteResults([...results]);
+                                            }
+                                        }
+
+                                        setDeletingUsers(false);
+                                        setSelectedUserIds(new Set());
+                                        
+                                        // Refresh users list
+                                        try {
+                                            const users = await getAllUsers();
+                                            setAllUsers(users);
+                                        } catch (error) {
+                                            console.error('Failed to refresh users:', error);
+                                        }
+
+                                        const successCount = results.filter(r => r.success).length;
+                                        const hasWarnings = results.some(r => r.success && r.warning);
+                                        
+                                        let alertMessage = `Deletion complete!\n\nSuccessfully deleted Firestore data: ${successCount}\nFailed: ${results.length - successCount}`;
+                                        if (hasWarnings) {
+                                            alertMessage += `\n\n⚠️ WARNING: Firebase Auth accounts were NOT deleted.\nUsers can still sign in. Delete Auth accounts manually in Firebase Console.`;
+                                        }
+                                        alert(alertMessage);
+                                    }}
+                                    disabled={selectedUserIds.size === 0 || deletingUsers}
+                                    className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                                >
+                                    {deletingUsers ? (
+                                        <>
+                                            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                            <span>Deleting...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            🗑️ Delete Selected ({selectedUserIds.size})
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {/* Version Footer */}
+                <VersionFooter className="pt-4 mt-4 border-t border-slate-200 dark:border-gray-600" />
             </div>
         </div>
     );

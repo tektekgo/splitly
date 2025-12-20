@@ -246,4 +246,3 @@ const CurrencyConverterModal: React.FC<CurrencyConverterModalProps> = ({ isOpen,
 };
 
 export default CurrencyConverterModal;
-

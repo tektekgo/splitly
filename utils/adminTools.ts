@@ -6,7 +6,7 @@
  */
 
 import { db } from '../firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore';
 import type { User, Group, FinalExpense, GroupInvite, Notification } from '../types';
 import { runCurrencyMigration, checkMigrationNeeded } from './currencyMigration';
 import { getErrorLogs, exportErrorLogs, clearErrorLogs, getErrorSolutions } from './errorLogger';
@@ -278,5 +278,218 @@ export const exportErrorLogsAdmin = () => {
 export const clearErrorLogsAdmin = () => {
   clearErrorLogs();
   console.log('✅ Error logs cleared');
+};
+
+/**
+ * Delete user and all associated data
+ * ⚠️ DESTRUCTIVE OPERATION - Use with caution!
+ * 
+ * IMPORTANT LIMITATION: This function only deletes Firestore data (user document, groups, expenses, etc.)
+ * It does NOT delete the Firebase Authentication account. The Auth account must be deleted separately
+ * through Firebase Console or using Firebase Admin SDK (requires backend/Cloud Functions).
+ * 
+ * If you need to delete Auth accounts, you can:
+ * 1. Use Firebase Console → Authentication → Users → Delete user
+ * 2. Create a Cloud Function with Admin SDK to delete Auth accounts
+ * 
+ * This is a security feature - Auth account deletion requires elevated privileges.
+ */
+export interface DeleteUserResult {
+  success: boolean;
+  userId: string;
+  userName: string;
+  deleted: {
+    user: boolean;
+    groups: number;
+    expenses: number;
+    invites: number;
+    notifications: number;
+  };
+  errors: string[];
+  warning?: string; // Warning about Auth account not being deleted
+}
+
+export const deleteUserAndData = async (userId: string, currentAdminId: string): Promise<DeleteUserResult> => {
+  console.log(`🗑️ Deleting user ${userId} and all associated data...`);
+  
+  const result: DeleteUserResult = {
+    success: false,
+    userId,
+    userName: 'Unknown',
+    deleted: {
+      user: false,
+      groups: 0,
+      expenses: 0,
+      invites: 0,
+      notifications: 0
+    },
+    errors: []
+  };
+
+  try {
+    // Prevent deleting yourself
+    if (userId === currentAdminId) {
+      throw new Error('Cannot delete your own account');
+    }
+
+    // Fetch all data
+    const [usersSnap, groupsSnap, expensesSnap, invitesSnap, notificationsSnap] = await Promise.all([
+      getDocs(collection(db, 'users')),
+      getDocs(collection(db, 'groups')),
+      getDocs(collection(db, 'expenses')),
+      getDocs(collection(db, 'groupInvites')),
+      getDocs(collection(db, 'notifications'))
+    ]);
+
+    const userDoc = usersSnap.docs.find(d => d.id === userId);
+    if (!userDoc) {
+      throw new Error('User not found');
+    }
+
+    const userData = userDoc.data() as User;
+    result.userName = userData.name || userData.email || 'Unknown';
+
+    const groups = groupsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Group));
+    const expenses = expensesSnap.docs.map(d => ({ id: d.id, ...d.data() } as FinalExpense));
+    const invites = invitesSnap.docs.map(d => ({ id: d.id, ...d.data() } as GroupInvite));
+    const notifications = notificationsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Notification));
+
+    // Find all groups where user is a member
+    const userGroups = groups.filter(g => g.members.includes(userId));
+    
+    // Find all expenses where user is payer or in splits
+    const userExpenses = expenses.filter(exp => 
+      exp.paidBy === userId || exp.splits.some(s => s.userId === userId)
+    );
+
+    // Find all invites sent by or to this user
+    const userInvites = invites.filter(inv => 
+      inv.invitedBy === userId || inv.invitedEmail?.toLowerCase() === userData.email?.toLowerCase()
+    );
+
+    // Find all notifications related to this user
+    // Note: Notifications don't have userId field, so we filter by inviteId -> groupId -> user membership
+    const userGroupIds = new Set(userGroups.map(g => g.id));
+    const userInviteIds = new Set(userInvites.map(inv => inv.id));
+    
+    const userNotifications = notifications.filter(notif => {
+      // If notification has inviteId, check if it's for this user
+      if (notif.inviteId && userInviteIds.has(notif.inviteId)) {
+        return true;
+      }
+      // For other notifications, we can't easily determine ownership without userId field
+      // So we'll skip deleting them (they'll become orphaned but won't cause issues)
+      return false;
+    });
+
+    // Use batches for efficient deletion (Firestore limit: 500 operations per batch)
+    let batch = writeBatch(db);
+    let operationCount = 0;
+    const BATCH_LIMIT = 500;
+
+    // 1. Delete expenses
+    console.log(`   Deleting ${userExpenses.length} expenses...`);
+    for (const exp of userExpenses) {
+      batch.delete(doc(db, 'expenses', exp.id));
+      operationCount++;
+      result.deleted.expenses++;
+      
+      if (operationCount >= BATCH_LIMIT) {
+        await batch.commit();
+        batch = writeBatch(db);
+        operationCount = 0;
+      }
+    }
+
+    // 2. Update or delete groups
+    console.log(`   Processing ${userGroups.length} groups...`);
+    for (const group of userGroups) {
+      const remainingMembers = group.members.filter(m => m !== userId);
+      
+      if (remainingMembers.length === 0) {
+        // Delete group if user was the only member
+        batch.delete(doc(db, 'groups', group.id));
+        result.deleted.groups++;
+      } else {
+        // Remove user from group members
+        batch.update(doc(db, 'groups', group.id), {
+          members: remainingMembers
+        });
+        result.deleted.groups++;
+      }
+      
+      operationCount++;
+      if (operationCount >= BATCH_LIMIT) {
+        await batch.commit();
+        batch = writeBatch(db);
+        operationCount = 0;
+      }
+    }
+
+    // 3. Delete invites
+    console.log(`   Deleting ${userInvites.length} invites...`);
+    for (const inv of userInvites) {
+      batch.delete(doc(db, 'groupInvites', inv.id));
+      operationCount++;
+      result.deleted.invites++;
+      
+      if (operationCount >= BATCH_LIMIT) {
+        await batch.commit();
+        batch = writeBatch(db);
+        operationCount = 0;
+      }
+    }
+
+    // 4. Delete notifications
+    console.log(`   Deleting ${userNotifications.length} notifications...`);
+    for (const notif of userNotifications) {
+      batch.delete(doc(db, 'notifications', notif.id));
+      operationCount++;
+      result.deleted.notifications++;
+      
+      if (operationCount >= BATCH_LIMIT) {
+        await batch.commit();
+        batch = writeBatch(db);
+        operationCount = 0;
+      }
+    }
+
+    // 5. Delete user document
+    console.log(`   Deleting user document...`);
+    batch.delete(doc(db, 'users', userId));
+    result.deleted.user = true;
+    operationCount++;
+
+    // Commit final batch
+    if (operationCount > 0) {
+      await batch.commit();
+    }
+
+    result.success = true;
+    result.warning = '⚠️ Note: Firebase Authentication account was NOT deleted. The user can still sign in. Delete the Auth account manually in Firebase Console if needed.';
+    console.log(`✅ Successfully deleted Firestore data for user ${result.userName} (${userId})`);
+    console.log(`   Groups: ${result.deleted.groups}, Expenses: ${result.deleted.expenses}, Invites: ${result.deleted.invites}, Notifications: ${result.deleted.notifications}`);
+    console.warn(`⚠️ Firebase Auth account for ${userData.email} still exists. Delete it manually in Firebase Console.`);
+
+  } catch (error: any) {
+    console.error(`❌ Error deleting user ${userId}:`, error);
+    result.errors.push(error.message || 'Unknown error');
+    result.success = false;
+  }
+
+  return result;
+};
+
+/**
+ * Get all users for admin management
+ */
+export const getAllUsers = async (): Promise<User[]> => {
+  try {
+    const usersSnap = await getDocs(collection(db, 'users'));
+    return usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+  } catch (error) {
+    console.error('❌ Error fetching users:', error);
+    throw error;
+  }
 };
 

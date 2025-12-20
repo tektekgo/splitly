@@ -55,9 +55,21 @@ const GroupsScreen: React.FC<GroupsScreenProps> = ({ groups, users, expenses, ac
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const handleCreateGroup = (groupData: Omit<Group, 'id'>) => {
+        // Find current user in users array, or use currentUserId directly as fallback
         const currentUser = users.find(m => m.id === currentUserId);
+        
         if (!currentUser) {
-            alert("Error: Current user not found.");
+            // If user not found in array, still proceed with currentUserId
+            // This handles race conditions where user document hasn't been fetched yet
+            console.warn("Current user not found in users array, using currentUserId directly:", currentUserId);
+            
+            // Still try to create the group - the parent component will handle it
+            const newGroupData = {
+                ...groupData,
+                members: [currentUserId] // Use currentUserId directly
+            };
+            onCreateGroup(newGroupData);
+            setIsCreateModalOpen(false);
             return;
         }
 

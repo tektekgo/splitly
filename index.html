@@ -73,10 +73,7 @@
           }
         }
       }
-      // Force Tailwind to refresh after config
-      if (typeof tailwind !== 'undefined') {
-        tailwind.refresh();
-      }
+      // Tailwind CDN v2 automatically processes the config, no refresh needed
     </script>
     <script>
       // Prevents FOUC (Flash of Unstyled Content) or "flash of incorrect theme"

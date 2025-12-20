@@ -1,0 +1,160 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to safely check if user is admin
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Users: can read their own data and data they created, admins can read all
+    match /users/{userId} {
+      // Allow users to read their own document
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow users to read documents they created (simulated users)
+      allow read: if request.auth != null && 
+        resource.data.createdBy == request.auth.uid;
+      
+      // Allow admins to read all (only if user document exists)
+      allow read: if request.auth != null && isAdmin();
+      
+      // Allow users to create their own document
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow users to create simulated/guest users (where createdBy matches current user)
+      allow create: if request.auth != null && 
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.authType == 'simulated';
+      
+      // Allow users to update their own document
+      allow update: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow users to update documents they created (simulated users)
+      allow update: if request.auth != null && 
+        resource.data.createdBy == request.auth.uid;
+      
+      // Allow admins to write (only if user document exists)
+      allow write: if request.auth != null && isAdmin();
+    }
+    
+    // Groups: members can read/write, admins can read all
+    match /groups/{groupId} {
+      // Allow members to read/write groups they belong to
+      allow read, write: if request.auth != null && 
+        request.auth.uid in resource.data.members;
+      
+      // Allow admins to read all (only if user document exists)
+      allow read: if request.auth != null && isAdmin();
+      
+      // Allow creating groups where user is a member
+      allow create: if request.auth != null && 
+        request.auth.uid in request.resource.data.members;
+    }
+    
+    // Expenses: members of the group can read/write, admins can read all
+    match /expenses/{expenseId} {
+      // Helper to check if user is member of expense's existing group
+      function isGroupMember() {
+        return exists(/databases/$(database)/documents/groups/$(resource.data.groupId)) &&
+               request.auth.uid in get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.members;
+      }
+      
+      // Helper to check if user is member of the group for new expenses
+      function isGroupMemberForNew() {
+        return exists(/databases/$(database)/documents/groups/$(request.resource.data.groupId)) &&
+               request.auth.uid in get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.members;
+      }
+      
+      // Helper to check if user is member of either old or new group (for updates)
+      function isGroupMemberForUpdate() {
+        // Check if user is member of existing expense's group (if it has one)
+        // OR check if user is member of new expense's group (from update request)
+        // This handles cases where:
+        // - Expense has groupId and user is member
+        // - Expense doesn't have groupId but new one does (migration case)
+        // - GroupId is being changed
+        return (resource.data.groupId != null &&
+                exists(/databases/$(database)/documents/groups/$(resource.data.groupId)) &&
+                request.auth.uid in get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.members) ||
+               (request.resource.data.groupId != null &&
+                exists(/databases/$(database)/documents/groups/$(request.resource.data.groupId)) &&
+                request.auth.uid in get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.members);
+      }
+      
+      // Allow members of the group to read expenses
+      allow read: if request.auth != null && isGroupMember();
+      
+      // Allow admins to read all (only if user document exists)
+      allow read: if request.auth != null && isAdmin();
+      
+      // Allow creating expenses in groups where user is a member
+      allow create: if request.auth != null && isGroupMemberForNew();
+      
+      // Allow updating expenses: user must be member of the group (old or new)
+      // Also allow admins to update
+      allow update: if request.auth != null && (isGroupMemberForUpdate() || isAdmin());
+      
+      // Allow deleting expenses: user must be member of the group, or admin
+      allow delete: if request.auth != null && (isGroupMember() || isAdmin());
+    }
+    
+    // Group invites: admins can read all, invite creators can manage their invites
+    match /groupInvites/{inviteId} {
+      // Allow reading invites you sent
+      allow read: if request.auth != null && 
+        request.auth.uid == resource.data.invitedBy;
+      
+      // Allow reading invites sent to your email
+      allow read: if request.auth != null && 
+        resource.data.invitedEmail == request.auth.token.email;
+      
+      // Allow reading invites where you're the invited user
+      allow read: if request.auth != null && 
+        request.auth.uid == resource.data.invitedUserId;
+      
+      // Allow admins to read all (only if user document exists)
+      allow read: if request.auth != null && isAdmin();
+      
+      // Allow creating invites
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.invitedBy;
+      
+      // Allow updating invites you sent
+      allow update: if request.auth != null && 
+        request.auth.uid == resource.data.invitedBy;
+      
+      // Allow admins to write (only if user document exists)
+      allow write: if request.auth != null && isAdmin();
+    }
+    
+    // Notifications: users can read notifications related to their groups/invites, admins can read all
+    match /notifications/{notificationId} {
+      // Allow reading if notification is for user's invite
+      allow read: if request.auth != null && 
+        resource.data.inviteId != null &&
+        exists(/databases/$(database)/documents/groupInvites/$(resource.data.inviteId)) &&
+        (get(/databases/$(database)/documents/groupInvites/$(resource.data.inviteId)).data.invitedBy == request.auth.uid ||
+         get(/databases/$(database)/documents/groupInvites/$(resource.data.inviteId)).data.invitedEmail == request.auth.token.email);
+      
+      // Allow reading if notification has userId field and it matches
+      allow read: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // Allow admins to read all (only if user document exists)
+      allow read: if request.auth != null && isAdmin();
+      
+      // Allow creating notifications (for now, allow authenticated users)
+      allow create: if request.auth != null;
+      
+      // Allow updating/deleting own notifications
+      allow update, delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // Allow admins to write (only if user document exists)
+      allow write: if request.auth != null && isAdmin();
+    }
+  }
+}
+

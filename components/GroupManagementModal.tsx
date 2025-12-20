@@ -111,7 +111,12 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                 />
             </div>
             <div>
-                <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark mb-2">Members</h3>
+                <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark mb-2">
+                  Members
+                  <span className="text-xs font-normal text-text-secondary-light dark:text-text-secondary-dark ml-2">
+                    (Real Users & Guest Users in this group)
+                  </span>
+                </h3>
                 <ul className="space-y-2">
                     {currentMembers.map(member => (
                         <li key={member.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-stone-100 dark:border-gray-600">
@@ -129,138 +134,190 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                 </ul>
             </div>
 
-            {/* Invite by Email Section */}
-            {onInviteMember && (
-              <div className="mb-6">
-                <div className="bg-primary/5 dark:bg-primary/10 rounded-lg p-4 border border-primary/20">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <h4 className="font-semibold text-text-primary-light dark:text-text-primary-dark">
-                        📧 Invite by Email
+            {/* Add Members Section - Three Equal Options */}
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-text-secondary-light dark:text-text-secondary-dark mb-3">Add Members</h3>
+              <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mb-3">
+                <strong>Member</strong> = Anyone in your group (can be a Real User or Guest User)
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Option 1: Invite Real User */}
+                {onInviteMember && (
+                  <div className="bg-primary/5 dark:bg-primary/10 rounded-lg p-4 border-2 border-primary/20 dark:border-primary/30 hover:border-primary/40 dark:hover:border-primary/50 transition-all cursor-pointer group">
+                    <div className="flex flex-col items-center text-center">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 dark:bg-primary/30 flex items-center justify-center mb-2 group-hover:bg-primary/30 dark:group-hover:bg-primary/40 transition-colors">
+                        <span className="text-xl">📧</span>
+                      </div>
+                      <h4 className="font-semibold text-sm text-text-primary-light dark:text-text-primary-dark mb-1">
+                        Invite Real User
                       </h4>
-                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-1">
-                        Invite someone who has (or will create) a Split<span className="text-primary">Bi</span> account
+                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mb-3 leading-tight">
+                        Invite by email (they'll create an account)
+                      </p>
+                      <button
+                        type="button"
+                        onClick={onInviteMember}
+                        className="w-full px-3 py-2 bg-primary text-white font-medium rounded-lg hover:bg-primary-600 transition-colors text-sm"
+                      >
+                        Invite
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Option 2: Add Guest User */}
+                <div 
+                  className={`bg-sage/5 dark:bg-sage/10 rounded-lg p-4 border-2 ${!isCreatingUser ? 'border-sage/20 dark:border-sage/30 hover:border-sage/40 dark:hover:border-sage/50' : 'border-sage/40 dark:border-sage/50'} transition-all cursor-pointer group`}
+                  onClick={() => !isCreatingUser && setIsCreatingUser(true)}
+                >
+                  {!isCreatingUser ? (
+                    <div className="flex flex-col items-center text-center">
+                      <div className="w-10 h-10 rounded-full bg-sage/20 dark:bg-sage/30 flex items-center justify-center mb-2 group-hover:bg-sage/30 dark:group-hover:bg-sage/40 transition-colors">
+                        <span className="text-xl">👤</span>
+                      </div>
+                      <h4 className="font-semibold text-sm text-text-primary-light dark:text-text-primary-dark mb-1">
+                        Add Guest User
+                      </h4>
+                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mb-3 leading-tight">
+                        Create member (no login needed)
+                      </p>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsCreatingUser(true);
+                        }}
+                        className="w-full px-3 py-2 bg-sage text-white font-medium rounded-lg hover:bg-sage-600 transition-colors text-sm"
+                      >
+                        Add Guest
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <label className="block text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">
+                        Guest User Name
+                      </label>
+                      <input
+                        type="text"
+                        value={newUserName}
+                        onChange={(e) => setNewUserName(e.target.value)}
+                        placeholder="Enter name"
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-sage text-sm"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && newUserName.trim()) {
+                            onCreateUser(newUserName.trim());
+                            setNewUserName('');
+                            setIsCreatingUser(false);
+                          }
+                        }}
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (newUserName.trim()) {
+                              await onCreateUser(newUserName.trim());
+                              setNewUserName('');
+                              setIsCreatingUser(false);
+                            }
+                          }}
+                          disabled={!newUserName.trim()}
+                          className="flex-1 px-3 py-1.5 bg-sage text-white rounded-lg hover:bg-sage-600 text-xs font-medium disabled:bg-gray-400 dark:disabled:bg-gray-600"
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsCreatingUser(false);
+                            setNewUserName('');
+                          }}
+                          className="px-3 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-xs"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Option 3: Add Existing Member */}
+                {availableUsersToAdd.length > 0 ? (
+                  <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4 border-2 border-blue-200 dark:border-blue-800/30 hover:border-blue-300 dark:hover:border-blue-700/50 transition-all">
+                    <div className="flex flex-col items-center text-center">
+                      <div className="w-10 h-10 rounded-full bg-blue-200 dark:bg-blue-800/30 flex items-center justify-center mb-2">
+                        <span className="text-xl">➕</span>
+                      </div>
+                      <h4 className="font-semibold text-sm text-text-primary-light dark:text-text-primary-dark mb-1">
+                        Add Existing Member
+                      </h4>
+                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mb-3 leading-tight">
+                        From your Guest Users
+                      </p>
+                      <div className="w-full space-y-2">
+                        <select
+                          id="addMemberSelect"
+                          value={selectedUserToAdd}
+                          onChange={(e) => setSelectedUserToAdd(e.target.value)}
+                          className="w-full px-2 py-1.5 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                        >
+                          <option value="" disabled>Select member...</option>
+                          {availableUsersToAdd.map(user => (
+                            <option key={user.id} value={user.id}>{user.name}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={handleAddMember}
+                          disabled={!selectedUserToAdd}
+                          className="w-full px-3 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors text-sm disabled:bg-gray-400 dark:disabled:bg-gray-600"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-600 opacity-50">
+                    <div className="flex flex-col items-center text-center">
+                      <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center mb-2">
+                        <span className="text-xl">➕</span>
+                      </div>
+                      <h4 className="font-semibold text-sm text-text-secondary-light dark:text-text-secondary-dark mb-1">
+                        Add Existing Member
+                      </h4>
+                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                        No available members
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={onInviteMember}
-                    className="mt-3 w-full px-4 py-2 bg-primary text-white font-medium rounded-lg hover:bg-primary-600 transition-colors"
-                  >
-                    + Invite Member
-                  </button>
-                </div>
-
-                {/* Show pending invites for this group */}
-                {groupInvites.filter(inv => inv.groupId === group.id && inv.status === 'pending').length > 0 && (
-                  <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-stone-100 dark:border-gray-600">
-                    <p className="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark mb-2">
-                      Pending Invites:
-                    </p>
-                    <ul className="space-y-1">
-                      {groupInvites
-                        .filter(inv => inv.groupId === group.id && inv.status === 'pending')
-                        .map(invite => (
-                          <li key={invite.id} className="text-xs text-text-secondary-light dark:text-text-secondary-dark flex items-center gap-2">
-                            <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                            {invite.invitedEmail}
-                            <span className="text-gray-400">(waiting)</span>
-                          </li>
-                        ))
-                      }
-                    </ul>
-                  </div>
                 )}
               </div>
-            )}
-            
-            {/* Quick Add User */}
-            <div className="mb-4">
-              {!isCreatingUser ? (
-                <button
-                  type="button"
-                  onClick={() => setIsCreatingUser(true)}
-                  className="text-sm text-primary hover:underline flex items-center gap-1"
-                >
-                  <span className="text-lg">+</span>
-                  Don't see someone? Create new member
-                </button>
-              ) : (
-                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-stone-100 dark:border-gray-600">
-                  <label className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark mb-2">
-                    New Member Name
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newUserName}
-                      onChange={(e) => setNewUserName(e.target.value)}
-                      placeholder="Enter name"
-                      className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && newUserName.trim()) {
-                          onCreateUser(newUserName.trim());
-                          setNewUserName('');
-                          setIsCreatingUser(false);
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (newUserName.trim()) {
-                          await onCreateUser(newUserName.trim());
-                          setNewUserName('');
-                          setIsCreatingUser(false);
-                        }
-                      }}
-                      disabled={!newUserName.trim()}
-                      className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-600 text-sm font-medium disabled:bg-gray-400 dark:disabled:bg-gray-600"
-                    >
-                      Add
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsCreatingUser(false);
-                        setNewUserName('');
-                      }}
-                      className="px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+
+              {/* Show pending invites for this group */}
+              {onInviteMember && groupInvites.filter(inv => inv.groupId === group.id && inv.status === 'pending').length > 0 && (
+                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-stone-100 dark:border-gray-600">
+                  <p className="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark mb-2">
+                    Pending Invites:
+                  </p>
+                  <ul className="space-y-1">
+                    {groupInvites
+                      .filter(inv => inv.groupId === group.id && inv.status === 'pending')
+                      .map(invite => (
+                        <li key={invite.id} className="text-xs text-text-secondary-light dark:text-text-secondary-dark flex items-center gap-2">
+                          <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                          {invite.invitedEmail}
+                          <span className="text-gray-400">(waiting)</span>
+                        </li>
+                      ))
+                    }
+                  </ul>
                 </div>
               )}
             </div>
-            
-            {availableUsersToAdd.length > 0 && (
-                <div>
-                    <label htmlFor="addMemberSelect" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Add Existing Member</label>
-                    <div className="mt-1 flex gap-2">
-                        <select
-                            id="addMemberSelect"
-                            value={selectedUserToAdd}
-                            onChange={(e) => setSelectedUserToAdd(e.target.value)}
-                            className="block w-full pl-3 pr-10 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-                        >
-                            <option value="" disabled>Select a user to add...</option>
-                            {availableUsersToAdd.map(user => (
-                                <option key={user.id} value={user.id}>{user.name}</option>
-                            ))}
-                        </select>
-                        <button
-                            type="button"
-                            onClick={handleAddMember}
-                            disabled={!selectedUserToAdd}
-                            className="px-4 py-2 bg-primary text-white font-semibold rounded-lg shadow-md hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-400 dark:disabled:bg-gray-600"
-                        >
-                            Add
-                        </button>
-                    </div>
-                </div>
-            )}
         </div>
 
         <div className="p-4 bg-gray-50 dark:bg-gray-700 border-t border-stone-200 dark:border-gray-600 rounded-b-2xl">
@@ -316,7 +373,7 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                                 <div className="mb-4 p-3 bg-[#1E3450]/10 dark:bg-[#1E3450]/20 rounded-lg border border-[#1E3450]/30">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-sm font-semibold text-[#1E3450] dark:text-[#1E3450]">All debts settled!</p>
+                                            <p className="text-sm font-semibold text-[#1E3450] dark:text-[#1E3450]">No debts to settle in Group</p>
                                             <p className="text-xs text-sage dark:text-gray-400 mt-0.5">Archive this group to keep it for reference</p>
                                         </div>
                                         <button

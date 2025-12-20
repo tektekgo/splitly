@@ -52,48 +52,124 @@ const LoginScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cream dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-cream via-primary/5 to-cream dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 w-full max-w-sm p-6"
+        className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-stone-100 dark:border-stone-700 w-full max-w-sm overflow-hidden"
       >
-        {/* Clean Professional Header */}
+        {/* Hero Section - Mobile-First */}
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="flex items-center justify-center gap-3 mb-4"
+          className="relative bg-gradient-to-br from-primary via-[#1E3450] to-[#1E3450] dark:from-primary-800 dark:via-[#1E3450] dark:to-[#1E3450] p-6 pb-6"
         >
-          {/* Logo */}
-          <div className="bg-gradient-to-br from-white to-primary/5 dark:from-gray-900 dark:to-primary/10 rounded-xl p-2 shadow-md ring-1 ring-primary/20 dark:ring-primary/30">
-            <img 
-              src="/splitBi-logo-notext-svg.svg" 
-              alt="SplitBi Logo" 
-              className="h-12 w-12 sm:h-14 sm:w-14"
-            />
-          </div>
-          <div className="text-left">
-            <h1 className="text-xl sm:text-2xl font-extrabold text-charcoal dark:text-gray-100 tracking-tight">
-              Split<span className="text-primary">Bi</span>
-            </h1>
-            <p className="text-xs text-primary dark:text-primary-300 font-semibold tracking-wide uppercase">
-              Splitting expenses, made easy
-            </p>
+          {/* Decorative Elements */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary-300/20 rounded-full -ml-12 -mb-12 blur-xl"></div>
+          
+          <div className="relative z-10">
+            {/* Logo and Title */}
+            <div className="flex flex-col items-center mb-4">
+              <motion.div 
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, type: "spring" }}
+                className="bg-white/20 dark:bg-white/10 backdrop-blur-sm rounded-2xl p-3 mb-3 shadow-lg ring-2 ring-white/30"
+              >
+                <img 
+                  src="/splitBi-logo-notext-svg.svg" 
+                  alt="SplitBi Logo" 
+                  className="h-16 w-16"
+                />
+              </motion.div>
+              <motion.h1 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-3xl font-extrabold text-white tracking-tight mb-1"
+              >
+                Split<span className="text-primary-200">Bi</span>
+              </motion.h1>
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="text-sm text-white/90 font-medium mb-3"
+              >
+                Splitting expenses, made easy
+              </motion.p>
+              
+              {/* Payment Integration Feature */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white/15 dark:bg-white/10 backdrop-blur-sm rounded-full border border-white/20"
+              >
+                <span className="text-[10px] text-white/80 font-medium">Pay directly via</span>
+                <div className="flex items-center gap-1.5">
+                  {/* Venmo Logo - Blue background with white V */}
+                  <div className="flex items-center justify-center w-6 h-6 bg-[#3D95CE] rounded" title="Venmo">
+                    <span className="text-[10px] font-bold text-white" style={{ fontFamily: 'Arial, sans-serif', letterSpacing: '-0.5px' }}>V</span>
+                  </div>
+                  {/* Zelle Logo - Purple background with white Z */}
+                  <div className="flex items-center justify-center w-6 h-6 bg-[#6D1ED4] rounded" title="Zelle">
+                    <span className="text-[10px] font-bold text-white" style={{ fontFamily: 'Arial, sans-serif', letterSpacing: '-0.5px' }}>Z</span>
+                  </div>
+                  {/* Cash App Logo - Green background with white $ */}
+                  <div className="flex items-center justify-center w-6 h-6 bg-[#00D632] rounded" title="Cash App">
+                    <span className="text-[10px] font-bold text-white" style={{ fontFamily: 'Arial, sans-serif' }}>$</span>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Bi-Suite Badge */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5 }}
+              className="flex flex-col items-center gap-3"
+            >
+              <div className="px-4 py-2 bg-[#1E3450]/40 dark:bg-[#1E3450]/50 backdrop-blur-sm rounded-full border border-white/30 shadow-lg">
+                <p className="text-xs font-semibold text-white text-center">
+                  Part of <span className="font-bold">Bi-Suite Applications</span>
+                </p>
+              </div>
+              
+              {/* Creator Credit and Link - Same Line */}
+              <div className="flex items-center gap-2 text-[10px] text-white/70 mt-2">
+                <span>Created by <span className="font-medium text-white/90">Sujit</span></span>
+                <span className="text-white/50">•</span>
+                <a 
+                  href="https://www.ai-focus.org" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-white/70 hover:text-white/90 transition-colors underline underline-offset-2"
+                >
+                  ai-focus.org
+                </a>
+              </div>
+            </motion.div>
           </div>
         </motion.div>
 
-        {error && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-400 rounded-2xl text-sm"
-          >
-            {error}
-          </motion.div>
-        )}
+        {/* Login Form Section */}
+        <div className="p-6">
 
-        <form onSubmit={handleEmailAuth} className="space-y-4">
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-400 rounded-2xl text-sm"
+            >
+              {error}
+            </motion.div>
+          )}
+
+          <form onSubmit={handleEmailAuth} className="space-y-4">
           {isSignUp && (
             <motion.input
               initial={{ opacity: 0, y: 20 }}
@@ -143,9 +219,9 @@ const LoginScreen: React.FC = () => {
           >
             {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
           </motion.button>
-        </form>
+          </form>
 
-        <div className="mt-4 text-center">
+          <div className="mt-4 text-center">
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => setIsSignUp(!isSignUp)}
@@ -153,18 +229,18 @@ const LoginScreen: React.FC = () => {
           >
             {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
           </motion.button>
-        </div>
+          </div>
 
-        <div className="mt-6 relative">
+          <div className="mt-6 relative">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-stone-200 dark:border-stone-600"></div>
           </div>
           <div className="relative flex justify-center text-sm">
             <span className="px-2 bg-white dark:bg-gray-800 text-sage">Or continue with</span>
           </div>
-        </div>
+          </div>
 
-        <motion.button
+          <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
@@ -179,8 +255,9 @@ const LoginScreen: React.FC = () => {
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          Sign in with Google
-        </motion.button>
+            Sign in with Google
+          </motion.button>
+        </div>
       </motion.div>
     </div>
   );

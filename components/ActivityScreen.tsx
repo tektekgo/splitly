@@ -25,20 +25,51 @@ interface ActivityScreenProps {
     groupInvites: GroupInvite[];
     onAcceptInvite: (inviteId: string) => void;
     onDeclineInvite: (inviteId: string) => void;
+    onDeleteNotification?: (notificationId: string) => void;
+    onMarkAllAsRead?: () => void;
+    onClearAll?: () => void;
     balanceHeader?: React.ReactNode;
 }
 
-const ActivityScreen: React.FC<ActivityScreenProps> = ({ notifications, groupInvites, onAcceptInvite, onDeclineInvite, balanceHeader }) => {
+const ActivityScreen: React.FC<ActivityScreenProps> = ({ notifications, groupInvites, onAcceptInvite, onDeclineInvite, onDeleteNotification, onMarkAllAsRead, onClearAll, balanceHeader }) => {
     // Show pending invites at the top
     const pendingInvites = groupInvites.filter(inv => inv.status === 'pending');
+    const unreadCount = notifications.filter(n => !n.read).length;
+    const hasNotifications = notifications.length > 0;
 
     return (
         <div className="overflow-hidden">
             {balanceHeader}
             <div className="px-4 py-3 sm:px-6 sm:py-4">
-                <h2 className="text-lg sm:text-xl font-extrabold text-charcoal dark:text-gray-100 mb-4 tracking-tight">
-                    Activity Feed
-                </h2>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg sm:text-xl font-extrabold text-charcoal dark:text-gray-100 tracking-tight">
+                        Activity Feed
+                    </h2>
+                    {hasNotifications && (onMarkAllAsRead || onClearAll) && (
+                        <div className="flex items-center gap-2">
+                            {unreadCount > 0 && onMarkAllAsRead && (
+                                <button
+                                    onClick={onMarkAllAsRead}
+                                    className="text-xs text-primary hover:text-primary-700 dark:hover:text-primary-300 font-medium px-2 py-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
+                                >
+                                    Mark all read
+                                </button>
+                            )}
+                            {onClearAll && (
+                                <button
+                                    onClick={() => {
+                                        if (window.confirm('Clear all notifications? This cannot be undone.')) {
+                                        onClearAll();
+                                        }
+                                    }}
+                                    className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium px-2 py-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                >
+                                    Clear all
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
 
                 {/* Pending Group Invites */}
                 {pendingInvites.length > 0 && (
@@ -101,15 +132,30 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({ notifications, groupInv
                             const isInvite = notification.type === NotificationType.GroupInvite;
                             
                             return (
-                                <li key={notification.id} className="flex items-start gap-4 p-5 rounded-xl bg-white dark:bg-gray-700 border-2 border-stone-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-all">
+                                <li key={notification.id} className="flex items-start gap-4 p-5 rounded-xl bg-white dark:bg-gray-700 border-2 border-stone-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-all group">
                                     <div className={`flex-shrink-0 w-3 h-3 rounded-full mt-1.5 ${notification.read ? 'bg-gray-300 dark:bg-gray-600' : 'bg-primary'}`}></div>
-                                    <div className="flex-grow">
+                                    <div className="flex-grow min-w-0">
                                         <p className="text-sm text-charcoal dark:text-gray-100">
                                             {isInvite && <span className="mr-1">📧</span>}
                                             {notification.message}
                                         </p>
                                         <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">{formatTimeAgo(notification.timestamp)}</p>
                                     </div>
+                                    {onDeleteNotification && (
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm('Delete this notification?')) {
+                                                    onDeleteNotification(notification.id);
+                                                }
+                                            }}
+                                            className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-1"
+                                            title="Delete notification"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    )}
                                 </li>
                             );
                         })}

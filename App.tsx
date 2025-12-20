@@ -30,7 +30,9 @@ import { collection, getDocs, doc, writeBatch, addDoc, updateDoc, deleteDoc, que
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAuth } from './contexts/AuthContext';
 import LoginScreen from './components/LoginScreen';
-import FeedbackButton from './components/FeedbackButton';
+import FeedbackModal from './components/FeedbackModal';
+import CurrencyConverterModal from './components/CurrencyConverterModal';
+import UtilityBar from './components/UtilityBar';
 import InfoTooltip from './components/InfoTooltip';
 import GroupSelector from './components/GroupSelector';
 import InviteMemberModal from './components/InviteMemberModal';
@@ -123,6 +125,8 @@ const App: React.FC = () => {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [isCurrencyConverterOpen, setIsCurrencyConverterOpen] = useState(false);
   const [isGroupManagementModalOpen, setIsGroupManagementModalOpen] = useState(false);
   const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
   const [inviteGroupId, setInviteGroupId] = useState<string | null>(null);
@@ -596,6 +600,53 @@ const App: React.FC = () => {
     } catch (error) {
       console.error("Error unarchiving group: ", error);
       alert("Failed to unarchive group. Please try again.");
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId: string) => {
+    try {
+      await deleteDoc(doc(db, 'notifications', notificationId));
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+    } catch (error) {
+      console.error("Error deleting notification: ", error);
+      alert("Failed to delete notification. Please try again.");
+    }
+  };
+
+  const handleMarkAllNotificationsAsRead = async () => {
+    try {
+      const unreadNotifications = notifications.filter(n => !n.read);
+      if (unreadNotifications.length === 0) return;
+
+      const batch = writeBatch(db);
+      unreadNotifications.forEach(notification => {
+        const notificationRef = doc(db, 'notifications', notification.id);
+        batch.update(notificationRef, { read: true });
+      });
+      await batch.commit();
+
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (error) {
+      console.error("Error marking notifications as read: ", error);
+      alert("Failed to mark notifications as read. Please try again.");
+    }
+  };
+
+  const handleClearAllNotifications = async () => {
+    try {
+      if (notifications.length === 0) return;
+
+      const batch = writeBatch(db);
+      notifications.forEach(notification => {
+        const notificationRef = doc(db, 'notifications', notification.id);
+        batch.delete(notificationRef);
+      });
+      await batch.commit();
+
+      setNotifications([]);
+    } catch (error) {
+      console.error("Error clearing notifications: ", error);
+      alert("Failed to clear notifications. Please try again.");
     }
   };
 
@@ -1244,12 +1295,18 @@ const App: React.FC = () => {
                 groupInvites={groupInvites.filter(invite => invite.invitedEmail === currentUser.email?.toLowerCase())}
                 onAcceptInvite={handleAcceptInvite}
                 onDeclineInvite={handleDeclineInvite}
+                onDeleteNotification={handleDeleteNotification}
+                onMarkAllAsRead={handleMarkAllNotificationsAsRead}
+                onClearAll={handleClearAllNotifications}
                 balanceHeader={activeGroup ? (
                   <BalanceHeader
                     balance={currentUserBalance}
                     currency={activeGroup.currency}
                     balanceColor={balanceColor}
                     balanceDescription={balanceDescription}
+                    onAddClick={() => setActiveScreen('add')}
+                    onSettleClick={handleOpenSettleUp}
+                    onUsersClick={() => setActiveScreen('profile')}
                   />
                 ) : undefined}
               />
@@ -1304,8 +1361,8 @@ const App: React.FC = () => {
   return (
     <div className="bg-cream dark:bg-surface-dark font-sans text-charcoal dark:text-text-primary-dark transition-colors duration-300 min-h-screen flex items-center justify-center pb-32" style={{ backgroundColor: '#FDFCF9' }}>
       <div className="w-full max-w-md sm:max-w-lg lg:max-w-xl mx-auto relative flex flex-col min-h-screen">
-        {/* Unified Container - Everything as One */}
-        <div className="bg-gradient-to-b from-white via-stone-50/30 to-stone-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-t-3xl overflow-hidden shadow-lg border-x border-t border-stone-200 dark:border-gray-700 flex flex-col flex-grow mb-28">
+        {/* Unified Container - Content and Nav as One Unit */}
+        <div className="bg-gradient-to-b from-white via-stone-50/30 to-stone-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-t-3xl overflow-hidden shadow-lg border-x border-t border-stone-200 dark:border-gray-700 flex flex-col flex-grow mb-0">
           {/* Integrated Header - Compact & Modern */}
           <motion.header 
             initial={{ opacity: 0, y: -20 }}
@@ -1415,6 +1472,13 @@ const App: React.FC = () => {
                 </div>
               )}
             </motion.header>
+            
+            {/* Utility Bar - Positioned below header */}
+            <UtilityBar
+              onFeedbackClick={() => setIsFeedbackModalOpen(true)}
+              onCurrencyConverterClick={() => setIsCurrencyConverterOpen(true)}
+              onHelpClick={() => setIsHelpModalOpen(true)}
+            />
             
             {/* Dashboard Content - Part of Same Container */}
             {activeScreen === 'dashboard' && activeGroup && (
@@ -1710,11 +1774,7 @@ const App: React.FC = () => {
         activeScreen={activeScreen} 
         onNavigate={setActiveScreen} 
         notificationCount={unreadNotificationCount} 
-        onHelpClick={() => setIsHelpModalOpen(true)}
       />
-      
-      {/* Floating Feedback Button - Always accessible */}
-      <FeedbackButton />
       
       {/* Help Modal */}
       <HelpModal 
@@ -1724,6 +1784,18 @@ const App: React.FC = () => {
           localStorage.removeItem('onboarding-completed');
           setShowOnboarding(true);
         }}
+      />
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
+      />
+
+      {/* Currency Converter Modal */}
+      <CurrencyConverterModal
+        isOpen={isCurrencyConverterOpen}
+        onClose={() => setIsCurrencyConverterOpen(false)}
       />
 
       {/* Onboarding Tour - Only for first-time users */}

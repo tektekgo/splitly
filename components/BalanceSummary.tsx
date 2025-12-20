@@ -149,16 +149,16 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ expenses, group, member
                 </div>
             </div>
            
-            <div className="px-6 py-6 bg-gradient-to-br from-white via-primary/5 to-white dark:from-gray-700 dark:via-primary/10 dark:to-gray-700">
-                <div className="text-center mb-5">
-                    <p className="text-xs font-bold text-primary dark:text-primary-300 uppercase tracking-widest mb-3">Your Balance</p>
+            <div className="px-6 py-5 bg-gradient-to-br from-white via-primary/5 to-white dark:from-gray-700 dark:via-primary/10 dark:to-gray-700">
+                <div className="text-center mb-4">
+                    {/* Removed "Your Balance" label to save space */}
                     <div className="relative inline-block">
-                        <p className={`text-4xl sm:text-5xl font-sans font-extrabold tracking-tight ${balanceColor}`}>{formattedBalance}</p>
+                        <p className={`text-3xl sm:text-4xl font-sans font-extrabold tracking-tight ${balanceColor}`}>{formattedBalance}</p>
                         {currentUserBalance > 0.01 && (
                             <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-pulse"></div>
                         )}
                     </div>
-                    <p className="mt-2 text-base text-charcoal dark:text-gray-200 font-bold">{balanceDescription}</p>
+                    <p className="mt-1.5 text-sm text-charcoal/80 dark:text-gray-300 font-medium">{balanceDescription}</p>
                 </div>
                 
                 <div className="mb-4">

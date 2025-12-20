@@ -13,7 +13,9 @@ const GroupSelector: React.FC<GroupSelectorProps> = ({ groups, activeGroupId, on
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const activeGroup = groups.find(g => g.id === activeGroupId);
+  // Filter out archived groups
+  const activeGroups = groups.filter(g => !g.archived);
+  const activeGroup = activeGroups.find(g => g.id === activeGroupId);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -32,8 +34,8 @@ const GroupSelector: React.FC<GroupSelectorProps> = ({ groups, activeGroupId, on
     };
   }, [isOpen]);
 
-  if (groups.length === 0) {
-    return null; // Don't show selector if no groups
+  if (activeGroups.length === 0) {
+    return null; // Don't show selector if no active groups
   }
 
   return (
@@ -72,7 +74,7 @@ const GroupSelector: React.FC<GroupSelectorProps> = ({ groups, activeGroupId, on
               Switch to:
             </p>
             <div className="space-y-1 max-h-60 overflow-y-auto">
-              {groups.map(group => (
+              {activeGroups.map(group => (
                 <button
                   key={group.id}
                   onClick={() => {
@@ -97,9 +99,9 @@ const GroupSelector: React.FC<GroupSelectorProps> = ({ groups, activeGroupId, on
       </div>
 
       {/* Helper text */}
-      {!isOpen && groups.length > 1 && (
+      {!isOpen && activeGroups.length > 1 && (
         <p className="mt-2 text-xs text-text-secondary-light dark:text-text-secondary-dark text-center">
-          Tip: Click the group name above to switch between {groups.length} groups
+          Tip: Click the group name above to switch between {activeGroups.length} groups
         </p>
       )}
     </div>

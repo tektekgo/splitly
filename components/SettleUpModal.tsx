@@ -1,16 +1,23 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import type { FinalExpense, User, SimplifiedDebt } from '../types';
 import { simplifyDebts } from '../utils/debtSimplification';
+import PaymentModal from './PaymentModal';
+import { formatCurrency } from '../utils/currencyFormatter';
 
 interface SettleUpModalProps {
   isOpen: boolean;
   onClose: () => void;
   expenses: FinalExpense[];
   members: User[];
+  currency: string;
   onRecordPayment: (payment: SimplifiedDebt) => void;
 }
 
-const SettleUpModal: React.FC<SettleUpModalProps> = ({ isOpen, onClose, expenses, members, onRecordPayment }) => {
+const SettleUpModal: React.FC<SettleUpModalProps> = ({ isOpen, onClose, expenses, members, currency, onRecordPayment }) => {
+  const [selectedPayment, setSelectedPayment] = useState<SimplifiedDebt | null>(null);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
   const simplifiedDebts = useMemo(() => {
     const balances = new Map<string, number>();
     members.forEach(member => balances.set(member.id, 0));
@@ -63,6 +70,11 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({ isOpen, onClose, expenses
                   const fromUser = getUserById(debt.from);
                   const toUser = getUserById(debt.to);
                   if (!fromUser || !toUser) return null;
+                  
+                  // Check if recipient has payment info set up
+                  const recipientPaymentInfo = toUser.paymentInfo || {};
+                  const hasPaymentMethods = !!(recipientPaymentInfo.venmo || recipientPaymentInfo.zelle || recipientPaymentInfo.cashApp);
+                  
                   return (
                     <li key={index} className="py-4 flex items-center justify-between">
                       <div className="flex items-center space-x-3 text-sm">
@@ -72,15 +84,38 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({ isOpen, onClose, expenses
                         </div>
                         <p className="font-medium text-text-primary-light dark:text-text-primary-dark">
                           {fromUser.name.replace(' (You)', '')} <span className="font-normal text-text-secondary-light dark:text-text-secondary-dark">pays</span> {toUser.name.replace(' (You)', '')}
-                          <span className="block text-lg font-bold text-primary">${debt.amount.toFixed(2)}</span>
+                          <span className="block text-lg font-bold text-primary">{formatCurrency(debt.amount, currency)}</span>
+                          {!hasPaymentMethods && (
+                            <span className="block text-xs text-sage dark:text-gray-400 mt-0.5">
+                              No payment info set up
+                            </span>
+                          )}
                         </p>
                       </div>
-                      <button 
-                        onClick={() => onRecordPayment(debt)}
-                        className="ml-4 px-3 py-1.5 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 transition-colors"
-                      >
-                        Paid
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <motion.button
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => {
+                            setSelectedPayment(debt);
+                            setIsPaymentModalOpen(true);
+                          }}
+                          className={`px-3 py-1.5 text-sm font-medium rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 transition-colors ${
+                            hasPaymentMethods 
+                              ? 'text-white bg-primary hover:bg-primary-700' 
+                              : 'text-sage dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          }`}
+                          title={hasPaymentMethods ? 'Pay via Venmo, Zelle, or Cash App' : 'Recipient needs to add payment info in Profile'}
+                        >
+                          Pay
+                        </motion.button>
+                        <motion.button
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => onRecordPayment(debt)}
+                          className="px-3 py-1.5 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 transition-colors"
+                        >
+                          Mark As Paid
+                        </motion.button>
+                      </div>
                     </li>
                   )
                 })}
@@ -98,6 +133,26 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({ isOpen, onClose, expenses
             </button>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {selectedPayment && (
+        <PaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => {
+            setIsPaymentModalOpen(false);
+            setSelectedPayment(null);
+          }}
+          fromUser={getUserById(selectedPayment.from)!}
+          toUser={getUserById(selectedPayment.to)!}
+          amount={selectedPayment.amount}
+          currency={currency}
+          onMarkAsPaid={() => {
+            onRecordPayment(selectedPayment);
+            setIsPaymentModalOpen(false);
+            setSelectedPayment(null);
+          }}
+        />
+      )}
     </div>
   );
 };

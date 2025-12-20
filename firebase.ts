@@ -38,10 +38,10 @@ try {
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 // Initialize Google Auth for Capacitor
-if (typeof (window as any).Capacitor !== 'undefined') {
+/*(typeof (window as any).Capacitor !== 'undefined') {
   GoogleAuth.initialize({
-    clientId: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    clientId: '116751855385-jui3nnb6f763ur1gkank103h783427t1.apps.googleusercontent.com',  // ✅ Correct OAuth Client ID
     scopes: ['profile', 'email'],
     grantOfflineAccess: true,
   });
-}
+}*/

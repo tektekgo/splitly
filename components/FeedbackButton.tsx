@@ -8,9 +8,9 @@ const FeedbackButton: React.FC = () => {
       {/* Floating Feedback Button - Positioned relative to content container */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-28 md:bottom-24 z-50 bg-primary text-white p-3 md:p-2.5 rounded-full shadow-xl hover:bg-primary-600 transition-all hover:scale-110"
+        className="fixed bottom-32 md:bottom-28 z-50 bg-primary text-white p-3 md:p-2.5 rounded-full shadow-xl hover:bg-primary-600 transition-all hover:scale-110"
         style={{ 
-          right: 'clamp(0.5rem, calc((100vw - 28rem) / 2 + 0.5rem), calc(100vw - 26.5rem))'
+          right: 'clamp(0.75rem, calc((100vw - 28rem) / 2 + 1rem), calc(100vw - 25.5rem))'
         }}
         aria-label="Send Feedback"
         >     

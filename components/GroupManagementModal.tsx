@@ -11,13 +11,15 @@ interface GroupManagementModalProps {
   currentUserId: string;
   onSave: (updatedGroup: Group) => void;
   onDelete: (groupId: string) => void;
+  onArchive?: (groupId: string) => void;
+  onUnarchive?: (groupId: string) => void;
   totalDebt: number;
   onCreateUser: (name: string) => Promise<void>;
   groupInvites?: GroupInvite[];
   onInviteMember?: () => void;
 }
 
-const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onClose, group, allUsers, currentUserId, onSave, onDelete, totalDebt, onCreateUser, groupInvites = [], onInviteMember }) => {
+const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onClose, group, allUsers, currentUserId, onSave, onDelete, onArchive, onUnarchive, totalDebt, onCreateUser, groupInvites = [], onInviteMember }) => {
   const [groupName, setGroupName] = useState(group.name);
   const [memberIds, setMemberIds] = useState(group.members);
   const [selectedUserToAdd, setSelectedUserToAdd] = useState('');
@@ -45,6 +47,8 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
   }, [allUsers, memberIds]);
 
   const isDeleteDisabled = totalDebt > 0.01;
+  const isArchived = group.archived || false;
+  const canArchive = !isArchived && totalDebt < 0.01; // Can archive when all debts are settled
 
   if (!isOpen) return null;
 
@@ -280,32 +284,85 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                     </div>
                 </div>
             ) : (
-                <div className="flex justify-between items-center gap-3">
-                    <div>
-                        <button
-                            onClick={handleRequestDelete}
-                            disabled={isDeleteDisabled}
-                            className="px-5 py-2 bg-red-100 dark:bg-red-900/30 text-error font-semibold rounded-lg hover:bg-red-200 dark:hover:bg-red-900/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
-                            title={isDeleteDisabled ? `Settle outstanding debts of $${totalDebt.toFixed(2)} to enable deletion` : 'Delete this group'}
-                        >
-                            Delete Group
-                        </button>
-                        {isDeleteDisabled && <p className="text-xs text-error mt-1">Settle debts to delete.</p>}
-                    </div>
-                    <div className="flex gap-3">
-                        <button
-                            onClick={onClose}
-                            className="px-5 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            className="px-5 py-2 bg-primary text-white font-semibold rounded-lg shadow-md hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
-                        >
-                            Save Changes
-                        </button>
-                    </div>
+                <div className="space-y-3">
+                    {isArchived ? (
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="px-3 py-1 bg-sage/20 dark:bg-sage/30 text-sage dark:text-sage font-semibold rounded-lg text-sm">
+                                    Archived
+                                </span>
+                                {onUnarchive && (
+                                    <button
+                                        onClick={() => {
+                                            onUnarchive(group.id);
+                                            onClose();
+                                        }}
+                                        className="px-5 py-2 bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary-300 font-semibold rounded-lg hover:bg-primary/20 dark:hover:bg-primary/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+                                    >
+                                        Unarchive
+                                    </button>
+                                )}
+                            </div>
+                            <button
+                                onClick={onClose}
+                                className="px-5 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            {canArchive && onArchive && (
+                                <div className="mb-4 p-3 bg-[#1E3450]/10 dark:bg-[#1E3450]/20 rounded-lg border border-[#1E3450]/30">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-semibold text-[#1E3450] dark:text-[#1E3450]">All debts settled!</p>
+                                            <p className="text-xs text-sage dark:text-gray-400 mt-0.5">Archive this group to keep it for reference</p>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm('Archive this group? You can unarchive it later from the Archived Groups section.')) {
+                                                    onArchive(group.id);
+                                                    onClose();
+                                                }
+                                            }}
+                                            className="px-4 py-2 bg-[#1E3450] text-white font-semibold rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1E3450] transition-colors text-sm"
+                                            title="Archive this group to keep it for reference without cluttering your active groups"
+                                        >
+                                            Archive
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex justify-between items-center gap-3">
+                                <div className="flex flex-col gap-2">
+                                    <button
+                                        onClick={handleRequestDelete}
+                                        disabled={isDeleteDisabled}
+                                        className="px-5 py-2 bg-red-100 dark:bg-red-900/30 text-error font-semibold rounded-lg hover:bg-red-200 dark:hover:bg-red-900/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
+                                        title={isDeleteDisabled ? `Settle outstanding debts of $${totalDebt.toFixed(2)} to enable deletion` : 'Permanently delete this group and all its expenses'}
+                                    >
+                                        Delete Group
+                                    </button>
+                                    {isDeleteDisabled && <p className="text-xs text-error mt-1">Settle debts to delete.</p>}
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={onClose}
+                                        className="px-5 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSave}
+                                        className="px-5 py-2 bg-primary text-white font-semibold rounded-lg shadow-md hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+                                    >
+                                        Save Changes
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
         </div>

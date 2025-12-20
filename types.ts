@@ -10,6 +10,11 @@ export interface User {
   createdBy?: string; // User ID of creator (only for simulated users)
   createdAt?: string; // ISO 8601 date string
   role?: UserRole; // Admin role (set manually in Firebase Console)
+  paymentInfo?: {
+    venmo?: string; // Venmo username
+    zelle?: string; // Zelle email or phone number
+    cashApp?: string; // Cash App username/cashtag
+  };
 }
 
 export interface Group {
@@ -19,6 +24,8 @@ export interface Group {
   currency: string; // ISO code (USD, EUR, INR, GBP, etc.)
   createdAt?: Date;
   createdBy?: string;
+  archived?: boolean; // Whether the group is archived
+  archivedAt?: Date; // When the group was archived
 }
 
 export enum SplitMethod {

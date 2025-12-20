@@ -76,13 +76,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await signInWithPopup(auth, provider);
   };*/
   const signInWithGoogle = async () => {
-    // Check if running in Capacitor (native app)
     if (typeof (window as any).Capacitor !== 'undefined') {
       // Use native Google Auth plugin
       const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
-      const googleUser = await GoogleAuth.signIn();
       
-      // Create Firebase credential from Google token
+      // Initialize GoogleAuth (ADD THIS)
+      await GoogleAuth.initialize({
+        clientId: '116751855385-jui3nnb6f763ur1gkank103h783427t1.apps.googleusercontent.com',
+        scopes: ['profile', 'email'],
+        grantOfflineAccess: true,
+      });
+      
+      const googleUser = await GoogleAuth.signIn();
       const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
       await signInWithCredential(auth, credential);
     } else {

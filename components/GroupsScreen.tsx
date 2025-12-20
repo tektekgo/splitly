@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import type { Group, User } from '../types';
+import type { Group, User, FinalExpense } from '../types';
 import CreateGroupModal from './CreateGroupModal';
 import { UsersIcon } from './icons';
+import { formatCurrency } from '../utils/currencyFormatter';
 
 // Group type icon component
 const GroupIcon: React.FC<{ groupName: string; className?: string }> = ({ groupName, className = 'w-5 h-5' }) => {
@@ -39,14 +40,18 @@ const GroupIcon: React.FC<{ groupName: string; className?: string }> = ({ groupN
 interface GroupsScreenProps {
     groups: Group[];
     users: User[];
+    expenses: FinalExpense[];
     activeGroupId: string | null;
     currentUserId: string;
     onSelectGroup: (groupId: string) => void;
     onCreateGroup: (newGroup: Omit<Group, 'id'>) => void;
     onManageGroupMembers?: (groupId: string) => void;
+    onArchiveGroup?: (groupId: string) => void;
+    onUnarchiveGroup?: (groupId: string) => void;
+    balanceHeader?: React.ReactNode;
 }
 
-const GroupsScreen: React.FC<GroupsScreenProps> = ({ groups, users, activeGroupId, currentUserId, onSelectGroup, onCreateGroup, onManageGroupMembers }) => {
+const GroupsScreen: React.FC<GroupsScreenProps> = ({ groups, users, expenses, activeGroupId, currentUserId, onSelectGroup, onCreateGroup, onManageGroupMembers, onArchiveGroup, onUnarchiveGroup, balanceHeader }) => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const handleCreateGroup = (groupData: Omit<Group, 'id'>) => {
@@ -64,6 +69,70 @@ const GroupsScreen: React.FC<GroupsScreenProps> = ({ groups, users, activeGroupI
         setIsCreateModalOpen(false);
     };
 
+    // Calculate stats for each group
+    const groupStats = useMemo(() => {
+        const stats = new Map<string, {
+            expenseCount: number;
+            totalAmount: number;
+            lastActivity: Date | null;
+            hasOutstandingBalance: boolean;
+        }>();
+
+        groups.forEach(group => {
+            const groupExpenses = expenses.filter(e => e.groupId === group.id);
+            const expenseCount = groupExpenses.length;
+            const totalAmount = groupExpenses.reduce((sum, e) => sum + e.amount, 0);
+            
+            // Find most recent expense
+            let lastActivity: Date | null = null;
+            if (groupExpenses.length > 0) {
+                const dates = groupExpenses.map(e => new Date(e.expenseDate));
+                lastActivity = new Date(Math.max(...dates.map(d => d.getTime())));
+            }
+
+            // Check for outstanding balances
+            const memberBalances = new Map<string, number>();
+            group.members.forEach(memberId => memberBalances.set(memberId, 0));
+            
+            groupExpenses.forEach(expense => {
+                if (memberBalances.has(expense.paidBy)) {
+                    const payerBalance = memberBalances.get(expense.paidBy) || 0;
+                    memberBalances.set(expense.paidBy, payerBalance + expense.amount);
+                }
+                expense.splits.forEach(split => {
+                    if (memberBalances.has(split.userId)) {
+                        const splitteeBalance = memberBalances.get(split.userId) || 0;
+                        memberBalances.set(split.userId, splitteeBalance - split.amount);
+                    }
+                });
+            });
+
+            const hasOutstandingBalance = Array.from(memberBalances.values()).some(balance => Math.abs(balance) > 0.01);
+
+            stats.set(group.id, {
+                expenseCount,
+                totalAmount,
+                lastActivity,
+                hasOutstandingBalance
+            });
+        });
+
+        return stats;
+    }, [groups, expenses]);
+
+    const formatLastActivity = (date: Date | null): string => {
+        if (!date) return 'No activity';
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays} days ago`;
+        if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
 
     return (
         <motion.div 
@@ -71,27 +140,36 @@ const GroupsScreen: React.FC<GroupsScreenProps> = ({ groups, users, activeGroupI
           animate={{ opacity: 1, y: 0 }}
           className="overflow-hidden"
         >
-            <div className="px-4 py-3 sm:px-6 sm:py-4">
-                <div className="flex justify-between items-center mb-3">
-                    <h2 className="text-lg sm:text-xl font-sans font-extrabold text-charcoal dark:text-gray-100 tracking-tight">
-                        Your Groups
+            {balanceHeader}
+            <div className="px-4 py-2.5 sm:px-6 sm:py-3">
+                <div className="flex justify-between items-center mb-2">
+                    <h2 className="text-base sm:text-lg font-sans font-extrabold text-charcoal dark:text-gray-100 tracking-tight">
+                        Groups
                     </h2>
                     <motion.button
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="px-6 py-3 bg-gradient-to-r from-primary to-primary-700 text-white font-bold rounded-full shadow-lg hover:shadow-xl hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all"
+                        className="text-xs sm:text-sm text-primary dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-400 transition-colors font-semibold"
                     >
-                        Create New Group
+                        Create
                     </motion.button>
                 </div>
 
-                {groups.length === 0 ? (
-                    <div className="text-center py-10">
-                        <p className="text-sage dark:text-gray-400">You haven't created any groups yet.</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {groups.map((group, index) => (
+                {(() => {
+                    const activeGroups = groups.filter(g => !g.archived);
+                    const archivedGroups = groups.filter(g => g.archived);
+                    
+                    return (
+                        <>
+                            {activeGroups.length === 0 && archivedGroups.length === 0 ? (
+                                <div className="text-center py-10">
+                                    <p className="text-sage dark:text-gray-400">You haven't created any groups yet.</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {activeGroups.length > 0 && (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">
+                                            {activeGroups.map((group, index) => (
                             <motion.div 
                               key={group.id}
                               initial={{ opacity: 0, y: 20 }}
@@ -99,56 +177,202 @@ const GroupsScreen: React.FC<GroupsScreenProps> = ({ groups, users, activeGroupI
                               transition={{ delay: index * 0.1 }}
                             >
                                 <motion.div 
-                                    whileHover={{ scale: 1.02, y: -2 }}
+                                    whileHover={{ scale: 1.02, y: -1 }}
                                     whileTap={{ scale: 0.98 }}
-                                    className={`w-full p-4 rounded-2xl border-2 transition-all duration-200 cursor-pointer ${
+                                    className={`w-full p-2.5 sm:p-3 rounded-xl border transition-all duration-200 cursor-pointer ${
                                         activeGroupId === group.id
-                                        ? 'bg-gradient-to-br from-primary-100 via-primary-50 to-white dark:from-primary/40 dark:via-primary/30 dark:to-gray-700 border-primary dark:border-primary-400 shadow-xl ring-2 ring-primary/30 dark:ring-primary/40'
-                                        : 'bg-white dark:bg-gray-700 border-stone-300 dark:border-gray-600 hover:border-primary/60 dark:hover:border-primary/50 hover:bg-primary/5 dark:hover:bg-primary/20 shadow-lg hover:shadow-xl'
+                                        ? 'bg-gradient-to-br from-primary-100 via-primary-50 to-white dark:from-primary/40 dark:via-primary/30 dark:to-gray-700 border-primary dark:border-primary-400 shadow-lg ring-1 ring-primary/30 dark:ring-primary/40'
+                                        : 'bg-white dark:bg-gray-700 border-stone-200 dark:border-gray-600 hover:border-primary/50 dark:hover:border-primary/40 hover:bg-primary/5 dark:hover:bg-primary/20 shadow-sm hover:shadow-md'
                                     }`}
                                     onClick={() => onSelectGroup(group.id)}
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border-2 ${
-                                            activeGroupId === group.id 
-                                                ? 'bg-white dark:bg-primary/20 border-primary dark:border-primary-400' 
-                                                : 'bg-white dark:bg-gray-600 border-stone-200 dark:border-gray-500'
-                                        }`}>
-                                            <GroupIcon 
-                                                groupName={group.name} 
-                                                className={`w-5 h-5 ${
-                                                    activeGroupId === group.id 
-                                                        ? 'text-primary dark:text-primary-300' 
-                                                        : 'text-charcoal dark:text-gray-300'
-                                                }`}
-                                            />
-                                        </div>
-                                        <div className="flex-grow min-w-0">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <h3 className={`font-sans font-extrabold text-base truncate ${
-                                                    activeGroupId === group.id
-                                                    ? 'text-primary dark:text-primary-200'
-                                                    : 'text-charcoal dark:text-gray-100'
-                                                }`}>{group.name}</h3>
-                                                {activeGroupId === group.id && (
-                                                    <div className="w-2 h-2 bg-primary dark:bg-primary-300 rounded-full flex-shrink-0 animate-pulse shadow-lg"></div>
+                                    {(() => {
+                                        const stats = groupStats.get(group.id);
+                                        return (
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className={`flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border ${
+                                                        activeGroupId === group.id 
+                                                            ? 'bg-white dark:bg-primary/20 border-primary dark:border-primary-400 shadow-sm' 
+                                                            : 'bg-white dark:bg-gray-600 border-stone-200 dark:border-gray-500'
+                                                    }`}>
+                                                        <GroupIcon 
+                                                            groupName={group.name} 
+                                                            className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                                                                activeGroupId === group.id 
+                                                                    ? 'text-primary dark:text-primary-300' 
+                                                                    : 'text-charcoal dark:text-gray-300'
+                                                            }`}
+                                                        />
+                                                    </div>
+                                                    <div className="flex-grow min-w-0">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <h3 className={`font-sans font-extrabold text-sm sm:text-base truncate leading-tight ${
+                                                                activeGroupId === group.id
+                                                                ? 'text-primary dark:text-primary-200'
+                                                                : 'text-charcoal dark:text-gray-100'
+                                                            }`}>{group.name}</h3>
+                                                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                                {stats?.hasOutstandingBalance && (
+                                                                    <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" title="Outstanding balances"></div>
+                                                                )}
+                                                                {activeGroupId === group.id && (
+                                                                    <div className="w-1.5 h-1.5 bg-primary dark:bg-primary-300 rounded-full animate-pulse"></div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                                            <p className={`text-xs font-medium ${
+                                                                activeGroupId === group.id
+                                                                ? 'text-primary/70 dark:text-primary-300'
+                                                                : 'text-sage dark:text-gray-400'
+                                                            }`}>
+                                                                {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
+                                                            </p>
+                                                            {stats && stats.expenseCount > 0 && (
+                                                                <>
+                                                                    <span className="text-sage dark:text-gray-500">•</span>
+                                                                    <p className={`text-xs font-medium ${
+                                                                        activeGroupId === group.id
+                                                                        ? 'text-primary/70 dark:text-primary-300'
+                                                                        : 'text-sage dark:text-gray-400'
+                                                                    }`}>
+                                                                        {stats.expenseCount} {stats.expenseCount === 1 ? 'expense' : 'expenses'}
+                                                                    </p>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Additional Stats Row - Compact */}
+                                                {stats && stats.expenseCount > 0 && (
+                                                    <div className="pt-1.5 border-t border-stone-200 dark:border-gray-600 space-y-1">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-xs text-sage dark:text-gray-400">Total</span>
+                                                            <span className={`text-xs sm:text-sm font-bold ${
+                                                                activeGroupId === group.id
+                                                                ? 'text-primary dark:text-primary-200'
+                                                                : 'text-charcoal dark:text-gray-100'
+                                                            }`}>
+                                                                {formatCurrency(stats.totalAmount, group.currency)}
+                                                            </span>
+                                                        </div>
+                                                        {stats.lastActivity && (
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-xs text-sage dark:text-gray-400">Last</span>
+                                                                <span className="text-xs font-medium text-sage dark:text-gray-400">
+                                                                    {formatLastActivity(stats.lastActivity)}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
-                                            <p className={`text-sm font-medium mt-0.5 ${
-                                                activeGroupId === group.id
-                                                ? 'text-primary/70 dark:text-primary-300'
-                                                : 'text-sage dark:text-gray-400'
-                                            }`}>{group.members.length} member{group.members.length !== 1 ? 's' : ''}</p>
-                                            {activeGroupId === group.id && (
-                                                <span className="text-xs font-bold text-primary dark:text-primary-300 mt-1 inline-block">Currently Active</span>
-                                            )}
-                                        </div>
-                                    </div>
+                                        );
+                                    })()}
                                 </motion.div>
-                            </motion.div>
-                        ))}
-                    </div>
-                )}
+                                            </motion.div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    
+                                    {archivedGroups.length > 0 && (
+                                        <div className="mt-6 pt-6 border-t-2 border-stone-200 dark:border-gray-600">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <h3 className="text-sm sm:text-base font-sans font-extrabold text-sage dark:text-gray-400 tracking-tight flex items-center gap-2">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                                                    </svg>
+                                                    Archived Groups
+                                                </h3>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                {archivedGroups.map((group, index) => (
+                                                    <motion.div 
+                                                      key={group.id}
+                                                      initial={{ opacity: 0, y: 20 }}
+                                                      animate={{ opacity: 1, y: 0 }}
+                                                      transition={{ delay: index * 0.05 }}
+                                                    >
+                                                        <motion.div 
+                                                            whileHover={{ scale: 1.02, y: -1 }}
+                                                            whileTap={{ scale: 0.98 }}
+                                                            className="w-full p-2.5 sm:p-3 rounded-xl border border-stone-200 dark:border-gray-600 bg-stone-50 dark:bg-gray-800/50 opacity-75 hover:opacity-100 transition-all cursor-pointer"
+                                                            onClick={() => onSelectGroup(group.id)}
+                                                        >
+                                                            {(() => {
+                                                                const stats = groupStats.get(group.id);
+                                                                return (
+                                                                    <div className="space-y-2">
+                                                                        <div className="flex items-center gap-2.5">
+                                                                            <div className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border border-stone-300 dark:border-gray-500 bg-white dark:bg-gray-700">
+                                                                                <GroupIcon 
+                                                                                    groupName={group.name} 
+                                                                                    className="w-4 h-4 sm:w-5 sm:h-5 text-sage dark:text-gray-400"
+                                                                                />
+                                                                            </div>
+                                                                            <div className="flex-grow min-w-0">
+                                                                                <div className="flex items-center justify-between gap-2">
+                                                                                    <h3 className="font-sans font-extrabold text-sm sm:text-base truncate leading-tight text-sage dark:text-gray-400">
+                                                                                        {group.name}
+                                                                                    </h3>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                                                                    <p className="text-xs font-medium text-sage dark:text-gray-500">
+                                                                                        {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
+                                                                                    </p>
+                                                                                    {stats && stats.expenseCount > 0 && (
+                                                                                        <>
+                                                                                            <span className="text-sage dark:text-gray-600">•</span>
+                                                                                            <p className="text-xs font-medium text-sage dark:text-gray-500">
+                                                                                                {stats.expenseCount} {stats.expenseCount === 1 ? 'expense' : 'expenses'}
+                                                                                            </p>
+                                                                                        </>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        
+                                                                        {stats && stats.expenseCount > 0 && (
+                                                                            <div className="pt-1.5 border-t border-stone-200 dark:border-gray-700 space-y-1">
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <span className="text-xs text-sage dark:text-gray-500">Total</span>
+                                                                                    <span className="text-xs sm:text-sm font-bold text-sage dark:text-gray-400">
+                                                                                        {formatCurrency(stats.totalAmount, group.currency)}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                        
+                                                                        {onUnarchiveGroup && (
+                                                                            <div className="pt-2 flex justify-end">
+                                                                                <motion.button
+                                                                                    whileTap={{ scale: 0.95 }}
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        onUnarchiveGroup!(group.id);
+                                                                                    }}
+                                                                                    className="text-xs text-primary dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-400 font-semibold"
+                                                                                >
+                                                                                    Unarchive →
+                                                                                </motion.button>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()}
+                                                        </motion.div>
+                                                    </motion.div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </>
+                    );
+                })()}
             </div>
             {isCreateModalOpen && (
                 <CreateGroupModal

@@ -25,14 +25,16 @@ interface ActivityScreenProps {
     groupInvites: GroupInvite[];
     onAcceptInvite: (inviteId: string) => void;
     onDeclineInvite: (inviteId: string) => void;
+    balanceHeader?: React.ReactNode;
 }
 
-const ActivityScreen: React.FC<ActivityScreenProps> = ({ notifications, groupInvites, onAcceptInvite, onDeclineInvite }) => {
+const ActivityScreen: React.FC<ActivityScreenProps> = ({ notifications, groupInvites, onAcceptInvite, onDeclineInvite, balanceHeader }) => {
     // Show pending invites at the top
     const pendingInvites = groupInvites.filter(inv => inv.status === 'pending');
 
     return (
         <div className="overflow-hidden">
+            {balanceHeader}
             <div className="px-4 py-3 sm:px-6 sm:py-4">
                 <h2 className="text-lg sm:text-xl font-extrabold text-charcoal dark:text-gray-100 mb-4 tracking-tight">
                     Activity Feed

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import type { User, GroupInvite } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import InfoTooltip from './InfoTooltip';
@@ -9,6 +10,7 @@ interface ProfileScreenProps {
     users: User[];
     onCreateUser: (name: string) => void;
     onDeleteGuestUser: (userId: string) => void;
+    onUpdatePaymentInfo?: (paymentInfo: { venmo?: string; zelle?: string; cashApp?: string }, userId?: string) => void;
     onOpenInviteModal?: () => void;
     onOpenGroupManagement?: () => void;
     onOpenGroupSelector?: () => void;
@@ -16,11 +18,18 @@ interface ProfileScreenProps {
     onResendInvite?: (inviteId: string) => void;
 }
 
-const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDeleteGuestUser, onOpenInviteModal, onOpenGroupManagement, onOpenGroupSelector, groupInvites = [], onResendInvite }) => {
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDeleteGuestUser, onUpdatePaymentInfo, onOpenInviteModal, onOpenGroupManagement, onOpenGroupSelector, groupInvites = [], onResendInvite }) => {
     const { currentUser } = useAuth();
     const [newUserName, setNewUserName] = useState('');
     const [stats, setStats] = useState<DatabaseStats | null>(null);
     const [loadingStats, setLoadingStats] = useState(false);
+    const [isEditingPayment, setIsEditingPayment] = useState(false);
+    const [editingPaymentUserId, setEditingPaymentUserId] = useState<string | null>(null);
+    const [paymentInfo, setPaymentInfo] = useState({
+        venmo: '',
+        zelle: '',
+        cashApp: '',
+    });
 
     // Check if current user is admin (set role: 'admin' in Firebase Console)
     const isAdmin = currentUser?.role === 'admin';
@@ -38,6 +47,55 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
         const simulated = users.filter(u => u.authType === 'simulated');
         return { loggedInUser: loggedIn, simulatedUsers: simulated };
     }, [users, currentUser]);
+
+    // Initialize payment info when editing starts
+    const startEditingPayment = (userId: string | null) => {
+        setEditingPaymentUserId(userId);
+        setIsEditingPayment(true);
+        
+        const targetUser = userId 
+            ? users.find(u => u.id === userId)
+            : loggedInUser;
+            
+        if (targetUser?.paymentInfo) {
+            setPaymentInfo({
+                venmo: targetUser.paymentInfo.venmo || '',
+                zelle: targetUser.paymentInfo.zelle || '',
+                cashApp: targetUser.paymentInfo.cashApp || '',
+            });
+        } else {
+            setPaymentInfo({ venmo: '', zelle: '', cashApp: '' });
+        }
+    };
+
+    const handleSavePaymentInfo = () => {
+        const updatedInfo: { venmo?: string; zelle?: string; cashApp?: string } = {};
+        if (paymentInfo.venmo.trim()) updatedInfo.venmo = paymentInfo.venmo.trim();
+        if (paymentInfo.zelle.trim()) updatedInfo.zelle = paymentInfo.zelle.trim();
+        if (paymentInfo.cashApp.trim()) updatedInfo.cashApp = paymentInfo.cashApp.trim();
+        
+        onUpdatePaymentInfo?.(updatedInfo, editingPaymentUserId || undefined);
+        setIsEditingPayment(false);
+        setEditingPaymentUserId(null);
+    };
+
+    const handleCancelEditingPayment = () => {
+        setIsEditingPayment(false);
+        setEditingPaymentUserId(null);
+        // Reset to saved values
+        const targetUser = editingPaymentUserId 
+            ? users.find(u => u.id === editingPaymentUserId)
+            : loggedInUser;
+        if (targetUser?.paymentInfo) {
+            setPaymentInfo({
+                venmo: targetUser.paymentInfo.venmo || '',
+                zelle: targetUser.paymentInfo.zelle || '',
+                cashApp: targetUser.paymentInfo.cashApp || '',
+            });
+        } else {
+            setPaymentInfo({ venmo: '', zelle: '', cashApp: '' });
+        }
+    };
 
     return (
         <div className="overflow-hidden">
@@ -67,6 +125,110 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                     )}
                 </div>
 
+                {/* Payment Info Section */}
+                <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-slate-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                            {editingPaymentUserId ? `Payment Info - ${users.find(u => u.id === editingPaymentUserId)?.name}` : 'Your Payment Info'}
+                        </h3>
+                        {!isEditingPayment && (
+                            <motion.button
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => startEditingPayment(null)}
+                                className="text-xs text-primary hover:text-primary-700 dark:hover:text-primary-300 font-medium"
+                            >
+                                {loggedInUser?.paymentInfo ? 'Edit' : 'Add'}
+                            </motion.button>
+                        )}
+                    </div>
+                    {isEditingPayment && !editingPaymentUserId ? (
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    Venmo Username
+                                </label>
+                                <input
+                                    type="text"
+                                    value={paymentInfo.venmo}
+                                    onChange={(e) => setPaymentInfo({ ...paymentInfo, venmo: e.target.value })}
+                                    placeholder="@username"
+                                    className="w-full px-2 py-1.5 bg-slate-50 dark:bg-gray-600 border border-slate-200 dark:border-gray-500 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    Zelle Email/Phone
+                                </label>
+                                <input
+                                    type="text"
+                                    value={paymentInfo.zelle}
+                                    onChange={(e) => setPaymentInfo({ ...paymentInfo, zelle: e.target.value })}
+                                    placeholder="email@example.com or phone"
+                                    className="w-full px-2 py-1.5 bg-slate-50 dark:bg-gray-600 border border-slate-200 dark:border-gray-500 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    Cash App Username
+                                </label>
+                                <input
+                                    type="text"
+                                    value={paymentInfo.cashApp}
+                                    onChange={(e) => setPaymentInfo({ ...paymentInfo, cashApp: e.target.value })}
+                                    placeholder="$cashtag"
+                                    className="w-full px-2 py-1.5 bg-slate-50 dark:bg-gray-600 border border-slate-200 dark:border-gray-500 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={handleSavePaymentInfo}
+                                    className="flex-1 px-3 py-1.5 bg-primary text-white font-medium rounded-md text-sm hover:bg-primary-700 transition-colors"
+                                >
+                                    Save
+                                </motion.button>
+                                <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={handleCancelEditingPayment}
+                                    className="flex-1 px-3 py-1.5 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium rounded-md text-sm hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                                >
+                                    Cancel
+                                </motion.button>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                💡 This info will be visible to group members when they want to pay you.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-1">
+                            {loggedInUser?.paymentInfo ? (
+                                <>
+                                    {loggedInUser.paymentInfo.venmo && (
+                                        <p className="text-sm text-slate-700 dark:text-slate-300">
+                                            💙 Venmo: <span className="font-medium">{loggedInUser.paymentInfo.venmo}</span>
+                                        </p>
+                                    )}
+                                    {loggedInUser.paymentInfo.zelle && (
+                                        <p className="text-sm text-slate-700 dark:text-slate-300">
+                                            💜 Zelle: <span className="font-medium">{loggedInUser.paymentInfo.zelle}</span>
+                                        </p>
+                                    )}
+                                    {loggedInUser.paymentInfo.cashApp && (
+                                        <p className="text-sm text-slate-700 dark:text-slate-300">
+                                            💚 Cash App: <span className="font-medium">{loggedInUser.paymentInfo.cashApp}</span>
+                                        </p>
+                                    )}
+                                    {!loggedInUser.paymentInfo.venmo && !loggedInUser.paymentInfo.zelle && !loggedInUser.paymentInfo.cashApp && (
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">No payment info added yet</p>
+                                    )}
+                                </>
+                            ) : (
+                                <p className="text-xs text-slate-500 dark:text-slate-400">No payment info added yet</p>
+                            )}
+                        </div>
+                    )}
+                </div>
+
 
                 {/* Guest Users Section */}
                 <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-slate-200 dark:border-gray-600">
@@ -78,20 +240,114 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                     </div>
                     
                     {simulatedUsers.length > 0 ? (
-                        <ul className="space-y-1">
+                        <ul className="space-y-2">
                             {simulatedUsers.map(user => (
-                                <li key={user.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-gray-600 rounded-md group/item hover:bg-slate-100 dark:hover:bg-gray-500 transition-colors">
-                                    <div className="flex items-center gap-2">
-                                        <img src={user.avatarUrl} alt={user.name} className="w-6 h-6 rounded-full" />
-                                        <span className="text-base font-bold text-slate-800 dark:text-slate-100">{user.name}</span>
+                                <li key={user.id} className="p-2 bg-slate-50 dark:bg-gray-600 rounded-md group/item hover:bg-slate-100 dark:hover:bg-gray-500 transition-colors">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <img src={user.avatarUrl} alt={user.name} className="w-6 h-6 rounded-full" />
+                                            <span className="text-base font-bold text-slate-800 dark:text-slate-100">{user.name}</span>
+                                        </div>
+                                        <button
+                                            onClick={() => onDeleteGuestUser(user.id)}
+                                            className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                            title="Delete"
+                                        >
+                                            <DeleteIcon className="w-4 h-4"/>
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={() => onDeleteGuestUser(user.id)}
-                                        className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                        title="Delete"
-                                    >
-                                        <DeleteIcon className="w-4 h-4"/>
-                                    </button>
+                                    
+                                    {/* Guest User Payment Info */}
+                                    {isEditingPayment && editingPaymentUserId === user.id ? (
+                                        <div className="mt-2 space-y-2 pt-2 border-t border-slate-200 dark:border-gray-500">
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                    Venmo Username
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={paymentInfo.venmo}
+                                                    onChange={(e) => setPaymentInfo({ ...paymentInfo, venmo: e.target.value })}
+                                                    placeholder="@username"
+                                                    className="w-full px-2 py-1 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-500 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                    Zelle Email/Phone
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={paymentInfo.zelle}
+                                                    onChange={(e) => setPaymentInfo({ ...paymentInfo, zelle: e.target.value })}
+                                                    placeholder="email@example.com or phone"
+                                                    className="w-full px-2 py-1 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-500 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                    Cash App Username
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={paymentInfo.cashApp}
+                                                    onChange={(e) => setPaymentInfo({ ...paymentInfo, cashApp: e.target.value })}
+                                                    placeholder="$cashtag"
+                                                    className="w-full px-2 py-1 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-500 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                                />
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <motion.button
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={handleSavePaymentInfo}
+                                                    className="flex-1 px-2 py-1 bg-primary text-white font-medium rounded-md text-xs hover:bg-primary-700 transition-colors"
+                                                >
+                                                    Save
+                                                </motion.button>
+                                                <motion.button
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={handleCancelEditingPayment}
+                                                    className="flex-1 px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium rounded-md text-xs hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                                                >
+                                                    Cancel
+                                                </motion.button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="mt-2 pt-2 border-t border-slate-200 dark:border-gray-500">
+                                            {user.paymentInfo ? (
+                                                <div className="space-y-1">
+                                                    {user.paymentInfo.venmo && (
+                                                        <p className="text-xs text-slate-600 dark:text-slate-400">
+                                                            💙 Venmo: <span className="font-medium">{user.paymentInfo.venmo}</span>
+                                                        </p>
+                                                    )}
+                                                    {user.paymentInfo.zelle && (
+                                                        <p className="text-xs text-slate-600 dark:text-slate-400">
+                                                            💜 Zelle: <span className="font-medium">{user.paymentInfo.zelle}</span>
+                                                        </p>
+                                                    )}
+                                                    {user.paymentInfo.cashApp && (
+                                                        <p className="text-xs text-slate-600 dark:text-slate-400">
+                                                            💚 Cash App: <span className="font-medium">{user.paymentInfo.cashApp}</span>
+                                                        </p>
+                                                    )}
+                                                    {!user.paymentInfo.venmo && !user.paymentInfo.zelle && !user.paymentInfo.cashApp && (
+                                                        <p className="text-xs text-slate-500 dark:text-slate-500">No payment info</p>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">No payment info</p>
+                                            )}
+                                            <motion.button
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={() => startEditingPayment(user.id)}
+                                                className="text-xs text-primary hover:text-primary-700 dark:hover:text-primary-300 font-medium mt-1"
+                                            >
+                                                {user.paymentInfo ? 'Edit Payment Info' : 'Add Payment Info'}
+                                            </motion.button>
+                                        </div>
+                                    )}
                                 </li>
                             ))}
                         </ul>

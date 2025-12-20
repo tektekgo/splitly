@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import AddExpenseForm from './components/AddExpenseForm';
 import ExpenseList from './components/ExpenseList';
 import BalanceSummary from './components/BalanceSummary';
+import BalanceHeader from './components/BalanceHeader';
 import SettleUpModal from './components/SettleUpModal';
 import ExpenseDetailModal from './components/ExpenseDetailModal';
 import ExpenseFilter from './components/ExpenseFilter';
@@ -12,6 +13,7 @@ import BalanceDetailModal from './components/BalanceDetailModal';
 import BottomNav from './components/BottomNav';
 import GroupManagementModal from './components/GroupManagementModal';
 import GroupsScreen from './components/GroupsScreen';
+import CreateGroupModal from './components/CreateGroupModal';
 import ProfileScreen from './components/ProfileScreen';
 import ActivityScreen from './components/ActivityScreen';
 import ExportModal from './components/ExportModal';
@@ -122,6 +124,7 @@ const App: React.FC = () => {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isGroupManagementModalOpen, setIsGroupManagementModalOpen] = useState(false);
+  const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
   const [inviteGroupId, setInviteGroupId] = useState<string | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupDebt, setEditingGroupDebt] = useState(0);
@@ -239,10 +242,11 @@ const App: React.FC = () => {
             setNotifications(notificationsData);
             setGroupInvites(invitesData);
 
-            // Only set activeGroupId if not already set
+            // Only set activeGroupId if not already set (only from active groups)
+            const activeGroupsData = groupsData.filter(g => !g.archived);
             setActiveGroupId(prev => {
                 if (prev) return prev;
-                return groupsData.length > 0 ? groupsData[0].id : null;
+                return activeGroupsData.length > 0 ? activeGroupsData[0].id : null;
             });
             console.log("Data fetched successfully.");
         } catch (error) {
@@ -286,7 +290,13 @@ const App: React.FC = () => {
     }
   }, [activeScreen, showAddHint]);
 
-  const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId), [groups, activeGroupId]);
+  const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId && !g.archived), [groups, activeGroupId]);
+  
+  // Filter active (non-archived) groups
+  const activeGroups = useMemo(() => groups.filter(g => !g.archived), [groups]);
+  
+  // Filter archived groups
+  const archivedGroups = useMemo(() => groups.filter(g => g.archived), [groups]);
   const activeGroupMembers = useMemo(() => {
     if (!activeGroup) return [];
     return users.filter(u => activeGroup.members.includes(u.id));
@@ -313,17 +323,17 @@ const App: React.FC = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
   
-  // This effect ensures the active group ID is always valid.
+  // This effect ensures the active group ID is always valid (only from active groups).
   useEffect(() => {
     if (activeGroupId) {
-      const activeGroupExists = groups.some(g => g.id === activeGroupId);
+      const activeGroupExists = activeGroups.some(g => g.id === activeGroupId);
       if (!activeGroupExists) {
-        setActiveGroupId(groups[0]?.id || null);
+        setActiveGroupId(activeGroups[0]?.id || null);
       }
-    } else if (groups.length > 0) {
-      setActiveGroupId(groups[0].id);
+    } else if (activeGroups.length > 0) {
+      setActiveGroupId(activeGroups[0].id);
     }
-  }, [groups, activeGroupId]);
+  }, [activeGroups, activeGroupId]);
 
 
   // Mark notifications as read when activity screen is viewed
@@ -539,6 +549,56 @@ const App: React.FC = () => {
     }
   };
 
+  const handleArchiveGroup = async (groupId: string) => {
+    try {
+      const groupDocRef = doc(db, 'groups', groupId);
+      await updateDoc(groupDocRef, { 
+        archived: true, 
+        archivedAt: new Date() 
+      });
+      
+      setGroups(prev => prev.map(g => 
+        g.id === groupId 
+          ? { ...g, archived: true, archivedAt: new Date() }
+          : g
+      ));
+      
+      // If archived group was active, switch to another group or dashboard
+      if (activeGroupId === groupId) {
+        const activeGroups = groups.filter(g => !g.archived && g.id !== groupId);
+        if (activeGroups.length > 0) {
+          setActiveGroupId(activeGroups[0].id);
+        } else {
+          setActiveGroupId(null);
+        }
+      }
+      
+      setEditingGroupId(null);
+    } catch (error) {
+      console.error("Error archiving group: ", error);
+      alert("Failed to archive group. Please try again.");
+    }
+  };
+
+  const handleUnarchiveGroup = async (groupId: string) => {
+    try {
+      const groupDocRef = doc(db, 'groups', groupId);
+      await updateDoc(groupDocRef, { 
+        archived: false,
+        archivedAt: null
+      });
+      
+      setGroups(prev => prev.map(g => 
+        g.id === groupId 
+          ? { ...g, archived: false, archivedAt: undefined }
+          : g
+      ));
+    } catch (error) {
+      console.error("Error unarchiving group: ", error);
+      alert("Failed to unarchive group. Please try again.");
+    }
+  };
+
   const handleDeleteGroup = async (groupIdToDelete: string) => {
     try {
         const batch = writeBatch(db);
@@ -574,6 +634,7 @@ const App: React.FC = () => {
         setGroups(prev => [...prev, newGroup]);
         setActiveGroupId(newGroup.id);
         setActiveScreen('dashboard');
+        setIsCreateGroupModalOpen(false); // Close the modal after successful creation
     } catch (error) {
         console.error("Error creating group: ", error);
         alert("Failed to create group. Please try again.");
@@ -597,6 +658,35 @@ const App: React.FC = () => {
         alert("Failed to create user. Please try again.");
     }
   };
+
+  const handleUpdatePaymentInfo = useCallback(async (paymentInfo: { venmo?: string; zelle?: string; cashApp?: string }, userId?: string) => {
+    const targetUserId = userId || currentUser?.id;
+    if (!targetUserId) return;
+    
+    // If updating a guest user, verify ownership
+    if (userId) {
+      const targetUser = users.find(u => u.id === userId);
+      if (targetUser?.authType === 'simulated' && targetUser.createdBy !== currentUser?.id) {
+        alert('You can only update payment info for users you created.');
+        return;
+      }
+    }
+    
+    try {
+      const userDocRef = doc(db, 'users', targetUserId);
+      await updateDoc(userDocRef, { paymentInfo });
+      
+      // Update local state
+      setUsers(prev => prev.map(u => 
+        u.id === targetUserId 
+          ? { ...u, paymentInfo }
+          : u
+      ));
+    } catch (error) {
+      console.error("Error updating payment info: ", error);
+      alert("Failed to update payment info. Please try again.");
+    }
+  }, [currentUser, users]);
 
   const handleDeleteGuestUser = async (userId: string) => {
     const user = users.find(u => u.id === userId);
@@ -859,8 +949,12 @@ const App: React.FC = () => {
   };
   
   const handleSetActiveGroup = (groupId: string) => {
-    setActiveGroupId(groupId);
-    setActiveScreen('dashboard');
+    const group = groups.find(g => g.id === groupId);
+    // Don't allow selecting archived groups as active
+    if (group && !group.archived) {
+      setActiveGroupId(groupId);
+      setActiveScreen('dashboard');
+    }
   }
 
   const handleSelectGroupFromGroupsScreen = (groupId: string) => {
@@ -1119,6 +1213,7 @@ const App: React.FC = () => {
           <GroupsScreen 
               groups={groups}
               users={users}
+              expenses={expenses}
               activeGroupId={activeGroupId}
               currentUserId={currentUser.id}
               onSelectGroup={handleSelectGroupFromGroupsScreen}
@@ -1127,6 +1222,19 @@ const App: React.FC = () => {
                 setEditingGroupId(groupId);
                 setIsGroupManagementModalOpen(true);
               }}
+              onArchiveGroup={handleArchiveGroup}
+              onUnarchiveGroup={handleUnarchiveGroup}
+              balanceHeader={activeGroup ? (
+                <BalanceHeader
+                  balance={currentUserBalance}
+                  currency={activeGroup.currency}
+                  balanceColor={balanceColor}
+                  balanceDescription={balanceDescription}
+                  onAddClick={() => setActiveScreen('add')}
+                  onSettleClick={handleOpenSettleUp}
+                  onUsersClick={() => setActiveScreen('profile')}
+                />
+              ) : undefined}
             />
         );
       case 'activity':
@@ -1136,6 +1244,14 @@ const App: React.FC = () => {
                 groupInvites={groupInvites.filter(invite => invite.invitedEmail === currentUser.email?.toLowerCase())}
                 onAcceptInvite={handleAcceptInvite}
                 onDeclineInvite={handleDeclineInvite}
+                balanceHeader={activeGroup ? (
+                  <BalanceHeader
+                    balance={currentUserBalance}
+                    currency={activeGroup.currency}
+                    balanceColor={balanceColor}
+                    balanceDescription={balanceDescription}
+                  />
+                ) : undefined}
               />
           );
       case 'profile':
@@ -1144,13 +1260,14 @@ const App: React.FC = () => {
                 users={users}
                 onCreateUser={handleCreateUser}
                 onDeleteGuestUser={handleDeleteGuestUser}
+                onUpdatePaymentInfo={handleUpdatePaymentInfo}
                 onOpenInviteModal={() => {
-                  if (groups.length === 0) {
+                  if (activeGroups.length === 0) {
                     alert('Please create a group first before sending invites.');
                     setActiveScreen('groups');
-                  } else if (groups.length === 1) {
-                    // If only one group, use it directly
-                    setInviteGroupId(groups[0].id);
+                  } else if (activeGroups.length === 1) {
+                    // If only one active group, use it directly
+                    setInviteGroupId(activeGroups[0].id);
                     setIsInviteModalOpen(true);
                   } else {
                     // Multiple groups - show group selector
@@ -1302,78 +1419,129 @@ const App: React.FC = () => {
             {/* Dashboard Content - Part of Same Container */}
             {activeScreen === 'dashboard' && activeGroup && (
               <>
-                {/* Balance Section */}
+                {/* Balance & Quick Actions Section - Split Layout */}
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="bg-gradient-to-br from-primary/8 via-white to-primary/5 dark:from-primary/15 dark:via-gray-700 dark:to-primary/10 px-4 py-4 sm:px-6 sm:py-5 rounded-t-2xl border-b-2 border-primary/20 dark:border-primary/30"
+                  className="bg-gradient-to-br from-primary/8 via-white to-primary/5 dark:from-primary/15 dark:via-gray-700 dark:to-primary/10 px-4 py-4 sm:px-6 sm:py-4 rounded-t-2xl border-b-2 border-primary/20 dark:border-primary/30"
                 >
-                  <div className="text-center">
-                    <p className="text-xs font-bold text-primary dark:text-primary-300 uppercase tracking-widest mb-3">
-                      Your Balance
-                    </p>
-                    <div className="relative inline-block">
-                      <p className={`text-5xl sm:text-6xl font-sans font-extrabold mb-2 tracking-tight ${balanceColor}`}>
-                        {formatCurrency(Math.abs(currentUserBalance), activeGroup?.currency || 'USD')}
-                      </p>
-                      {currentUserBalance > 0.01 && (
-                        <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-pulse"></div>
-                      )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    {/* Left Half - Balance */}
+                    <div className="flex flex-col justify-center">
+                      <div className="text-center md:text-left">
+                        <div className="relative inline-block">
+                          <p className={`text-4xl sm:text-5xl font-sans font-extrabold mb-1.5 tracking-tight ${balanceColor}`}>
+                            {formatCurrency(Math.abs(currentUserBalance), activeGroup?.currency || 'USD')}
+                          </p>
+                          {currentUserBalance > 0.01 && (
+                            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-pulse"></div>
+                          )}
+                        </div>
+                        <p className="text-sm font-medium text-charcoal/80 dark:text-gray-300 mt-1.5">{balanceDescription}</p>
+                      </div>
                     </div>
-                    <p className="text-base font-semibold text-charcoal dark:text-gray-200 mt-2">
-                      {balanceDescription}
-                    </p>
+
+                    {/* Right Half - Quick Actions */}
+                    <div className="flex flex-col justify-center">
+                      <div className="grid grid-cols-3 gap-2">
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          whileHover={{ scale: 1.05 }}
+                          onClick={() => setActiveScreen('add')}
+                          className="flex flex-col items-center justify-center gap-1.5 py-3 px-2 bg-gradient-to-br from-primary to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all"
+                          title="Add Expense"
+                        >
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                          </svg>
+                          <span className="text-xs font-bold">Add</span>
+                        </motion.button>
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          whileHover={{ scale: 1.05 }}
+                          onClick={handleOpenSettleUp}
+                          className="flex flex-col items-center justify-center gap-1.5 py-3 px-2 bg-white dark:bg-gray-700 border-2 border-stone-300 dark:border-gray-600 hover:border-primary dark:hover:border-primary-400 hover:bg-primary/10 dark:hover:bg-primary/20 text-charcoal dark:text-gray-200 rounded-xl transition-all shadow-md hover:shadow-lg"
+                          title="Settle Up"
+                        >
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="text-xs font-bold">Settle</span>
+                        </motion.button>
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          whileHover={{ scale: 1.05 }}
+                          onClick={() => setActiveScreen('profile')}
+                          className="flex flex-col items-center justify-center gap-1.5 py-3 px-2 bg-white dark:bg-gray-700 border-2 border-stone-300 dark:border-gray-600 hover:border-primary dark:hover:border-primary-400 hover:bg-primary/10 dark:hover:bg-primary/20 text-charcoal dark:text-gray-200 rounded-xl transition-all shadow-md hover:shadow-lg"
+                          title="Manage Users"
+                        >
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                          </svg>
+                          <span className="text-xs font-bold">Users</span>
+                        </motion.button>
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
 
-                {/* Groups Section */}
+                {/* Groups Section - Compact & Slick */}
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-              className="px-4 py-3 sm:px-6 sm:py-4 bg-white dark:bg-gray-700 border-t-2 border-stone-200 dark:border-gray-600"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg sm:text-xl font-sans font-extrabold text-charcoal dark:text-gray-100 tracking-tight">Groups</h3>
-                    <motion.button 
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        if (activeGroupId) {
-                          setEditingGroupDebt(calculateGroupDebt(activeGroupId));
-                          setEditingGroupId(activeGroupId);
-                          setIsGroupManagementModalOpen(true);
-                        }
-                      }}
-                      className="text-sm text-primary dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-400 transition-colors font-bold"
-                    >
-                      Manage →
-                    </motion.button>
+                  className="px-4 py-2.5 sm:px-6 sm:py-3 bg-white dark:bg-gray-700 border-t-2 border-stone-200 dark:border-gray-600"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-base sm:text-lg font-sans font-extrabold text-charcoal dark:text-gray-100 tracking-tight">Groups</h3>
+                    <div className="flex items-center gap-3">
+                      <motion.button 
+                        whileTap={{ scale: 0.98 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsCreateGroupModalOpen(true);
+                        }}
+                        className="text-xs sm:text-sm text-primary dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-400 transition-colors font-semibold"
+                      >
+                        Create
+                      </motion.button>
+                      <motion.button 
+                        whileTap={{ scale: 0.98 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveScreen('groups');
+                        }}
+                        className="text-xs sm:text-sm text-[#1E3450] dark:text-[#1E3450] hover:opacity-80 transition-colors font-semibold"
+                      >
+                        Manage →
+                      </motion.button>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {groups.map((group, index) => (
+                  <div className="grid grid-cols-2 gap-2">
+                    {activeGroups.map((group, index) => (
                       <motion.button
                         key={group.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 + index * 0.1 }}
-                        whileHover={{ scale: 1.01 }}
+                        whileHover={{ scale: 1.02, y: -1 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => handleSetActiveGroup(group.id)}
-                        className={`flex items-center gap-3 p-4 rounded-2xl transition-all text-left border-2 ${
+                        className={`flex items-center gap-2.5 p-2.5 sm:p-3 rounded-xl transition-all text-left border ${
                           activeGroupId === group.id 
-                            ? 'bg-gradient-to-br from-primary-100 via-primary-50 to-white dark:from-primary/40 dark:via-primary/30 dark:to-gray-700 border-primary dark:border-primary-400 text-primary dark:text-primary-200 shadow-xl ring-2 ring-primary/30 dark:ring-primary/40' 
-                            : 'bg-white dark:bg-gray-700 hover:bg-primary/5 dark:hover:bg-gray-600 border-stone-300 dark:border-gray-600 hover:border-primary/60 dark:hover:border-primary/50 shadow-lg hover:shadow-xl'
+                            ? 'bg-gradient-to-br from-primary-100 via-primary-50 to-white dark:from-primary/40 dark:via-primary/30 dark:to-gray-700 border-primary dark:border-primary-400 text-primary dark:text-primary-200 shadow-lg ring-1 ring-primary/30 dark:ring-primary/40' 
+                            : 'bg-white dark:bg-gray-700 hover:bg-primary/5 dark:hover:bg-gray-600 border-stone-200 dark:border-gray-600 hover:border-primary/50 dark:hover:border-primary/40 shadow-sm hover:shadow-md'
                         }`}
                       >
-                        <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border-2 ${
+                        <div className={`flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border ${
                           activeGroupId === group.id 
-                            ? 'bg-white dark:bg-primary/20 border-primary dark:border-primary-400' 
+                            ? 'bg-white dark:bg-primary/20 border-primary dark:border-primary-400 shadow-sm' 
                             : 'bg-white dark:bg-gray-600 border-stone-200 dark:border-gray-500'
                         }`}>
                           <GroupIcon 
                             groupName={group.name} 
-                            className={`w-5 h-5 ${
+                            className={`w-4 h-4 sm:w-5 sm:h-5 ${
                               activeGroupId === group.id 
                                 ? 'text-primary dark:text-primary-300' 
                                 : 'text-charcoal dark:text-gray-300'
@@ -1381,40 +1549,25 @@ const App: React.FC = () => {
                           />
                         </div>
                         <div className="flex-grow min-w-0">
-                          <p className={`text-base font-sans font-extrabold truncate ${
+                          <p className={`text-sm sm:text-base font-sans font-extrabold truncate leading-tight ${
                             activeGroupId === group.id 
                               ? 'text-primary dark:text-primary-200' 
                               : 'text-charcoal dark:text-gray-100'
                           }`}>{group.name}</p>
-                          <p className={`text-sm font-medium mt-0.5 ${
+                          <p className={`text-xs font-medium mt-0.5 ${
                             activeGroupId === group.id 
                               ? 'text-primary/70 dark:text-primary-300' 
                               : 'text-sage dark:text-gray-400'
                           }`}>
-                            {group.members.length} member{group.members.length !== 1 ? 's' : ''}
+                            {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
                           </p>
                         </div>
                         {activeGroupId === group.id && (
-                          <div className="flex-shrink-0 w-2 h-2 bg-primary dark:bg-primary-300 rounded-full animate-pulse shadow-lg"></div>
+                          <div className="flex-shrink-0 w-1.5 h-1.5 bg-primary dark:bg-primary-300 rounded-full animate-pulse"></div>
                         )}
                       </motion.button>
                     ))}
                     
-                    {/* Create New Group - Full Width */}
-                    <motion.button
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 + groups.length * 0.1 }}
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setActiveScreen('groups')}
-                      className="col-span-2 flex items-center justify-center gap-2.5 p-3.5 rounded-xl bg-gradient-to-r from-stone-50 to-white dark:from-gray-700 dark:to-gray-700 hover:from-primary/10 hover:to-primary/5 dark:hover:from-primary/20 dark:hover:to-primary/10 transition-all border-2 border-dashed border-stone-300 dark:border-gray-600 hover:border-primary dark:hover:border-primary-400 shadow-sm hover:shadow-md"
-                    >
-                      <div className="w-7 h-7 rounded-full bg-white dark:bg-gray-600 flex items-center justify-center">
-                        <span className="text-sage text-xs">+</span>
-                      </div>
-                      <span className="text-sm font-medium text-sage dark:text-slate-400">Create New Group</span>
-                    </motion.button>
                   </div>
                 </motion.div>
 
@@ -1492,41 +1645,6 @@ const App: React.FC = () => {
                   </div>
                 </motion.div>
 
-                {/* Quick Actions Section */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="px-4 py-3 sm:px-6 sm:py-4 bg-gradient-to-br from-white via-primary/5 to-white dark:from-gray-700 dark:via-primary/10 dark:to-gray-700 border-t-2 border-stone-200 dark:border-gray-600"
-              >
-                  <h3 className="text-base sm:text-lg font-sans font-extrabold text-charcoal dark:text-gray-100 mb-3 tracking-tight">Quick Actions</h3>
-                  <div className="flex gap-3">
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setActiveScreen('add')}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-primary to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all text-sm font-bold"
-                    >
-                      <span className="text-base">+</span>
-                      <span>Add</span>
-                    </motion.button>
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleOpenSettleUp}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-white dark:bg-gray-700 border-2 border-stone-300 dark:border-gray-600 hover:border-primary dark:hover:border-primary-400 hover:bg-primary/10 dark:hover:bg-primary/20 text-charcoal dark:text-gray-200 rounded-xl transition-all text-sm font-bold shadow-md hover:shadow-lg"
-                    >
-                      <span className="text-base">$</span>
-                      <span>Settle</span>
-                    </motion.button>
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setActiveScreen('profile')}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-white dark:bg-gray-700 border-2 border-stone-300 dark:border-gray-600 hover:border-primary dark:hover:border-primary-400 hover:bg-primary/10 dark:hover:bg-primary/20 text-charcoal dark:text-gray-200 rounded-xl transition-all text-sm font-bold shadow-md hover:shadow-lg"
-                    >
-                      <span className="text-base">⚙</span>
-                      <span>Users</span>
-                    </motion.button>
-                  </div>
-                </motion.div>
               </>
             )}
             
@@ -1620,6 +1738,7 @@ const App: React.FC = () => {
           onClose={() => setIsSettleUpModalOpen(false)}
           expenses={activeGroupExpenses}
           members={activeGroupMembers}
+          currency={activeGroup.currency}
           onRecordPayment={handleRecordPayment}
         />
       )}
@@ -1647,6 +1766,8 @@ const App: React.FC = () => {
               currentUserId={currentUser.id}
               onSave={handleSaveGroupChanges}
               onDelete={handleDeleteGroup}
+              onArchive={handleArchiveGroup}
+              onUnarchive={handleUnarchiveGroup}
               totalDebt={editingGroupDebt}
               onCreateUser={handleCreateUser}
               groupInvites={groupInvites}
@@ -1689,6 +1810,12 @@ const App: React.FC = () => {
               allExpenses={activeGroupExpenses}
           />
       )}
+
+      <CreateGroupModal
+        isOpen={isCreateGroupModalOpen}
+        onClose={() => setIsCreateGroupModalOpen(false)}
+        onCreate={handleCreateGroup}
+      />
     </div>
   );
 };

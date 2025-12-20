@@ -52,3 +52,39 @@ export const sendGroupInviteEmail = async (data: EmailInviteData): Promise<{ suc
   }
 };
 
+export interface FeedbackData {
+  type: 'bug' | 'feature' | 'general';
+  subject: string;
+  message: string;
+  userEmail?: string;
+  userName?: string;
+}
+
+/**
+ * Send feedback email using Firebase Functions
+ */
+export const sendFeedbackEmail = async (data: FeedbackData): Promise<{ success: boolean; messageId?: string; message: string }> => {
+  try {
+    // Call the Firebase Function
+    const sendFeedback = httpsCallable(functions, 'sendFeedbackEmail');
+    const result = await sendFeedback(data);
+    
+    console.log('Feedback email sent successfully via Firebase Functions:', result.data);
+    
+    return {
+      success: true,
+      messageId: result.data?.messageId,
+      message: 'Thank you for your feedback! We\'ll review it soon.'
+    };
+  } catch (error: any) {
+    console.error('Feedback email sending error:', error);
+    
+    // Handle Firebase Functions errors
+    if (error.code === 'functions/invalid-argument') {
+      throw new Error('Please fill in all required fields');
+    } else {
+      throw new Error(error.message || 'Failed to send feedback. Please try again.');
+    }
+  }
+};
+

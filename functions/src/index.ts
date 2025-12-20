@@ -270,3 +270,208 @@ export const sendGroupInviteEmail = functions.https.onCall(async (data: EmailInv
     throw new functions.https.HttpsError('internal', error.message || 'Failed to send invitation email');
   }
 });
+
+export interface FeedbackData {
+  type: 'bug' | 'feature' | 'general';
+  subject: string;
+  message: string;
+  userEmail?: string;
+  userName?: string;
+}
+
+/**
+ * Generate HTML email template for feedback
+ */
+const generateFeedbackEmailHTML = (data: FeedbackData): string => {
+  const typeLabels = {
+    bug: '🐛 Bug Report',
+    feature: '💡 Feature Request',
+    general: '😊 General Feedback'
+  };
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SplitBi Feedback</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #374151;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9fafb;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: white;
+            padding: 32px 24px;
+            text-align: center;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .content {
+            padding: 32px 24px;
+        }
+        .feedback-type {
+            background-color: #f3f4f6;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-weight: 600;
+            color: #111827;
+        }
+        .subject {
+            font-size: 20px;
+            font-weight: bold;
+            color: #111827;
+            margin-bottom: 16px;
+        }
+        .message {
+            font-size: 16px;
+            color: #4b5563;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            background-color: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #0ea5e9;
+        }
+        .user-info {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .footer {
+            background-color: #f9fafb;
+            padding: 24px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+        .footer-text {
+            font-size: 14px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">SplitBi</div>
+            <div style="font-size: 14px; opacity: 0.9;">New Feedback Received</div>
+        </div>
+        
+        <div class="content">
+            <div class="feedback-type">${typeLabels[data.type]}</div>
+            
+            <div class="subject">${data.subject}</div>
+            
+            <div class="message">${data.message}</div>
+            
+            ${data.userEmail || data.userName ? `
+            <div class="user-info">
+                ${data.userName ? `<strong>From:</strong> ${data.userName}<br>` : ''}
+                ${data.userEmail ? `<strong>Email:</strong> ${data.userEmail}` : ''}
+            </div>
+            ` : ''}
+        </div>
+        
+        <div class="footer">
+            <p class="footer-text">
+                This feedback was submitted from <a href="https://splitbi.app" style="color: #0ea5e9; text-decoration: none;">SplitBi</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+  `;
+};
+
+/**
+ * Generate plain text email for feedback
+ */
+const generateFeedbackEmailText = (data: FeedbackData): string => {
+  const typeLabels = {
+    bug: '🐛 Bug Report',
+    feature: '💡 Feature Request',
+    general: '😊 General Feedback'
+  };
+
+  return `
+SplitBi - Feedback Submission
+
+${typeLabels[data.type]}
+
+Subject: ${data.subject}
+
+Message:
+${data.message}
+
+${data.userName || data.userEmail ? `
+From: ${data.userName || 'Anonymous'}${data.userEmail ? ` (${data.userEmail})` : ''}
+` : ''}
+
+---
+This feedback was submitted from SplitBi (https://splitbi.app)
+  `.trim();
+};
+
+/**
+ * Firebase Function to send feedback emails
+ */
+export const sendFeedbackEmail = functions.https.onCall(async (data: FeedbackData, context) => {
+  // Validate required fields
+  if (!data.type || !data.subject || !data.message) {
+    throw new functions.https.HttpsError('invalid-argument', 'Missing required feedback data');
+  }
+
+  // Validate feedback type
+  if (!['bug', 'feature', 'general'].includes(data.type)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid feedback type');
+  }
+
+  // Validate email format if provided
+  if (data.userEmail) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.userEmail)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Invalid email format');
+    }
+  }
+
+  try {
+    const { data: emailData, error } = await resend.emails.send({
+      from: 'SplitBi Feedback <onboarding@resend.dev>',
+      to: ['feedback@splitbi.app'],
+      reply_to: data.userEmail || undefined,
+      subject: `[SplitBi ${data.type === 'bug' ? 'Bug' : data.type === 'feature' ? 'Feature' : 'Feedback'}] ${data.subject}`,
+      html: generateFeedbackEmailHTML(data),
+      text: generateFeedbackEmailText(data),
+    });
+
+    if (error) {
+      console.error('Resend error:', error);
+      throw new functions.https.HttpsError('internal', `Failed to send email: ${error.message}`);
+    }
+
+    console.log('Feedback email sent successfully:', emailData);
+    return { success: true, messageId: emailData?.id };
+  } catch (error: any) {
+    console.error('Feedback email sending error:', error);
+    throw new functions.https.HttpsError('internal', error.message || 'Failed to send feedback email');
+  }
+});

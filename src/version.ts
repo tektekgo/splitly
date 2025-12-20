@@ -1,8 +1,8 @@
 // Auto-generated at build time - DO NOT EDIT MANUALLY
 export const VERSION_MAJOR = 1;
 export const VERSION_MINOR = 0;
-export const VERSION_PATCH = 33;
-export const BUILD_DATE = '2025-12-20T16:14:58.218Z';
+export const VERSION_PATCH = 35;
+export const BUILD_DATE = '2025-12-20T18:35:23.400Z';
 
 export function getVersionString(): string {
   const date = new Date(BUILD_DATE);

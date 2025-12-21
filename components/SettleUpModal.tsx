@@ -11,10 +11,11 @@ interface SettleUpModalProps {
   expenses: FinalExpense[];
   members: User[];
   currency: string;
+  currentUserId: string;
   onRecordPayment: (payment: SimplifiedDebt) => void;
 }
 
-const SettleUpModal: React.FC<SettleUpModalProps> = ({ isOpen, onClose, expenses, members, currency, onRecordPayment }) => {
+const SettleUpModal: React.FC<SettleUpModalProps> = ({ isOpen, onClose, expenses, members, currency, currentUserId, onRecordPayment }) => {
   const [selectedPayment, setSelectedPayment] = useState<SimplifiedDebt | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
@@ -24,7 +25,10 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({ isOpen, onClose, expenses
 
     expenses.forEach(expense => {
       const payerInGroup = balances.has(expense.paidBy);
-      if (payerInGroup) {
+      // Only process expenses that have splits with 2+ people - expenses without proper splits shouldn't affect balances
+      // Exception: Payment expenses (category === 'Payment') represent money transfers and should always be processed
+      const isPayment = expense.category === 'Payment';
+      if (payerInGroup && expense.splits && (isPayment ? expense.splits.length >= 1 : expense.splits.length >= 2)) {
           const payerBalance = balances.get(expense.paidBy) || 0;
           balances.set(expense.paidBy, payerBalance + expense.amount);
           expense.splits.forEach(split => {
@@ -36,8 +40,11 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({ isOpen, onClose, expenses
       }
     });
     
-    return simplifyDebts(balances);
-  }, [expenses, members]);
+    const allDebts = simplifyDebts(balances);
+    
+    // Filter to show only debts where current user is involved (either owes or is owed)
+    return allDebts.filter(debt => debt.from === currentUserId || debt.to === currentUserId);
+  }, [expenses, members, currentUserId]);
 
   if (!isOpen) return null;
 
@@ -63,63 +70,123 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({ isOpen, onClose, expenses
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-center text-text-secondary-light dark:text-text-secondary-dark bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
-                Here is the simplest way to settle all debts. Record payments as they happen.
+                Your debts in this group. Record payments as they happen.
               </p>
-              <ul className="divide-y divide-border-light dark:divide-border-dark">
-                {simplifiedDebts.map((debt, index) => {
-                  const fromUser = getUserById(debt.from);
-                  const toUser = getUserById(debt.to);
-                  if (!fromUser || !toUser) return null;
-                  
-                  // Check if recipient has payment info set up
-                  const recipientPaymentInfo = toUser.paymentInfo || {};
-                  const hasPaymentMethods = !!(recipientPaymentInfo.venmo || recipientPaymentInfo.zelle || recipientPaymentInfo.cashApp);
-                  
-                  return (
-                    <li key={index} className="py-4 flex items-center justify-between">
-                      <div className="flex items-center space-x-3 text-sm">
-                        <div className="flex -space-x-2">
-                           <img src={fromUser.avatarUrl} alt={fromUser.name} className="w-10 h-10 rounded-full border-2 border-white dark:border-gray-800"/>
-                           <img src={toUser.avatarUrl} alt={toUser.name} className="w-10 h-10 rounded-full border-2 border-white dark:border-gray-800"/>
-                        </div>
-                        <p className="font-medium text-text-primary-light dark:text-text-primary-dark">
-                          {fromUser.name.replace(' (You)', '')} <span className="font-normal text-text-secondary-light dark:text-text-secondary-dark">pays</span> {toUser.name.replace(' (You)', '')}
-                          <span className="block text-lg font-bold text-primary">{formatCurrency(debt.amount, currency)}</span>
-                          {!hasPaymentMethods && (
-                            <span className="block text-xs text-sage dark:text-gray-400 mt-0.5">
-                              No payment info set up
-                            </span>
-                          )}
-                        </p>
+              
+              {/* Separate "You Owe" and "You Are Owed" sections */}
+              {(() => {
+                const debtsYouOwe = simplifiedDebts.filter(debt => debt.from === currentUserId);
+                const debtsOwedToYou = simplifiedDebts.filter(debt => debt.to === currentUserId);
+                
+                return (
+                  <>
+                    {/* You Owe Section */}
+                    {debtsYouOwe.length > 0 && (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wide">
+                          You Owe
+                        </h3>
+                        <ul className="divide-y divide-border-light dark:divide-border-dark">
+                          {debtsYouOwe.map((debt, index) => {
+                            const fromUser = getUserById(debt.from);
+                            const toUser = getUserById(debt.to);
+                            if (!fromUser || !toUser) return null;
+                            
+                            // Check if recipient has payment info set up
+                            const recipientPaymentInfo = toUser.paymentInfo || {};
+                            const hasPaymentMethods = !!(recipientPaymentInfo.venmo || recipientPaymentInfo.zelle || recipientPaymentInfo.cashApp);
+                            
+                            return (
+                              <li key={`owe-${index}`} className="py-4 flex items-center justify-between">
+                                <div className="flex items-center space-x-3 text-sm">
+                                  <div className="flex -space-x-2">
+                                     <img src={fromUser.avatarUrl} alt={fromUser.name} className="w-10 h-10 rounded-full border-2 border-white dark:border-gray-800"/>
+                                     <img src={toUser.avatarUrl} alt={toUser.name} className="w-10 h-10 rounded-full border-2 border-white dark:border-gray-800"/>
+                                  </div>
+                                  <p className="font-medium text-text-primary-light dark:text-text-primary-dark">
+                                    You <span className="font-normal text-text-secondary-light dark:text-text-secondary-dark">pay</span> {toUser.name.replace(' (You)', '')}
+                                    <span className="block text-lg font-bold text-orange-600 dark:text-orange-400">{formatCurrency(debt.amount, currency)}</span>
+                                    {!hasPaymentMethods && (
+                                      <span className="block text-xs text-sage dark:text-gray-400 mt-0.5">
+                                        No payment info set up
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => {
+                                      setSelectedPayment(debt);
+                                      setIsPaymentModalOpen(true);
+                                    }}
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 transition-colors ${
+                                      hasPaymentMethods 
+                                        ? 'text-white bg-primary hover:bg-primary-700' 
+                                        : 'text-sage dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                    }`}
+                                    title={hasPaymentMethods ? 'Pay via Venmo, Zelle, or Cash App' : 'Recipient needs to add payment info in Profile'}
+                                  >
+                                    Pay
+                                  </motion.button>
+                                  <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => onRecordPayment(debt)}
+                                    className="px-3 py-1.5 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 transition-colors"
+                                  >
+                                    Mark As Paid
+                                  </motion.button>
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <motion.button
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => {
-                            setSelectedPayment(debt);
-                            setIsPaymentModalOpen(true);
-                          }}
-                          className={`px-3 py-1.5 text-sm font-medium rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 transition-colors ${
-                            hasPaymentMethods 
-                              ? 'text-white bg-primary hover:bg-primary-700' 
-                              : 'text-sage dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
-                          }`}
-                          title={hasPaymentMethods ? 'Pay via Venmo, Zelle, or Cash App' : 'Recipient needs to add payment info in Profile'}
-                        >
-                          Pay
-                        </motion.button>
-                        <motion.button
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => onRecordPayment(debt)}
-                          className="px-3 py-1.5 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 transition-colors"
-                        >
-                          Mark As Paid
-                        </motion.button>
+                    )}
+                    
+                    {/* You Are Owed Section */}
+                    {debtsOwedToYou.length > 0 && (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-semibold text-primary dark:text-primary-400 uppercase tracking-wide">
+                          You Are Owed
+                        </h3>
+                        <ul className="divide-y divide-border-light dark:divide-border-dark">
+                          {debtsOwedToYou.map((debt, index) => {
+                            const fromUser = getUserById(debt.from);
+                            const toUser = getUserById(debt.to);
+                            if (!fromUser || !toUser) return null;
+                            
+                            return (
+                              <li key={`owed-${index}`} className="py-4 flex items-center justify-between">
+                                <div className="flex items-center space-x-3 text-sm">
+                                  <div className="flex -space-x-2">
+                                     <img src={fromUser.avatarUrl} alt={fromUser.name} className="w-10 h-10 rounded-full border-2 border-white dark:border-gray-800"/>
+                                     <img src={toUser.avatarUrl} alt={toUser.name} className="w-10 h-10 rounded-full border-2 border-white dark:border-gray-800"/>
+                                  </div>
+                                  <p className="font-medium text-text-primary-light dark:text-text-primary-dark">
+                                    {fromUser.name.replace(' (You)', '')} <span className="font-normal text-text-secondary-light dark:text-text-secondary-dark">pays</span> You
+                                    <span className="block text-lg font-bold text-primary dark:text-primary-400">{formatCurrency(debt.amount, currency)}</span>
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => onRecordPayment(debt)}
+                                    className="px-3 py-1.5 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 transition-colors"
+                                    title="Mark as received"
+                                  >
+                                    Mark As Paid
+                                  </motion.button>
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
                       </div>
-                    </li>
-                  )
-                })}
-              </ul>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           )}
         </div>

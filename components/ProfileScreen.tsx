@@ -1,14 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import type { User, GroupInvite } from '../types';
+import type { User, GroupInvite, Group } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import InfoTooltip from './InfoTooltip';
 import { DeleteIcon } from './icons';
 import { getDatabaseStats, exportAllData, findOrphanedData, runCurrencyMigrationAdmin, deleteUserAndData, getAllUsers, type DatabaseStats, type DeleteUserResult } from '../utils/adminTools';
 import VersionFooter from './VersionFooter';
+import { formatCurrency } from '../utils/currencyFormatter';
 
 interface ProfileScreenProps {
     users: User[];
+    groups?: Group[];
     onCreateUser: (name: string) => void;
     onDeleteGuestUser: (userId: string) => void;
     onUpdatePaymentInfo?: (paymentInfo: { venmo?: string; zelle?: string; cashApp?: string }, userId?: string) => void;
@@ -16,10 +18,13 @@ interface ProfileScreenProps {
     onOpenGroupManagement?: () => void;
     onOpenGroupSelector?: () => void;
     groupInvites?: GroupInvite[];
-    onResendInvite?: (inviteId: string) => void;
+    onDeleteInvite?: (inviteId: string) => void;
+    onClearCompletedInvites?: () => void;
+    onUnarchiveGroup?: (groupId: string) => void;
+    currentUserId?: string;
 }
 
-const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDeleteGuestUser, onUpdatePaymentInfo, onOpenInviteModal, onOpenGroupManagement, onOpenGroupSelector, groupInvites = [], onResendInvite }) => {
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, groups = [], onCreateUser, onDeleteGuestUser, onUpdatePaymentInfo, onOpenInviteModal, onOpenGroupManagement, onOpenGroupSelector, groupInvites = [], onDeleteInvite, onClearCompletedInvites, onUnarchiveGroup, currentUserId }) => {
     const { currentUser } = useAuth();
     const [newUserName, setNewUserName] = useState('');
     const [stats, setStats] = useState<DatabaseStats | null>(null);
@@ -412,7 +417,26 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                 {/* Invite Status Section */}
                 {groupInvites.length > 0 && (
                     <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-slate-200 dark:border-gray-600">
-                        <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">Invite Status</h3>
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Invite Status</h3>
+                            {onClearCompletedInvites && (() => {
+                                const completedInvites = groupInvites.filter(inv => {
+                                    if (inv.status === 'pending') {
+                                        return new Date(inv.expiresAt) < new Date(); // Expired
+                                    }
+                                    return inv.status === 'accepted' || inv.status === 'declined';
+                                });
+                                return completedInvites.length > 0 ? (
+                                    <button
+                                        onClick={onClearCompletedInvites}
+                                        className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400 rounded hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
+                                        title="Clear all completed invites"
+                                    >
+                                        Clear Completed ({completedInvites.length})
+                                    </button>
+                                ) : null;
+                            })()}
+                        </div>
                         <div className="space-y-2">
                             {groupInvites.map(invite => {
                                 const isExpired = new Date(invite.expiresAt) < new Date();
@@ -447,13 +471,13 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                                             <span className={`text-xs font-medium ${statusColor}`}>
                                                 {statusText}
                                             </span>
-                                            {invite.status === 'pending' && !isExpired && onResendInvite && (
+                                            {onDeleteInvite && (
                                                 <button
-                                                    onClick={() => onResendInvite(invite.id)}
-                                                    className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded hover:bg-blue-200 dark:hover:bg-blue-900/30 transition-colors"
-                                                    title="Resend invite"
+                                                    onClick={() => onDeleteInvite(invite.id)}
+                                                    className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex-shrink-0"
+                                                    title="Delete invite"
                                                 >
-                                                    Resend
+                                                    🗑️
                                                 </button>
                                             )}
                                         </div>
@@ -463,6 +487,64 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, onCreateUser, onDe
                         </div>
                     </div>
                 )}
+
+                {/* Archived Groups Section */}
+                {(() => {
+                    const archivedGroupsList = groups.filter(g => g.archived);
+                    return archivedGroupsList.length > 0 ? (
+                        <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-slate-200 dark:border-gray-600">
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Archived Groups</h3>
+                                <span className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-gray-600 px-2 py-0.5 rounded-full">
+                                    {archivedGroupsList.length}
+                                </span>
+                            </div>
+                            <div className="space-y-2">
+                                {archivedGroupsList.map(group => {
+                                    const isCreatedByUser = currentUserId && group.createdBy === currentUserId;
+                                    return (
+                                        <div key={group.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-gray-600 rounded-md">
+                                            <div className="flex-grow min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <p className="text-base font-bold text-slate-800 dark:text-slate-100 truncate">
+                                                        {group.name}
+                                                    </p>
+                                                    {isCreatedByUser && (
+                                                        <svg 
+                                                            className="w-3.5 h-3.5 flex-shrink-0 text-amber-500 dark:text-amber-400"
+                                                            fill="currentColor" 
+                                                            viewBox="0 0 20 20"
+                                                            title="You created this group"
+                                                        >
+                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                    {group.members.length} {group.members.length === 1 ? 'member' : 'members'} • Archived {group.archivedAt ? new Date(group.archivedAt).toLocaleDateString() : 'recently'}
+                                                </p>
+                                            </div>
+                                            {onUnarchiveGroup && (
+                                                <motion.button
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={() => {
+                                                        if (window.confirm(`Unarchive "${group.name}"? It will appear in your active groups again.`)) {
+                                                            onUnarchiveGroup(group.id);
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1.5 text-xs bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary-300 rounded-md hover:bg-primary/20 dark:hover:bg-primary/30 transition-colors font-medium flex-shrink-0"
+                                                    title="Unarchive group"
+                                                >
+                                                    Restore
+                                                </motion.button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ) : null;
+                })()}
 
                 {/* ⚠️ ADMIN TOOLS - Only visible to admins */}
                 {isAdmin && (

@@ -37,6 +37,10 @@ dist-ssr
 # Firebase
 .firebase/
 
+# Cloud Functions build output
+functions/lib/
+functions/node_modules/
+
 # Capacitor
 android/build/
 android/app/build/

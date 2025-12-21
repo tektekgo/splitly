@@ -16,7 +16,8 @@ const SplitEqually: React.FC<SplitEquallyProps> = ({ totalAmount, members, curre
     if (initialSplits && initialSplits.length > 0) {
         return new Set(initialSplits.map(s => s.userId));
     }
-    return new Set(members.map(m => m.id));
+    // Start with no members selected - user must explicitly select at least 2 people
+    return new Set();
   });
 
   const handleToggleMember = (memberId: string) => {
@@ -38,7 +39,11 @@ const SplitEqually: React.FC<SplitEquallyProps> = ({ totalAmount, members, curre
 
   useEffect(() => {
     if (selectedMembers.size === 0) {
-      onUpdateSplits([], 'At least one person must be selected to split the expense.');
+      onUpdateSplits([], 'Please select at least 2 people to split the expense.');
+      return;
+    }
+    if (selectedMembers.size === 1) {
+      onUpdateSplits([], 'An expense must be split between at least 2 people. There\'s nothing to split if only one person is involved.');
       return;
     }
     const splits = Array.from(selectedMembers).map(userId => ({

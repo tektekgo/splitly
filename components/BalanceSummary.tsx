@@ -72,10 +72,21 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ expenses, group, member
             memberBalances.set(member.id, 0);
         });
 
+        // Deduplicate expenses by ID first
+        const uniqueExpenses = new Map<string, FinalExpense>();
         expenses.forEach(expense => {
+          if (!uniqueExpenses.has(expense.id)) {
+            uniqueExpenses.set(expense.id, expense);
+          }
+        });
+        const deduplicatedExpenses = Array.from(uniqueExpenses.values());
+
+        deduplicatedExpenses.forEach(expense => {
             // Only consider expenses relevant to the current group's members
+            // Regular expenses need 2+ people in splits. Payment expenses only need 1 (payer in splits, recipient is paidBy)
             const payerInGroup = memberBalances.has(expense.paidBy);
-            if (payerInGroup) {
+            const isPayment = expense.category === 'Payment';
+            if (payerInGroup && expense.splits && (isPayment ? expense.splits.length >= 1 : expense.splits.length >= 2)) {
                 const payerBalance = memberBalances.get(expense.paidBy) || 0;
                 memberBalances.set(expense.paidBy, payerBalance + expense.amount);
                 expense.splits.forEach(split => {

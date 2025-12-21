@@ -137,6 +137,10 @@ service cloud.firestore {
       allow update: if request.auth != null && 
         request.auth.uid == resource.data.invitedBy;
       
+      // Allow deleting invites you sent
+      allow delete: if request.auth != null && 
+        request.auth.uid == resource.data.invitedBy;
+      
       // Allow updating invites sent to your email (for accepting/declining)
       allow update: if request.auth != null && 
         resource.data.invitedEmail == request.auth.token.email &&

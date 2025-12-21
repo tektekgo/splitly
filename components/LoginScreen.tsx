@@ -20,11 +20,12 @@ const LoginScreen: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Check for password reset code from URL or sessionStorage
+  // Check for password reset code or invite link from URL or sessionStorage
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('mode');
     const actionCode = urlParams.get('oobCode');
+    const inviteId = urlParams.get('invite');
     
     if (mode === 'resetPassword' && actionCode) {
       // Verify the code is valid
@@ -40,6 +41,12 @@ const LoginScreen: React.FC = () => {
           setError('Invalid or expired reset link. Please request a new one.');
           console.error('Password reset code verification failed:', err);
         });
+    } else if (inviteId) {
+      // Store invite ID for processing after signup/login
+      sessionStorage.setItem('pendingInviteId', inviteId);
+      setSuccess('You have a group invite! Sign up or log in to accept it.');
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
     } else {
       // Check sessionStorage (set by App.tsx)
       const storedCode = sessionStorage.getItem('passwordResetCode');
@@ -95,7 +102,12 @@ const LoginScreen: React.FC = () => {
         await signInWithEmail(email, password);
       }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      // Check if user doesn't exist - suggest signing up instead
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+        setError('No account found with this email. Please sign up instead, or check if you received an invite link.');
+      } else {
+        setError(err.message || 'Authentication failed');
+      }
     } finally {
       setLoading(false);
     }

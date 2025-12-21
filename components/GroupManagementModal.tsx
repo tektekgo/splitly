@@ -17,9 +17,10 @@ interface GroupManagementModalProps {
   onCreateUser: (name: string) => Promise<void>;
   groupInvites?: GroupInvite[];
   onInviteMember?: () => void;
+  onDeleteInvite?: (inviteId: string) => void;
 }
 
-const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onClose, group, allUsers, currentUserId, onSave, onDelete, onArchive, onUnarchive, totalDebt, onCreateUser, groupInvites = [], onInviteMember }) => {
+const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onClose, group, allUsers, currentUserId, onSave, onDelete, onArchive, onUnarchive, totalDebt, onCreateUser, groupInvites = [], onInviteMember, onDeleteInvite }) => {
   const [groupName, setGroupName] = useState(group.name);
   const [memberIds, setMemberIds] = useState(group.members);
   const [selectedUserToAdd, setSelectedUserToAdd] = useState('');
@@ -45,6 +46,16 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
   const availableUsersToAdd = useMemo(() => {
     return allUsers.filter(u => !memberIds.includes(u.id));
   }, [allUsers, memberIds]);
+  
+  // Helper to count how many users have the same name (for display purposes)
+  const getUsersWithSameName = useMemo(() => {
+    const nameCounts = new Map<string, number>();
+    availableUsersToAdd.forEach(u => {
+      const count = nameCounts.get(u.name.toLowerCase()) || 0;
+      nameCounts.set(u.name.toLowerCase(), count + 1);
+    });
+    return nameCounts;
+  }, [availableUsersToAdd]);
 
   const isDeleteDisabled = totalDebt > 0.01;
   const isArchived = group.archived || false;
@@ -54,6 +65,25 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
 
   const handleAddMember = () => {
     if (selectedUserToAdd && !memberIds.includes(selectedUserToAdd)) {
+      const userToAdd = allUsers.find(u => u.id === selectedUserToAdd);
+      if (!userToAdd) return;
+      
+      // Check if a member with the same name already exists in the group
+      const existingMemberWithSameName = currentMembers.find(
+        m => m.name.toLowerCase() === userToAdd.name.toLowerCase()
+      );
+      
+      if (existingMemberWithSameName) {
+        const confirmMessage = `A member named "${userToAdd.name}" already exists in this group.\n\n` +
+          `Would you like to add another member with the same name?\n\n` +
+          `(Note: You'll have multiple members with the same name, which may be confusing.)`;
+        
+        if (!window.confirm(confirmMessage)) {
+          setSelectedUserToAdd(''); // Clear selection
+          return; // User cancelled
+        }
+      }
+      
       setMemberIds([...memberIds, selectedUserToAdd]);
       setSelectedUserToAdd('');
     }
@@ -74,7 +104,13 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
         alert('Group name cannot be empty.');
         return;
     }
-    onSave({ ...group, name: groupName, members: memberIds });
+    // Remove any duplicate member IDs before saving
+    const uniqueMemberIds = Array.from(new Set(memberIds));
+    if (uniqueMemberIds.length !== memberIds.length) {
+        console.warn('Duplicate members detected and removed:', memberIds.length - uniqueMemberIds.length);
+        setMemberIds(uniqueMemberIds);
+    }
+    onSave({ ...group, name: groupName, members: uniqueMemberIds });
   };
 
   const handleRequestDelete = () => {
@@ -93,7 +129,10 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg border border-stone-100 dark:border-gray-700" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">Manage Group</h2>
+          <div>
+            <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">Group Settings</h2>
+            <p className="text-sm text-sage dark:text-gray-400 mt-1">Manage members, invites, and settings for {group.name}</p>
+          </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
@@ -265,9 +304,18 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                           className="w-full px-2 py-1.5 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
                         >
                           <option value="" disabled>Select member...</option>
-                          {availableUsersToAdd.map(user => (
-                            <option key={user.id} value={user.id}>{user.name}</option>
-                          ))}
+                          {availableUsersToAdd.map((user, index) => {
+                            const sameNameCount = getUsersWithSameName.get(user.name.toLowerCase()) || 0;
+                            // If multiple users have the same name, show a number to distinguish them
+                            const displayName = sameNameCount > 1 
+                              ? `${user.name} (${availableUsersToAdd.filter((u, idx) => u.name.toLowerCase() === user.name.toLowerCase() && idx <= index).length} of ${sameNameCount})`
+                              : user.name;
+                            return (
+                              <option key={user.id} value={user.id}>
+                                {displayName}
+                              </option>
+                            );
+                          })}
                         </select>
                         <button
                           type="button"
@@ -303,16 +351,32 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                   <p className="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark mb-2">
                     Pending Invites:
                   </p>
-                  <ul className="space-y-1">
+                  <ul className="space-y-2">
                     {groupInvites
                       .filter(inv => inv.groupId === group.id && inv.status === 'pending')
-                      .map(invite => (
-                        <li key={invite.id} className="text-xs text-text-secondary-light dark:text-text-secondary-dark flex items-center gap-2">
-                          <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                          {invite.invitedEmail}
-                          <span className="text-gray-400">(waiting)</span>
-                        </li>
-                      ))
+                      .map(invite => {
+                        const isExpired = new Date(invite.expiresAt) < new Date();
+                        return (
+                          <li key={invite.id} className="text-xs text-text-secondary-light dark:text-text-secondary-dark flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 flex-grow min-w-0">
+                              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isExpired ? 'bg-orange-500' : 'bg-yellow-500'}`}></span>
+                              <span className="truncate">{invite.invitedEmail}</span>
+                              <span className="text-gray-400 flex-shrink-0">
+                                {isExpired ? '(expired)' : '(waiting)'}
+                              </span>
+                            </div>
+                            {onDeleteInvite && (
+                              <button
+                                onClick={() => onDeleteInvite(invite.id)}
+                                className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex-shrink-0"
+                                title="Delete invite"
+                              >
+                                🗑️
+                              </button>
+                            )}
+                          </li>
+                        );
+                      })
                     }
                   </ul>
                 </div>

@@ -100,6 +100,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
     if (!errorMsg) {
         if (numericAmount <= 0) errorMsg = 'Amount must be greater than 0.';
         else if (splits.length === 0) errorMsg = 'Expense must be split with at least one person.';
+        else if (splits.length === 1) errorMsg = 'An expense must be split between at least 2 people. There\'s nothing to split if only one person is involved.';
     }
 
     if (errorMsg) {
@@ -249,7 +250,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
         )}
         <button
           type="submit"
-          disabled={!!error || !description || numericAmount <= 0 || splits.length === 0}
+          disabled={!!error || !description || numericAmount <= 0 || splits.length < 2}
           className="w-full flex justify-center py-2 px-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-all"
         >
           {isEditing ? 'Update Expense' : 'Save Expense'}

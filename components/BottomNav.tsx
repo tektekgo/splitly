@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { HomeIcon, PlusCircleIcon, UsersIcon, UserCircleIcon, BellIcon } from './icons';
+import { HomeIcon, PlusCircleIcon, UserCircleIcon, BellIcon } from './icons';
 
 type Screen = 'dashboard' | 'add' | 'groups' | 'profile' | 'activity';
 
@@ -44,22 +44,13 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeScreen, onNavigate, notific
         <div className="w-full max-w-md sm:max-w-lg lg:max-w-xl mx-auto">
             <div className="bg-gradient-to-b from-stone-100 to-stone-100 dark:from-gray-800 dark:to-gray-800 border-x border-b border-stone-200 dark:border-gray-700 rounded-b-3xl overflow-hidden">
                 {/* Navigation Bar */}
-                <div className="h-20 grid grid-cols-5 items-end gap-1 px-3 sm:px-4 pb-2">
+                <div className="h-20 grid grid-cols-4 items-end gap-1 px-3 sm:px-4 pb-2">
             <div data-tour="dashboard-tab" className="flex flex-col items-center justify-end h-full">
               <NavItem
                   screen="dashboard"
                   label="Dashboard"
                   Icon={HomeIcon}
                   isActive={activeScreen === 'dashboard'}
-                  onClick={onNavigate}
-              />
-            </div>
-            <div data-tour="groups-tab" className="flex flex-col items-center justify-end h-full">
-              <NavItem
-                  screen="groups"
-                  label="Groups"
-                  Icon={UsersIcon}
-                  isActive={activeScreen === 'groups'}
                   onClick={onNavigate}
               />
             </div>

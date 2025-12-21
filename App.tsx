@@ -7,6 +7,7 @@ import ExpenseList from './components/ExpenseList';
 import BalanceSummary from './components/BalanceSummary';
 import BalanceHeader from './components/BalanceHeader';
 import SettleUpModal from './components/SettleUpModal';
+import GroupFinancialSummary from './components/GroupFinancialSummary';
 import ExpenseDetailModal from './components/ExpenseDetailModal';
 import ExpenseFilter from './components/ExpenseFilter';
 import BalanceDetailModal from './components/BalanceDetailModal';
@@ -20,7 +21,7 @@ import ExportModal from './components/ExportModal';
 import { CATEGORIES, createNewUser } from './constants';
 import type { FinalExpense, SimplifiedDebt, User, Group, Notification, GroupInvite } from './types';
 import { SplitMethod, Category, NotificationType } from './types';
-import { MoonIcon, SunIcon, UsersIcon } from './components/icons';
+import { MoonIcon, SunIcon, UsersIcon, EditIcon, DeleteIcon } from './components/icons';
 import { simplifyDebts } from './utils/debtSimplification';
 import { formatCurrency } from './utils/currencyFormatter';
 import { logError } from './utils/errorLogger';
@@ -146,6 +147,7 @@ const App: React.FC = () => {
   const [isBannerHovered, setIsBannerHovered] = useState(false);
   const bannerDismissTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tourAutoFinishTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [pendingInviteId, setPendingInviteId] = useState<string | null>(null);
 
   // Fetch initial data from Firestore
   useEffect(() => {
@@ -339,12 +341,23 @@ const App: React.FC = () => {
             
             const notificationsData = filteredNotifications.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
+            // Deduplicate expenses by ID (in case of duplicates from multiple queries)
+            const uniqueExpenses = new Map<string, FinalExpense>();
+            expensesData.forEach(expense => {
+                if (!uniqueExpenses.has(expense.id)) {
+                    uniqueExpenses.set(expense.id, expense);
+                } else {
+                    console.warn(`Duplicate expense ID detected during fetch: ${expense.id} - "${expense.description}"`);
+                }
+            });
+            const deduplicatedExpenses = Array.from(uniqueExpenses.values());
+            
             // Sort expenses by date
-            expensesData.sort((a,b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime());
+            deduplicatedExpenses.sort((a,b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime());
 
             setUsers(usersData);
             setGroups(groupsData);
-            setExpenses(expensesData);
+            setExpenses(deduplicatedExpenses);
             setNotifications(notificationsData);
             setGroupInvites(invitesData);
 
@@ -355,6 +368,43 @@ const App: React.FC = () => {
                 return activeGroupsData.length > 0 ? activeGroupsData[0].id : null;
             });
             console.log("Data fetched successfully.");
+            
+            // Auto-accept invite if there's a pending invite ID from URL
+            const inviteIdFromStorage = sessionStorage.getItem('pendingInviteId') || pendingInviteId;
+            if (inviteIdFromStorage && invitesData.length > 0) {
+                const inviteToAccept = invitesData.find(inv => 
+                    inv.id === inviteIdFromStorage && 
+                    inv.status === 'pending' &&
+                    inv.invitedEmail.toLowerCase() === currentUser.email?.toLowerCase()
+                );
+                if (inviteToAccept) {
+                    console.log('Auto-accepting invite from URL:', inviteIdFromStorage);
+                    // Small delay to ensure UI is ready
+                    setTimeout(() => {
+                        handleAcceptInvite(inviteIdFromStorage);
+                        sessionStorage.removeItem('pendingInviteId');
+                        setPendingInviteId(null);
+                    }, 500);
+                } else {
+                    // Invite not found or already processed, clear storage
+                    sessionStorage.removeItem('pendingInviteId');
+                    setPendingInviteId(null);
+                }
+            }
+            
+            // If there are pending invites (but no URL invite), navigate to Activity screen
+            // This helps new users discover their invites
+            const pendingInvites = invitesData.filter(inv => 
+                inv.status === 'pending' && 
+                inv.invitedEmail.toLowerCase() === currentUser.email?.toLowerCase()
+            );
+            if (pendingInvites.length > 0 && !inviteIdFromStorage && groupsData.length === 0) {
+                // New user with pending invites - show Activity screen after a short delay
+                console.log('New user with pending invites, navigating to Activity screen');
+                setTimeout(() => {
+                    setActiveScreen('activity');
+                }, 1500);
+            }
         } catch (error: any) {
             console.error("Error fetching data from Firestore:", error);
             
@@ -386,13 +436,14 @@ const App: React.FC = () => {
     fetchData();
   }, [currentUser]);
 
-  // Handle password reset link from email
+  // Handle password reset link and invite links from email
   useEffect(() => {
-    const handlePasswordReset = async () => {
+    const handleURLParams = async () => {
       // Check if URL contains password reset code
       const urlParams = new URLSearchParams(window.location.search);
       const mode = urlParams.get('mode');
       const actionCode = urlParams.get('oobCode');
+      const inviteId = urlParams.get('invite');
       
       if (mode === 'resetPassword' && actionCode) {
         // Show password reset form
@@ -402,10 +453,18 @@ const App: React.FC = () => {
         sessionStorage.setItem('passwordResetCode', actionCode);
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (inviteId) {
+        // Store invite ID for processing after signup/login
+        console.log('Invite link detected:', inviteId);
+        setPendingInviteId(inviteId);
+        // Store in sessionStorage as backup
+        sessionStorage.setItem('pendingInviteId', inviteId);
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
     };
     
-    handlePasswordReset();
+    handleURLParams();
   }, []);
 
   // Auto-dismiss install banner after 10 seconds (with pause on hover/interaction)
@@ -585,7 +644,32 @@ const App: React.FC = () => {
 
   const activeGroupExpenses = useMemo(() => {
     if (!activeGroupId) return [];
-    return expenses.filter(e => e.groupId === activeGroupId);
+    // Filter by group and deduplicate by ID to ensure each expense appears only once
+    const groupExpenses = expenses.filter(e => e.groupId === activeGroupId);
+    const uniqueExpenses = new Map<string, FinalExpense>();
+    const seenDescriptions = new Map<string, FinalExpense>(); // Track by description+amount+date for duplicate detection
+    
+    groupExpenses.forEach(expense => {
+      // Primary deduplication by ID
+      if (!uniqueExpenses.has(expense.id)) {
+        uniqueExpenses.set(expense.id, expense);
+        
+        // Secondary check: detect potential duplicates by description+amount+date
+        const duplicateKey = `${expense.description}|${expense.amount}|${expense.expenseDate}`;
+        if (seenDescriptions.has(duplicateKey)) {
+          console.warn(`Potential duplicate expense detected: "${expense.description}" (ID: ${expense.id})`);
+        } else {
+          seenDescriptions.set(duplicateKey, expense);
+        }
+      } else {
+        console.warn(`Duplicate expense ID detected: ${expense.id} - "${expense.description}"`);
+      }
+    });
+    
+    // Sort by date (most recent first)
+    return Array.from(uniqueExpenses.values()).sort((a, b) => 
+      new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime()
+    );
   }, [expenses, activeGroupId]);
 
   // Calculate user balance for minimal display
@@ -598,7 +682,9 @@ const App: React.FC = () => {
 
     activeGroupExpenses.forEach(expense => {
       const payerInGroup = memberBalances.has(expense.paidBy);
-      if (payerInGroup) {
+      const isPayment = expense.category === 'Payment';
+      // Regular expenses need 2+ people in splits. Payment expenses only need 1 (payer in splits, recipient is paidBy)
+      if (payerInGroup && expense.splits && (isPayment ? expense.splits.length >= 1 : expense.splits.length >= 2)) {
         const payerBalance = memberBalances.get(expense.paidBy) || 0;
         memberBalances.set(expense.paidBy, payerBalance + expense.amount);
         expense.splits.forEach(split => {
@@ -673,7 +759,13 @@ const App: React.FC = () => {
                 // Try to update the expense
                 await updateDoc(expenseDocRef, expenseDataWithoutId);
                 const updatedExpense = { ...expenseWithGroupId, id: editingExpense.id };
-                setExpenses(prevExpenses => prevExpenses.map(e => e.id === editingExpense.id ? updatedExpense : e));
+                // Update expense and ensure no duplicates (remove any duplicates with same ID first)
+                setExpenses(prevExpenses => {
+                    // First remove any duplicates with the same ID
+                    const withoutDuplicates = prevExpenses.filter(e => e.id !== editingExpense.id);
+                    // Then add the updated expense at the beginning (most recent first)
+                    return [updatedExpense, ...withoutDuplicates];
+                });
                 setEditingExpense(null);
                 message = `${currentUserData.name.replace(' (You)', '')} edited the expense "${expense.description}".`;
                 type = NotificationType.ExpenseEdited;
@@ -703,7 +795,16 @@ const App: React.FC = () => {
             console.log('Current user:', currentUser.id, 'Active group:', activeGroupId);
             const docRef = await addDoc(collection(db, 'expenses'), expenseDataWithoutId);
             const newExpenseWithId = { ...expenseDataWithoutId, id: docRef.id };
-            setExpenses(prevExpenses => [newExpenseWithId, ...prevExpenses]);
+            // Ensure no duplicates when adding new expense
+            setExpenses(prevExpenses => {
+                // Check if expense with this ID already exists (shouldn't happen, but safety check)
+                const exists = prevExpenses.some(e => e.id === newExpenseWithId.id);
+                if (exists) {
+                    console.warn('Expense with ID already exists, updating instead of adding:', newExpenseWithId.id);
+                    return prevExpenses.map(e => e.id === newExpenseWithId.id ? newExpenseWithId : e);
+                }
+                return [newExpenseWithId, ...prevExpenses];
+            });
             message = `${currentUserData.name.replace(' (You)', '')} added a new expense: "${expense.description}" for $${expense.amount.toFixed(2)}.`;
             type = NotificationType.ExpenseAdded;
         }
@@ -780,16 +881,22 @@ const App: React.FC = () => {
 
     if (!fromUser || !toUser) return;
 
+    // Payment expenses: When User A pays User B $50:
+    // - User A's balance should DECREASE (they paid money out)
+    // - User B's balance should INCREASE (they received money)
+    // We structure it so recipient is paidBy (they received), payer is in splits (they paid)
     const paymentExpenseData: Omit<FinalExpense, 'id'> = {
       groupId: activeGroup.id,
       description: `Payment from ${fromUser.name.replace(' (You)', '')} to ${toUser.name.replace(' (You)', '')}`,
       amount: payment.amount,
       currency: activeGroup.currency,
       category: Category.Payment,
-      paidBy: payment.from,
+      paidBy: payment.to, // Recipient receives the payment
       expenseDate: new Date().toISOString(),
       splitMethod: SplitMethod.Unequal,
-      splits: [{ userId: payment.to, amount: payment.amount }],
+      splits: [
+        { userId: payment.from, amount: payment.amount } // Payer pays this amount
+      ],
     };
 
     const newNotificationData: Omit<Notification, 'id'> = {
@@ -801,7 +908,15 @@ const App: React.FC = () => {
 
     try {
         const expenseDocRef = await addDoc(collection(db, 'expenses'), paymentExpenseData);
-        setExpenses(prev => [{...paymentExpenseData, id: expenseDocRef.id}, ...prev]);
+        const newPaymentExpense = {...paymentExpenseData, id: expenseDocRef.id};
+        // Ensure no duplicates when adding payment expense
+        setExpenses(prev => {
+            const exists = prev.some(e => e.id === newPaymentExpense.id);
+            if (exists) {
+                return prev.map(e => e.id === newPaymentExpense.id ? newPaymentExpense : e);
+            }
+            return [newPaymentExpense, ...prev];
+        });
 
         const notificationDocRef = await addDoc(collection(db, 'notifications'), newNotificationData);
         setNotifications(prev => [{...newNotificationData, id: notificationDocRef.id}, ...prev]);
@@ -816,6 +931,14 @@ const App: React.FC = () => {
         alert("You cannot remove yourself from the group.");
         return;
     }
+    
+    // Remove any duplicate member IDs (defense in depth)
+    const uniqueMembers = Array.from(new Set(updatedGroup.members));
+    if (uniqueMembers.length !== updatedGroup.members.length) {
+        console.warn('Duplicate members detected in group update, removing duplicates');
+        updatedGroup = { ...updatedGroup, members: uniqueMembers };
+    }
+    
     try {
         const groupDocRef = doc(db, 'groups', updatedGroup.id);
         await updateDoc(groupDocRef, { name: updatedGroup.name, members: updatedGroup.members });
@@ -991,7 +1114,7 @@ const App: React.FC = () => {
         const newGroup = { ...groupDataWithCreator, id: docRef.id };
         setGroups(prev => [...prev, newGroup]);
         setActiveGroupId(newGroup.id);
-        setActiveScreen('groups'); // Navigate to groups screen after creation
+             setActiveScreen('dashboard'); // Navigate to dashboard after creation
         setIsCreateGroupModalOpen(false); // Close the modal after successful creation
     } catch (error: any) {
         console.error("Error creating group: ", error);
@@ -1013,8 +1136,27 @@ const App: React.FC = () => {
             throw new Error('User not authenticated');
         }
 
+        const trimmedName = name.trim();
+        
+        // Check if a guest user with the same name already exists (created by current user)
+        const existingGuestUser = users.find(
+            u => u.name.toLowerCase() === trimmedName.toLowerCase() && 
+                 u.authType === 'simulated' && 
+                 u.createdBy === currentUser.id
+        );
+        
+        if (existingGuestUser) {
+            const confirmMessage = `A guest user named "${trimmedName}" already exists.\n\n` +
+                `Would you like to create another guest user with the same name?\n\n` +
+                `(You can add the existing "${trimmedName}" to groups via "Add Existing Member")`;
+            
+            if (!window.confirm(confirmMessage)) {
+                return; // User cancelled, don't create duplicate
+            }
+        }
+
         const newUserNoId = {
-            name: name.trim(),
+            name: trimmedName,
             avatarUrl: `https://i.pravatar.cc/150?u=${crypto.randomUUID()}`,
             authType: 'simulated' as const,
             createdBy: currentUser.id,
@@ -1324,8 +1466,11 @@ const App: React.FC = () => {
         invitedUserId: currentUser.id,
       });
 
-      // Add user to group
-      const updatedMembers = [...(groupData.members || []), currentUser.id];
+      // Add user to group (ensure no duplicates)
+      const existingMembers = groupData.members || [];
+      const updatedMembers = existingMembers.includes(currentUser.id) 
+        ? existingMembers // User already in members, don't add duplicate
+        : [...existingMembers, currentUser.id];
       await updateDoc(groupRef, { members: updatedMembers });
       
       // Update local state - add group if it doesn't exist, or update if it does
@@ -1396,6 +1541,110 @@ const App: React.FC = () => {
       alert("Failed to decline invite. Please try again.");
     }
   };
+
+  const handleDeleteInvite = async (inviteId: string) => {
+    const invite = groupInvites.find(inv => inv.id === inviteId);
+    if (!invite) {
+      alert('Invite not found');
+      return;
+    }
+
+    // Confirm deletion with appropriate message based on status
+    const isPending = invite.status === 'pending';
+    const isExpired = isPending && new Date(invite.expiresAt) < new Date();
+    const statusText = isPending 
+      ? (isExpired ? 'expired' : 'pending')
+      : invite.status;
+    
+    let confirmMessage: string;
+    if (isPending && !isExpired) {
+      confirmMessage = `Delete this pending invite to ${invite.invitedEmail}?\n\nThey will no longer be able to accept this invite. You can send a new invite if needed.`;
+    } else {
+      confirmMessage = `Delete this ${statusText} invite to ${invite.invitedEmail}?\n\nThis will permanently remove it from your invite history.`;
+    }
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      // Delete the invite document
+      await deleteDoc(doc(db, 'groupInvites', inviteId));
+
+      // Remove from local state
+      setGroupInvites(prev => prev.filter(inv => inv.id !== inviteId));
+
+      // Mark related notification as read (if exists)
+      const relatedNotification = notifications.find(n => n.inviteId === inviteId);
+      if (relatedNotification) {
+        await updateDoc(doc(db, 'notifications', relatedNotification.id), { read: true });
+        setNotifications(prev => prev.map(n => n.id === relatedNotification.id ? { ...n, read: true } : n));
+      }
+
+      if (isPending && !isExpired) {
+        alert(`Invite to ${invite.invitedEmail} has been deleted. You can now send a new invite if needed.`);
+      } else {
+        alert(`Invite to ${invite.invitedEmail} has been deleted.`);
+      }
+    } catch (error: any) {
+      console.error("Error deleting invite: ", error);
+      const errorMessage = error?.message || error?.code || 'Unknown error';
+      alert(`Failed to delete invite: ${errorMessage}. Please try again.`);
+    }
+  };
+
+  const handleClearCompletedInvites = async () => {
+    const completedInvites = groupInvites.filter(inv => {
+      if (inv.status === 'pending') {
+        return new Date(inv.expiresAt) < new Date(); // Expired
+      }
+      return inv.status === 'accepted' || inv.status === 'declined';
+    });
+
+    if (completedInvites.length === 0) {
+      alert('No completed invites to clear.');
+      return;
+    }
+
+    if (!window.confirm(`Clear all ${completedInvites.length} completed invite(s) (accepted, declined, expired)?\n\nThis will permanently remove them from your invite history.`)) {
+      return;
+    }
+
+    try {
+      const batch = writeBatch(db);
+      const inviteIdsToDelete: string[] = [];
+
+      // Delete all completed invites in a batch
+      completedInvites.forEach(invite => {
+        batch.delete(doc(db, 'groupInvites', invite.id));
+        inviteIdsToDelete.push(invite.id);
+      });
+
+      await batch.commit();
+
+      // Remove from local state
+      setGroupInvites(prev => prev.filter(inv => !inviteIdsToDelete.includes(inv.id)));
+
+      // Mark related notifications as read
+      const relatedNotifications = notifications.filter(n => n.inviteId && inviteIdsToDelete.includes(n.inviteId));
+      if (relatedNotifications.length > 0) {
+        const notificationBatch = writeBatch(db);
+        relatedNotifications.forEach(notif => {
+          notificationBatch.update(doc(db, 'notifications', notif.id), { read: true });
+        });
+        await notificationBatch.commit();
+        setNotifications(prev => prev.map(n => 
+          inviteIdsToDelete.includes(n.inviteId || '') ? { ...n, read: true } : n
+        ));
+      }
+
+      alert(`Successfully cleared ${completedInvites.length} completed invite(s).`);
+    } catch (error: any) {
+      console.error("Error clearing completed invites: ", error);
+      const errorMessage = error?.message || error?.code || 'Unknown error';
+      alert(`Failed to clear completed invites: ${errorMessage}. Please try again.`);
+    }
+  };
   
   const handleSetActiveGroup = (groupId: string) => {
     const group = groups.find(g => g.id === groupId);
@@ -1408,8 +1657,7 @@ const App: React.FC = () => {
 
   const handleSelectGroupFromGroupsScreen = (groupId: string) => {
     setActiveGroupId(groupId);
-    setEditingGroupId(groupId);
-    setIsGroupManagementModalOpen(true);
+    setActiveScreen('dashboard'); // Navigate to dashboard to view group expenses
   }
 
   const handleOpenSettleUp = () => setIsSettleUpModalOpen(true);
@@ -1427,17 +1675,28 @@ const App: React.FC = () => {
         memberBalances.set(memberId, 0);
     });
 
+    // Deduplicate expenses by ID first
+    const uniqueExpenses = new Map<string, FinalExpense>();
     groupExpenses.forEach(expense => {
-        if (memberBalances.has(expense.paidBy)) {
+      if (!uniqueExpenses.has(expense.id)) {
+        uniqueExpenses.set(expense.id, expense);
+      }
+    });
+    const deduplicatedExpenses = Array.from(uniqueExpenses.values());
+
+    deduplicatedExpenses.forEach(expense => {
+        // Regular expenses need 2+ people in splits. Payment expenses only need 1 (payer in splits, recipient is paidBy)
+        const isPayment = expense.category === 'Payment';
+        if (memberBalances.has(expense.paidBy) && expense.splits && (isPayment ? expense.splits.length >= 1 : expense.splits.length >= 2)) {
             const payerBalance = memberBalances.get(expense.paidBy) || 0;
             memberBalances.set(expense.paidBy, payerBalance + expense.amount);
+            expense.splits.forEach(split => {
+                if (memberBalances.has(split.userId)) {
+                    const splitteeBalance = memberBalances.get(split.userId) || 0;
+                    memberBalances.set(split.userId, splitteeBalance - split.amount);
+                }
+            });
         }
-        expense.splits.forEach(split => {
-            if (memberBalances.has(split.userId)) {
-                const splitteeBalance = memberBalances.get(split.userId) || 0;
-                memberBalances.set(split.userId, splitteeBalance - split.amount);
-            }
-        });
     });
     
     return Array.from(memberBalances.values()).reduce((sum, balance) => {
@@ -1471,7 +1730,9 @@ const App: React.FC = () => {
 
     activeGroupExpenses.forEach(expense => {
         const payerInGroup = balances.has(expense.paidBy);
-        if (payerInGroup) {
+        // Regular expenses need 2+ people in splits. Payment expenses only need 1 (payer in splits, recipient is paidBy)
+        const isPayment = expense.category === 'Payment';
+        if (payerInGroup && expense.splits && (isPayment ? expense.splits.length >= 1 : expense.splits.length >= 2)) {
             const payerBalance = balances.get(expense.paidBy) || 0;
             balances.set(expense.paidBy, payerBalance + expense.amount);
             expense.splits.forEach(split => {
@@ -1575,7 +1836,7 @@ const App: React.FC = () => {
                       transition={{ delay: 0.3 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => {
-                        setActiveScreen('groups');
+                        setActiveScreen('dashboard');
                         setIsCreateGroupModalOpen(true);
                       }}
                       className="w-full px-6 py-3 bg-primary text-white font-semibold rounded-xl shadow-sm hover:bg-primary-700 transition-colors"
@@ -1601,10 +1862,10 @@ const App: React.FC = () => {
                         <p className="mt-2 text-sage dark:text-gray-400">Select a group to add your expense.</p>
                         <motion.button
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => setActiveScreen('groups')}
+                          onClick={() => setActiveScreen('dashboard')}
                           className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-700 text-white rounded-full font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg"
                         >
-                          Go to Groups
+                          Go to Dashboard
                         </motion.button>
                     </div>
                  </motion.div>
@@ -1672,9 +1933,10 @@ const App: React.FC = () => {
                   currency={activeGroup.currency}
                   balanceColor={balanceColor}
                   balanceDescription={balanceDescription}
-                  onAddClick={() => setActiveScreen('add')}
+                  onAddGroupClick={() => setIsCreateGroupModalOpen(true)}
+                  onAddMemberClick={handleOpenGroupManagement}
+                  onAddExpenseClick={() => setActiveScreen('add')}
                   onSettleClick={handleOpenSettleUp}
-                  onUsersClick={() => setActiveScreen('profile')}
                 />
               ) : undefined}
             />
@@ -1695,9 +1957,10 @@ const App: React.FC = () => {
                     currency={activeGroup.currency}
                     balanceColor={balanceColor}
                     balanceDescription={balanceDescription}
-                    onAddClick={() => setActiveScreen('add')}
+                    onAddGroupClick={() => setIsCreateGroupModalOpen(true)}
+                    onAddMemberClick={handleOpenGroupManagement}
+                    onAddExpenseClick={() => setActiveScreen('add')}
                     onSettleClick={handleOpenSettleUp}
-                    onUsersClick={() => setActiveScreen('profile')}
                   />
                 ) : undefined}
               />
@@ -1706,21 +1969,23 @@ const App: React.FC = () => {
         return (
               <ProfileScreen
                 users={users}
+                groups={groups}
+                currentUserId={currentUser.id}
                 onCreateUser={handleCreateUser}
                 onDeleteGuestUser={handleDeleteGuestUser}
                 onUpdatePaymentInfo={handleUpdatePaymentInfo}
                 onOpenInviteModal={() => {
                   if (activeGroups.length === 0) {
                     alert('Please create a group first before sending invites.');
-                    setActiveScreen('groups');
+                    setActiveScreen('dashboard');
                   } else if (activeGroups.length === 1) {
                     // If only one active group, use it directly
                     setInviteGroupId(activeGroups[0].id);
                     setIsInviteModalOpen(true);
                   } else {
                     // Multiple groups - show group selector
-                    alert('Please select a group first. Go to Groups screen to select the group you want to invite someone to.');
-                    setActiveScreen('groups');
+                    alert('Please select a group first. Go to Dashboard to select the group you want to invite someone to.');
+                    setActiveScreen('dashboard');
                   }
                 }}
                 onOpenGroupManagement={() => {
@@ -1729,19 +1994,11 @@ const App: React.FC = () => {
                     setIsGroupManagementModalOpen(true);
                   }
                 }}
-                onOpenGroupSelector={() => setActiveScreen('groups')}
+                onOpenGroupSelector={() => setActiveScreen('dashboard')}
                 groupInvites={groupInvites.filter(invite => invite.invitedBy === currentUser.id)}
-                onResendInvite={async (inviteId) => {
-                  const invite = groupInvites.find(inv => inv.id === inviteId);
-                  if (invite) {
-                    try {
-                      await handleSendGroupInvite(invite.groupId, invite.invitedEmail, true);
-                      // Success message is already shown by handleSendGroupInvite
-                    } catch (error: any) {
-                      alert(error.message || 'Failed to resend invite');
-                    }
-                  }
-                }}
+                onDeleteInvite={handleDeleteInvite}
+                onClearCompletedInvites={handleClearCompletedInvites}
+                onUnarchiveGroup={handleUnarchiveGroup}
               />
         );
       default:
@@ -1886,55 +2143,67 @@ const App: React.FC = () => {
                     <div className="flex flex-col justify-center">
                       <div className="text-center md:text-left">
                         <div className="relative inline-block">
-                          <p className={`text-4xl sm:text-5xl font-sans font-extrabold mb-1.5 tracking-tight ${balanceColor}`}>
+                          <p className={`text-2xl sm:text-3xl font-sans font-extrabold mb-1 tracking-tight ${balanceColor}`}>
                             {formatCurrency(Math.abs(currentUserBalance), activeGroup?.currency || 'USD')}
                           </p>
                           {currentUserBalance > 0.01 && (
                             <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-pulse"></div>
                           )}
                         </div>
-                        <p className="text-sm font-medium text-charcoal/80 dark:text-gray-300 mt-1.5">{balanceDescription}</p>
+                        <p className="text-xs sm:text-sm font-medium text-charcoal/80 dark:text-gray-300 mt-1">{balanceDescription}</p>
                       </div>
                     </div>
 
                     {/* Right Half - Quick Actions */}
                     <div className="flex flex-col justify-center">
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          whileHover={{ scale: 1.05 }}
+                          onClick={() => setIsCreateGroupModalOpen(true)}
+                          className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all"
+                          title="Add Group"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          <span className="text-[10px] font-bold leading-tight text-center">Add Group</span>
+                        </motion.button>
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          whileHover={{ scale: 1.05 }}
+                          onClick={handleOpenGroupManagement}
+                          className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all"
+                          title="Add Member"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                          </svg>
+                          <span className="text-[10px] font-bold leading-tight text-center">Add Member</span>
+                        </motion.button>
                         <motion.button
                           whileTap={{ scale: 0.95 }}
                           whileHover={{ scale: 1.05 }}
                           onClick={() => setActiveScreen('add')}
-                          className="flex flex-col items-center justify-center gap-1.5 py-3 px-2 bg-gradient-to-br from-primary to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all"
+                          className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all"
                           title="Add Expense"
                         >
-                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                           </svg>
-                          <span className="text-xs font-bold">Add</span>
+                          <span className="text-[10px] font-bold leading-tight text-center">Add Expense</span>
                         </motion.button>
                         <motion.button
                           whileTap={{ scale: 0.95 }}
                           whileHover={{ scale: 1.05 }}
                           onClick={handleOpenSettleUp}
-                          className="flex flex-col items-center justify-center gap-1.5 py-3 px-2 bg-white dark:bg-gray-700 border-2 border-stone-300 dark:border-gray-600 hover:border-primary dark:hover:border-primary-400 hover:bg-primary/10 dark:hover:bg-primary/20 text-charcoal dark:text-gray-200 rounded-xl transition-all shadow-md hover:shadow-lg"
+                          className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all"
                           title="Settle Up"
                         >
-                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <span className="text-xs font-bold">Settle</span>
-                        </motion.button>
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          whileHover={{ scale: 1.05 }}
-                          onClick={() => setActiveScreen('profile')}
-                          className="flex flex-col items-center justify-center gap-1.5 py-3 px-2 bg-white dark:bg-gray-700 border-2 border-stone-300 dark:border-gray-600 hover:border-primary dark:hover:border-primary-400 hover:bg-primary/10 dark:hover:bg-primary/20 text-charcoal dark:text-gray-200 rounded-xl transition-all shadow-md hover:shadow-lg"
-                          title="Manage Users"
-                        >
-                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                          </svg>
-                          <span className="text-xs font-bold">Users</span>
+                          <span className="text-[10px] font-bold leading-tight text-center">Settle Up</span>
                         </motion.button>
                       </div>
                     </div>
@@ -1975,16 +2244,6 @@ const App: React.FC = () => {
                           Archive
                         </motion.button>
                       )}
-                      <motion.button 
-                        whileTap={{ scale: 0.98 }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveScreen('groups');
-                        }}
-                        className="text-xs sm:text-sm text-[#1E3450] dark:text-[#1E3450] hover:opacity-80 transition-colors font-semibold"
-                      >
-                        Manage →
-                      </motion.button>
                     </div>
                   </div>
                   <div className="space-y-0.5">
@@ -1994,63 +2253,94 @@ const App: React.FC = () => {
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.2 + index * 0.05 }}
-                        onClick={() => {
-                          setActiveGroupId(group.id);
-                          setActiveScreen('groups');
-                        }}
-                        className={`flex items-center gap-2 py-1.5 px-2 rounded transition-all cursor-pointer group ${
+                        className={`flex items-center gap-2 py-1.5 px-2 rounded transition-all group ${
                           activeGroupId === group.id 
                             ? 'bg-primary/10 dark:bg-primary/20' 
                             : 'hover:bg-primary/5 dark:hover:bg-gray-600/50'
                         }`}
                       >
-                        <div className={`flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-colors ${
-                          activeGroupId === group.id 
-                            ? 'bg-primary dark:bg-primary-400' 
-                            : 'bg-stone-200 dark:bg-gray-600 group-hover:bg-primary/20 dark:group-hover:bg-primary/30'
-                        }`}>
-                          <GroupIcon 
-                            groupName={group.name} 
-                            className={`w-3 h-3 ${
-                              activeGroupId === group.id 
-                                ? 'text-white dark:text-gray-900' 
-                                : 'text-charcoal dark:text-gray-300'
-                            }`}
-                          />
-                        </div>
-                        <div className="flex-grow min-w-0 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <p className={`text-sm font-sans font-extrabold truncate ${
-                              activeGroupId === group.id 
-                              ? 'text-primary dark:text-primary-300' 
-                              : 'text-charcoal dark:text-gray-100'
+                        <div 
+                          onClick={() => {
+                            setActiveGroupId(group.id);
+                            // Stay on dashboard - just switch active group
+                          }}
+                          className="flex-grow flex items-center gap-2 cursor-pointer min-w-0"
+                        >
+                          <div className={`flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-colors ${
+                            activeGroupId === group.id 
+                              ? 'bg-primary dark:bg-primary-400' 
+                              : 'bg-stone-200 dark:bg-gray-600 group-hover:bg-primary/20 dark:group-hover:bg-primary/30'
                           }`}>
-                            {group.name}
-                          </p>
-                          {group.createdBy === currentUser.id && (
-                            <svg 
-                              className={`w-3 h-3 flex-shrink-0 ${activeGroupId === group.id ? 'text-primary dark:text-primary-300' : 'text-amber-500 dark:text-amber-400'}`}
-                              fill="currentColor" 
-                              viewBox="0 0 20 20"
-                              title="You created this group"
-                            >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                          )}
+                            <GroupIcon 
+                              groupName={group.name} 
+                              className={`w-3 h-3 ${
+                                activeGroupId === group.id 
+                                  ? 'text-white dark:text-gray-900' 
+                                  : 'text-charcoal dark:text-gray-300'
+                              }`}
+                            />
                           </div>
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
-                            <span className="text-xs text-sage dark:text-gray-400">
-                              {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
-                            </span>
-                            {activeGroupId === group.id && (
-                              <span className="w-1.5 h-1.5 bg-primary dark:bg-primary-300 rounded-full"></span>
-                            )}
+                          <div className="flex-grow min-w-0 flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <p className={`text-sm font-sans font-extrabold truncate ${
+                                activeGroupId === group.id 
+                                ? 'text-primary dark:text-primary-300' 
+                                : 'text-charcoal dark:text-gray-100'
+                            }`}>
+                                {group.name}
+                              </p>
+                              {group.createdBy === currentUser.id && (
+                                <svg 
+                                  className={`w-3 h-3 flex-shrink-0 ${activeGroupId === group.id ? 'text-primary dark:text-primary-300' : 'text-amber-500 dark:text-amber-400'}`}
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                  title="You created this group"
+                                >
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <span className="text-xs text-sage dark:text-gray-400">
+                                {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
+                              </span>
+                              {activeGroupId === group.id && (
+                                <span className="w-1.5 h-1.5 bg-primary dark:bg-primary-300 rounded-full"></span>
+                              )}
+                            </div>
                           </div>
                         </div>
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          whileHover={{ scale: 1.05 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingGroupId(group.id);
+                            setEditingGroupDebt(calculateGroupDebt(group.id));
+                            setIsGroupManagementModalOpen(true);
+                          }}
+                          className="flex-shrink-0 w-7 h-7 sm:w-6 sm:h-6 flex items-center justify-center rounded transition-all text-sage dark:text-gray-400 hover:text-primary dark:hover:text-primary-300 hover:bg-primary/10 dark:hover:bg-primary/20 opacity-70 sm:opacity-0 sm:group-hover:opacity-100 active:opacity-100"
+                          title="Group Settings"
+                        >
+                          <svg 
+                            className="w-4 h-4" 
+                            fill="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.08.49 0 .61.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z" />
+                          </svg>
+                        </motion.button>
                       </motion.div>
                     ))}
                   </div>
                 </motion.div>
+
+                {/* Group Financial Summary Section */}
+                <GroupFinancialSummary
+                  expenses={expenses}
+                  group={activeGroup}
+                  balances={balances}
+                />
 
                 {/* Recent Expenses Section */}
                 <motion.div 
@@ -2086,6 +2376,10 @@ const App: React.FC = () => {
                   <div className="space-y-1.5">
                     {activeGroupExpenses.slice(0, 3).map((expense, index) => {
                       const payer = activeGroupMembers.find(m => m.id === expense.paidBy);
+                      const handleActionClick = (e: React.MouseEvent, action: () => void) => {
+                        e.stopPropagation();
+                        action();
+                      };
                       return (
                         <motion.div 
                           key={expense.id}
@@ -2093,7 +2387,7 @@ const App: React.FC = () => {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.4 + index * 0.1 }}
                           onClick={() => handleViewExpense(expense)}
-                          className="flex items-center gap-3 py-2.5 hover:bg-primary/10 dark:hover:bg-primary/30 rounded-xl transition-all -mx-2 px-3 border border-transparent hover:border-primary/20 dark:hover:border-primary/30 cursor-pointer"
+                          className="flex items-center gap-3 py-2.5 hover:bg-primary/10 dark:hover:bg-primary/30 rounded-xl transition-all -mx-2 px-3 border border-transparent hover:border-primary/20 dark:hover:border-primary/30 cursor-pointer group"
                         >
                           <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-primary-100 to-primary-50 dark:from-primary/40 dark:to-primary/30 flex items-center justify-center border-2 border-primary/30 dark:border-primary/40 shadow-sm">
                             <span className="text-primary dark:text-primary-200 text-base">
@@ -2110,10 +2404,32 @@ const App: React.FC = () => {
                               {payer?.name?.replace(' (You)', '')}
                             </p>
                           </div>
-                          <div className="flex-shrink-0">
-                            <p className="text-lg font-sans font-extrabold text-charcoal dark:text-gray-100">
-                              {formatCurrency(expense.amount, activeGroup?.currency || 'USD')}
-                            </p>
+                          <div className="flex-shrink-0 flex items-center gap-2">
+                            <div className="text-right">
+                              <p className="text-lg font-sans font-extrabold text-charcoal dark:text-gray-100">
+                                {formatCurrency(expense.amount, activeGroup?.currency || 'USD')}
+                              </p>
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <motion.button 
+                                whileTap={{ scale: 0.9 }}
+                                whileHover={{ scale: 1.1 }}
+                                onClick={(e) => handleActionClick(e, () => handleStartEdit(expense))} 
+                                className="p-2.5 rounded-xl hover:bg-stone-100 dark:hover:bg-gray-600 text-sage hover:text-charcoal dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                                title="Edit expense"
+                              >
+                                <EditIcon className="w-5 h-5"/>
+                              </motion.button>
+                              <motion.button 
+                                whileTap={{ scale: 0.9 }}
+                                whileHover={{ scale: 1.1 }}
+                                onClick={(e) => handleActionClick(e, () => handleDeleteExpense(expense.id))} 
+                                className="p-2.5 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/50 text-sage hover:text-red-500 transition-colors"
+                                title="Delete expense"
+                              >
+                                <DeleteIcon className="w-5 h-5"/>
+                              </motion.button>
+                            </div>
                           </div>
                         </motion.div>
                       );
@@ -2316,13 +2632,14 @@ const App: React.FC = () => {
         onFinish={handleFinishOnboarding}
       />
 
-      {isSettleUpModalOpen && activeGroup && (
+      {isSettleUpModalOpen && activeGroup && currentUser && (
         <SettleUpModal
           isOpen={isSettleUpModalOpen}
           onClose={() => setIsSettleUpModalOpen(false)}
           expenses={activeGroupExpenses}
           members={activeGroupMembers}
           currency={activeGroup.currency}
+          currentUserId={currentUser.id}
           onRecordPayment={handleRecordPayment}
         />
       )}
@@ -2359,6 +2676,7 @@ const App: React.FC = () => {
                 setInviteGroupId(groupForEditing.id);
                 setIsInviteModalOpen(true);
               }}
+              onDeleteInvite={handleDeleteInvite}
           />
       )}
 

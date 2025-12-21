@@ -39,6 +39,11 @@ const SplitByPercentage: React.FC<SplitByPercentageProps> = ({ totalAmount, memb
       }
     });
 
+    if (validSplits.length === 1) {
+      onUpdateSplits(validSplits, 'An expense must be split between at least 2 people. There\'s nothing to split if only one person is involved.');
+      return;
+    }
+
     if (totalAmount > 0 && Math.abs(totalPercentage - 100) > 0.001) {
        onUpdateSplits(validSplits, `Percentages must add up to 100%. Current total: ${totalPercentage.toFixed(2)}%`);
     } else {

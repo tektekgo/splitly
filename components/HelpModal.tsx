@@ -376,7 +376,15 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
               </Section>
 
               <Section title="Can I cancel an invite?">
-                <p className="text-amber-600 dark:text-amber-400">Currently, you can't cancel pending invites. They will expire automatically after 7 days. (Feature coming soon!)</p>
+                <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                  Yes! You can delete pending invites at any time. Click the <strong>"🗑️"</strong> delete button next to any invite in the group management modal or your profile screen. After deleting a pending invite, you can send a new invite if needed.
+                </p>
+                <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mt-2">
+                  You can also delete accepted, declined, or expired invites to clean up your invite history. Use the "Clear Completed" button to remove all completed invites at once.
+                </p>
+                <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mt-2">
+                  Invites automatically expire after 7 days if not accepted or deleted.
+                </p>
               </Section>
             </div>
           )}

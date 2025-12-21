@@ -92,31 +92,41 @@ const GroupsScreen: React.FC<GroupsScreenProps> = ({ groups, users, expenses, ac
 
         groups.forEach(group => {
             const groupExpenses = expenses.filter(e => e.groupId === group.id);
-            const expenseCount = groupExpenses.length;
-            const totalAmount = groupExpenses.reduce((sum, e) => sum + e.amount, 0);
+            // Deduplicate expenses by ID to get accurate counts
+            const uniqueExpenses = new Map<string, FinalExpense>();
+            groupExpenses.forEach(expense => {
+              if (!uniqueExpenses.has(expense.id)) {
+                uniqueExpenses.set(expense.id, expense);
+              }
+            });
+            const deduplicatedExpenses = Array.from(uniqueExpenses.values());
+            const expenseCount = deduplicatedExpenses.length;
+            const totalAmount = deduplicatedExpenses.reduce((sum, e) => sum + e.amount, 0);
             
             // Find most recent expense
             let lastActivity: Date | null = null;
-            if (groupExpenses.length > 0) {
-                const dates = groupExpenses.map(e => new Date(e.expenseDate));
+            if (deduplicatedExpenses.length > 0) {
+                const dates = deduplicatedExpenses.map(e => new Date(e.expenseDate));
                 lastActivity = new Date(Math.max(...dates.map(d => d.getTime())));
             }
 
             // Check for outstanding balances
             const memberBalances = new Map<string, number>();
             group.members.forEach(memberId => memberBalances.set(memberId, 0));
-            
-            groupExpenses.forEach(expense => {
-                if (memberBalances.has(expense.paidBy)) {
+
+            deduplicatedExpenses.forEach(expense => {
+                // Regular expenses need 2+ people in splits. Payment expenses only need 1 (payer in splits, recipient is paidBy)
+                const isPayment = expense.category === 'Payment';
+                if (memberBalances.has(expense.paidBy) && expense.splits && (isPayment ? expense.splits.length >= 1 : expense.splits.length >= 2)) {
                     const payerBalance = memberBalances.get(expense.paidBy) || 0;
                     memberBalances.set(expense.paidBy, payerBalance + expense.amount);
+                    expense.splits.forEach(split => {
+                        if (memberBalances.has(split.userId)) {
+                            const splitteeBalance = memberBalances.get(split.userId) || 0;
+                            memberBalances.set(split.userId, splitteeBalance - split.amount);
+                        }
+                    });
                 }
-                expense.splits.forEach(split => {
-                    if (memberBalances.has(split.userId)) {
-                        const splitteeBalance = memberBalances.get(split.userId) || 0;
-                        memberBalances.set(split.userId, splitteeBalance - split.amount);
-                    }
-                });
             });
 
             const hasOutstandingBalance = Array.from(memberBalances.values()).some(balance => Math.abs(balance) > 0.01);

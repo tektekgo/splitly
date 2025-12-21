@@ -50,6 +50,11 @@ const SplitByShares: React.FC<SplitBySharesProps> = ({ totalAmount, members, cur
       }
     });
     
+    if (validSplits.length === 1) {
+      onUpdateSplits(validSplits, 'An expense must be split between at least 2 people. There\'s nothing to split if only one person is involved.');
+      return;
+    }
+    
     if (totalShares <= 0 && validSplits.length > 0) {
       onUpdateSplits([], 'Total shares must be greater than zero.');
     } else {

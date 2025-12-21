@@ -473,8 +473,15 @@ export const deleteUserAndData = async (userId: string, currentAdminId: string):
 
   } catch (error: any) {
     console.error(`❌ Error deleting user ${userId}:`, error);
-    result.errors.push(error.message || 'Unknown error');
+    const errorMessage = error?.message || error?.code || 'Unknown error';
+    result.errors.push(errorMessage);
     result.success = false;
+    console.error('Error details:', {
+      code: error?.code,
+      message: error?.message,
+      userId,
+      currentAdminId
+    });
   }
 
   return result;

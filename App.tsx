@@ -821,9 +821,17 @@ const App: React.FC = () => {
         await updateDoc(groupDocRef, { name: updatedGroup.name, members: updatedGroup.members });
         setGroups(prev => prev.map(g => g.id === updatedGroup.id ? updatedGroup : g));
         setEditingGroupId(null);
-    } catch (error) {
+        
+        // Show success message if members were removed
+        const originalGroup = groups.find(g => g.id === updatedGroup.id);
+        if (originalGroup && updatedGroup.members.length < originalGroup.members.length) {
+          const removedCount = originalGroup.members.length - updatedGroup.members.length;
+          alert(`Successfully removed ${removedCount} member(s) from the group.`);
+        }
+    } catch (error: any) {
         console.error("Error saving group changes: ", error);
-        alert("Failed to save group changes. Please try again.");
+        const errorMessage = error?.message || error?.code || 'Unknown error';
+        alert(`Failed to save group changes: ${errorMessage}. Please try again.`);
     }
   };
 
@@ -1256,8 +1264,60 @@ const App: React.FC = () => {
       return;
     }
 
+    if (invite.status === 'accepted') {
+      alert('This invite has already been accepted');
+      return;
+    }
+
     try {
-      // Update invite status
+      // Check if group exists and if user is already a member
+      const groupRef = doc(db, 'groups', invite.groupId);
+      const groupDocSnap = await getDoc(groupRef);
+      
+      if (!groupDocSnap.exists()) {
+        alert('The group for this invite no longer exists');
+        return;
+      }
+
+      const groupData = groupDocSnap.data() as Group;
+      
+      // Check if user is already a member
+      if (groupData.members && groupData.members.includes(currentUser.id)) {
+        // User is already a member, just update the invite status
+        await updateDoc(doc(db, 'groupInvites', inviteId), {
+          status: 'accepted',
+          acceptedAt: new Date().toISOString(),
+          invitedUserId: currentUser.id,
+        });
+        
+        setGroupInvites(prev => prev.map(inv => 
+          inv.id === inviteId ? { ...inv, status: 'accepted' as const, acceptedAt: new Date().toISOString(), invitedUserId: currentUser.id } : inv
+        ));
+        
+        // Ensure group is in local state even if user is already a member
+        const existingGroup = { 
+          ...groupData, 
+          id: invite.groupId,
+          createdAt: groupData.createdAt instanceof Date ? groupData.createdAt : groupData.createdAt ? new Date(groupData.createdAt) : new Date(),
+          archived: groupData.archived || false
+        } as Group;
+        
+        setGroups(prev => {
+          const exists = prev.some(g => g.id === invite.groupId);
+          if (exists) {
+            return prev; // Already in state, no need to update
+          } else {
+            return [...prev, existingGroup]; // Add to state
+          }
+        });
+        
+        alert(`You're already a member of "${invite.groupName}"!`);
+        setActiveGroupId(invite.groupId);
+        setActiveScreen('dashboard');
+        return;
+      }
+
+      // Update invite status first
       await updateDoc(doc(db, 'groupInvites', inviteId), {
         status: 'accepted',
         acceptedAt: new Date().toISOString(),
@@ -1265,35 +1325,51 @@ const App: React.FC = () => {
       });
 
       // Add user to group
-      const groupRef = doc(db, 'groups', invite.groupId);
-      const groupDocSnap = await getDoc(groupRef); // FIX: use getDoc() instead of invalid __name__ query
-      if (groupDocSnap.exists()) {
-        const groupData = groupDocSnap.data() as Group;
-        const updatedMembers = [...groupData.members, currentUser.id];
-        await updateDoc(groupRef, { members: updatedMembers });
-        
-        // Update local state
-        setGroups(prev => prev.map(g => 
-          g.id === invite.groupId ? { ...g, members: updatedMembers } : g
-        ));
-        setGroupInvites(prev => prev.map(inv => 
-          inv.id === inviteId ? { ...inv, status: 'accepted' as const, acceptedAt: new Date().toISOString(), invitedUserId: currentUser.id } : inv
-        ));
+      const updatedMembers = [...(groupData.members || []), currentUser.id];
+      await updateDoc(groupRef, { members: updatedMembers });
+      
+      // Update local state - add group if it doesn't exist, or update if it does
+      const updatedGroup = { 
+        ...groupData, 
+        id: invite.groupId, 
+        members: updatedMembers,
+        createdAt: groupData.createdAt instanceof Date ? groupData.createdAt : groupData.createdAt ? new Date(groupData.createdAt) : new Date(),
+        archived: groupData.archived || false
+      } as Group;
+      
+      setGroups(prev => {
+        const existingGroupIndex = prev.findIndex(g => g.id === invite.groupId);
+        if (existingGroupIndex >= 0) {
+          // Group exists, update it
+          return prev.map(g => g.id === invite.groupId ? updatedGroup : g);
+        } else {
+          // Group doesn't exist in local state, add it
+          return [...prev, updatedGroup];
+        }
+      });
+      setGroupInvites(prev => prev.map(inv => 
+        inv.id === inviteId ? { ...inv, status: 'accepted' as const, acceptedAt: new Date().toISOString(), invitedUserId: currentUser.id } : inv
+      ));
 
-        // Mark related notification as read
-        const relatedNotification = notifications.find(n => n.inviteId === inviteId);
-        if (relatedNotification) {
+      // Mark related notification as read
+      const relatedNotification = notifications.find(n => n.inviteId === inviteId);
+      if (relatedNotification) {
+        try {
           await updateDoc(doc(db, 'notifications', relatedNotification.id), { read: true });
           setNotifications(prev => prev.map(n => n.id === relatedNotification.id ? { ...n, read: true } : n));
+        } catch (notifError) {
+          console.warn("Failed to mark notification as read:", notifError);
+          // Don't fail the whole operation if notification update fails
         }
-
-        alert(`You've joined "${invite.groupName}"!`);
-        setActiveGroupId(invite.groupId);
-        setActiveScreen('dashboard');
       }
-    } catch (error) {
+
+      alert(`You've joined "${invite.groupName}"!`);
+      setActiveGroupId(invite.groupId);
+      setActiveScreen('dashboard');
+    } catch (error: any) {
       console.error("Error accepting invite: ", error);
-      alert("Failed to accept invite. Please try again.");
+      const errorMessage = error?.message || error?.code || 'Unknown error';
+      alert(`Failed to accept invite: ${errorMessage}. Please try again.`);
     }
   };
 
@@ -1943,13 +2019,25 @@ const App: React.FC = () => {
                           />
                         </div>
                         <div className="flex-grow min-w-0 flex items-center justify-between gap-2">
-                          <p className={`text-sm font-sans font-extrabold truncate ${
-                            activeGroupId === group.id 
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <p className={`text-sm font-sans font-extrabold truncate ${
+                              activeGroupId === group.id 
                               ? 'text-primary dark:text-primary-300' 
                               : 'text-charcoal dark:text-gray-100'
                           }`}>
                             {group.name}
                           </p>
+                          {group.createdBy === currentUser.id && (
+                            <svg 
+                              className={`w-3 h-3 flex-shrink-0 ${activeGroupId === group.id ? 'text-primary dark:text-primary-300' : 'text-amber-500 dark:text-amber-400'}`}
+                              fill="currentColor" 
+                              viewBox="0 0 20 20"
+                              title="You created this group"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          )}
+                          </div>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
                             <span className="text-xs text-sage dark:text-gray-400">
                               {group.members.length} {group.members.length === 1 ? 'member' : 'members'}

@@ -277,7 +277,7 @@ export const sendGroupInviteEmail = functions.https.onCall(async (data: EmailInv
 
   try {
     const { data: emailData, error } = await resend.emails.send({
-      from: 'SplitBi <onboarding@resend.dev>',
+      from: 'SplitBi <invites@mail.splitbi.app>',
       to: [data.invitedEmail],
       subject: `${data.inviterName} invited you to join "${data.groupName}" on SplitBi`,
       html: generateInviteEmailHTML(data),
@@ -501,7 +501,7 @@ export const sendFeedbackEmail = functions.https.onCall(async (data: FeedbackDat
     const emailSubject = `[SplitBi ${data.type === 'bug' ? 'Bug' : data.type === 'feature' ? 'Feature' : 'Feedback'}] ${sanitizedSubject}`;
     
     const { data: emailData, error } = await resend.emails.send({
-      from: 'SplitBi Feedback <onboarding@resend.dev>',
+      from: 'SplitBi Support <support@mail.splitbi.app>',
       to: ['feedback@splitbi.app'],
       reply_to: data.userEmail || undefined,
       subject: emailSubject,

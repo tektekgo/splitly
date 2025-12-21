@@ -85,7 +85,34 @@ const BalanceDetailModal: React.FC<BalanceDetailModalProps> = ({
                         const isPayment = expense.category === Category.Payment;
                         let text;
                         if (isPayment) {
-                            text = expense.paidBy === currentUser.id ? 'You paid' : `${targetUser.name} paid you`;
+                            // Backward compatibility: Detect old payment structure (paidBy = recipient, payer in splits)
+                            const expenseDate = new Date(expense.expenseDate);
+                            const fixDate = new Date('2025-12-21T00:00:00Z');
+                            const isOldStructure = expenseDate < fixDate;
+                            
+                            if (isOldStructure) {
+                                // Old structure: paidBy = recipient, payer is in splits
+                                const isRecipient = expense.paidBy === currentUser.id;
+                                const isPayer = expense.splits.some(s => s.userId === currentUser.id);
+                                if (isPayer) {
+                                    text = 'You paid';
+                                } else if (isRecipient) {
+                                    text = `${targetUser.name} paid you`;
+                                } else {
+                                    text = `${targetUser.name} paid`;
+                                }
+                            } else {
+                                // New structure: paidBy = payer, recipient is in splits
+                                const isPayer = expense.paidBy === currentUser.id;
+                                const isRecipient = expense.splits.some(s => s.userId === currentUser.id);
+                                if (isPayer) {
+                                    text = 'You paid';
+                                } else if (isRecipient) {
+                                    text = `${targetUser.name} paid you`;
+                                } else {
+                                    text = `${targetUser.name} paid`;
+                                }
+                            }
                         } else {
                             text = expense.paidBy === currentUser.id ? 'You paid for' : `${targetUser.name} paid for`;
                         }

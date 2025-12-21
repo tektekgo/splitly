@@ -29,14 +29,47 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({ isOpen, onClose, expenses
       // Exception: Payment expenses (category === 'Payment') represent money transfers and should always be processed
       const isPayment = expense.category === 'Payment';
       if (payerInGroup && expense.splits && (isPayment ? expense.splits.length >= 1 : expense.splits.length >= 2)) {
-          const payerBalance = balances.get(expense.paidBy) || 0;
-          balances.set(expense.paidBy, payerBalance + expense.amount);
-          expense.splits.forEach(split => {
-            if (balances.has(split.userId)) {
-              const splitteeBalance = balances.get(split.userId) || 0;
-              balances.set(split.userId, splitteeBalance - split.amount);
-            }
-          });
+          if (isPayment) {
+              // Backward compatibility: Detect old payment structure (paidBy = recipient, payer in splits)
+              // Old structure: expenseDate before 2025-12-21 (when we fixed the semantic inconsistency)
+              const expenseDate = new Date(expense.expenseDate);
+              const fixDate = new Date('2025-12-21T00:00:00Z');
+              const isOldStructure = expenseDate < fixDate;
+              
+              if (isOldStructure) {
+                  // Old structure: paidBy = recipient, payer is in splits
+                  // Recipient (paidBy) balance INCREASES, payer (in splits) balance DECREASES
+                  const recipientBalance = balances.get(expense.paidBy) || 0;
+                  balances.set(expense.paidBy, recipientBalance + expense.amount);
+                  expense.splits.forEach(split => {
+                    if (balances.has(split.userId)) {
+                      const payerBalance = balances.get(split.userId) || 0;
+                      balances.set(split.userId, payerBalance - split.amount);
+                    }
+                  });
+              } else {
+                  // New structure: paidBy = payer, recipient is in splits
+                  // Payer (paidBy) balance DECREASES, recipient (in splits) balance INCREASES
+                  const payerBalance = balances.get(expense.paidBy) || 0;
+                  balances.set(expense.paidBy, payerBalance - expense.amount);
+                  expense.splits.forEach(split => {
+                    if (balances.has(split.userId)) {
+                      const recipientBalance = balances.get(split.userId) || 0;
+                      balances.set(split.userId, recipientBalance + split.amount);
+                    }
+                  });
+              }
+          } else {
+              // Regular expense: payer (paidBy) balance INCREASES, split participants balance DECREASES
+              const payerBalance = balances.get(expense.paidBy) || 0;
+              balances.set(expense.paidBy, payerBalance + expense.amount);
+              expense.splits.forEach(split => {
+                if (balances.has(split.userId)) {
+                  const splitteeBalance = balances.get(split.userId) || 0;
+                  balances.set(split.userId, splitteeBalance - split.amount);
+                }
+              });
+          }
       }
     });
     

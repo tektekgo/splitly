@@ -54,7 +54,7 @@ const BalanceHeader: React.FC<BalanceHeaderProps> = ({
                 whileTap={{ scale: 0.95 }}
                 whileHover={{ scale: 1.05 }}
                 onClick={onAddGroupClick}
-                className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all border border-blue-400/30"
+                className="filter flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all border border-blue-400/30"
                 title="Add Group"
               >
                 <svg className="w-5 h-5 drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,7 +68,7 @@ const BalanceHeader: React.FC<BalanceHeaderProps> = ({
                 whileTap={{ scale: 0.95 }}
                 whileHover={{ scale: 1.05 }}
                 onClick={onAddMemberClick}
-                className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all border border-purple-400/30"
+                className="filter flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all border border-purple-400/30"
                 title="Add Member"
               >
                 <svg className="w-5 h-5 drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,7 +81,7 @@ const BalanceHeader: React.FC<BalanceHeaderProps> = ({
               whileTap={{ scale: 0.95 }}
               whileHover={{ scale: 1.05 }}
               onClick={onAddExpenseClick}
-              className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all border border-emerald-400/30"
+              className="filter flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all border border-emerald-400/30"
               title="Add Expense"
             >
               <svg className="w-5 h-5 drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,7 +93,7 @@ const BalanceHeader: React.FC<BalanceHeaderProps> = ({
               whileTap={{ scale: 0.95 }}
               whileHover={{ scale: 1.05 }}
               onClick={onSettleClick}
-              className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all border border-amber-400/30"
+              className="filter flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all border border-amber-400/30"
               title="Settle Up"
             >
               <svg className="w-5 h-5 drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">

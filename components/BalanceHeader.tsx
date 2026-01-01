@@ -7,20 +7,16 @@ interface BalanceHeaderProps {
   currency: string;
   balanceColor: string;
   balanceDescription: string;
-  onAddGroupClick?: () => void;
   onAddMemberClick?: () => void;
-  onAddExpenseClick: () => void;
   onSettleClick: () => void;
 }
 
-const BalanceHeader: React.FC<BalanceHeaderProps> = ({ 
-  balance, 
-  currency, 
-  balanceColor, 
+const BalanceHeader: React.FC<BalanceHeaderProps> = ({
+  balance,
+  currency,
+  balanceColor,
   balanceDescription,
-  onAddGroupClick,
   onAddMemberClick,
-  onAddExpenseClick,
   onSettleClick
 }) => {
   return (
@@ -48,47 +44,21 @@ const BalanceHeader: React.FC<BalanceHeaderProps> = ({
 
         {/* Right Half - Quick Actions */}
         <div className="flex flex-col justify-center">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {onAddGroupClick && (
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                whileHover={{ scale: 1.05 }}
-                onClick={onAddGroupClick}
-                className="filter flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all border border-blue-400/30"
-                title="Add Group"
-              >
-                <svg className="w-5 h-5 drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <span className="text-[10px] font-bold leading-tight text-center drop-shadow-sm">Add Group</span>
-              </motion.button>
-            )}
+          <div className="grid grid-cols-2 gap-2">
             {onAddMemberClick && (
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 whileHover={{ scale: 1.05 }}
                 onClick={onAddMemberClick}
                 className="filter flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all border border-purple-400/30"
-                title="Add Member"
+                title="Invite Member"
               >
                 <svg className="w-5 h-5 drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                 </svg>
-                <span className="text-[10px] font-bold leading-tight text-center drop-shadow-sm">Add Member</span>
+                <span className="text-[10px] font-bold leading-tight text-center drop-shadow-sm">Invite Member</span>
               </motion.button>
             )}
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              whileHover={{ scale: 1.05 }}
-              onClick={onAddExpenseClick}
-              className="filter flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all border border-emerald-400/30"
-              title="Add Expense"
-            >
-              <svg className="w-5 h-5 drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-              </svg>
-              <span className="text-[10px] font-bold leading-tight text-center drop-shadow-sm">Add Expense</span>
-            </motion.button>
             <motion.button
               whileTap={{ scale: 0.95 }}
               whileHover={{ scale: 1.05 }}

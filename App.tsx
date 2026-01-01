@@ -12,6 +12,7 @@ import ExpenseDetailModal from './components/ExpenseDetailModal';
 import ExpenseFilter from './components/ExpenseFilter';
 import BalanceDetailModal from './components/BalanceDetailModal';
 import BottomNav from './components/BottomNav';
+import VersionFooter from './components/VersionFooter';
 import GroupManagementModal from './components/GroupManagementModal';
 import GroupsScreen from './components/GroupsScreen';
 import CreateGroupModal from './components/CreateGroupModal';
@@ -27,7 +28,7 @@ import { formatCurrency } from './utils/currencyFormatter';
 import { logError } from './utils/errorLogger';
 import { sendGroupInviteEmail } from './utils/emailService';
 import { db } from './firebase';
-import { collection, getDocs, getDoc, doc, writeBatch, addDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, getDoc, doc, writeBatch, addDoc, updateDoc, deleteDoc, query, where, arrayUnion, runTransaction } from 'firebase/firestore';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAuth } from './contexts/AuthContext';
 import LoginScreen from './components/LoginScreen';
@@ -79,34 +80,43 @@ type Screen = 'dashboard' | 'add' | 'groups' | 'profile' | 'activity';
 
 const ThemeToggle: React.FC<{ theme: Theme, toggleTheme: () => void }> = ({ theme, toggleTheme }) => {
   const isDark = theme === 'dark';
-  
+
   return (
     <motion.button
       onClick={toggleTheme}
-      whileTap={{ scale: 0.98 }}
-      className="relative inline-flex h-7 w-14 items-center rounded-full bg-stone-200 dark:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer shadow-sm border border-stone-300 dark:border-gray-600"
+      whileTap={{ scale: 0.95 }}
+      whileHover={{ scale: 1.05 }}
+      className="relative p-2.5 rounded-xl bg-white dark:bg-gray-700 shadow-md hover:shadow-lg border border-stone-200 dark:border-gray-600 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1 cursor-pointer group overflow-hidden"
       aria-label="Toggle theme"
     >
-      <motion.span
-        className={`absolute flex h-6 w-6 items-center justify-center rounded-full bg-white dark:bg-gray-800 shadow-md transition-colors ${
-          isDark ? 'text-yellow-400' : 'text-stone-600'
-        }`}
+      {/* Background gradient effect */}
+      <div className={`absolute inset-0 bg-gradient-to-br transition-opacity duration-300 ${
+        isDark
+          ? 'from-indigo-500/10 to-purple-500/10 opacity-100'
+          : 'from-amber-400/10 to-orange-400/10 opacity-100'
+      }`} />
+
+      {/* Icon container with smooth rotation */}
+      <motion.div
+        className="relative z-10"
         initial={false}
-        animate={{
-          x: isDark ? 28 : 2,
-        }}
-        transition={{
-          type: "spring",
-          stiffness: 500,
-          damping: 30
-        }}
+        animate={{ rotate: isDark ? 180 : 0 }}
+        transition={{ type: "spring", stiffness: 200, damping: 20 }}
       >
         {isDark ? (
-          <MoonIcon className="h-4 w-4" />
+          <MoonIcon className="h-5 w-5 text-indigo-400 dark:text-indigo-300 drop-shadow-sm" />
         ) : (
-          <SunIcon className="h-4 w-4" />
+          <SunIcon className="h-5 w-5 text-amber-500 drop-shadow-sm" />
         )}
-      </motion.span>
+      </motion.div>
+
+      {/* Subtle glow effect on hover */}
+      <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+        isDark
+          ? 'bg-indigo-400/5'
+          : 'bg-amber-400/5'
+      }`} />
+
       <span className="sr-only">Toggle theme</span>
     </motion.button>
   );
@@ -398,12 +408,21 @@ const App: React.FC = () => {
                 inv.status === 'pending' && 
                 inv.invitedEmail.toLowerCase() === currentUser.email?.toLowerCase()
             );
-            if (pendingInvites.length > 0 && !inviteIdFromStorage && groupsData.length === 0) {
-                // New user with pending invites - show Activity screen after a short delay
-                console.log('New user with pending invites, navigating to Activity screen');
+            if (pendingInvites.length > 0 && !inviteIdFromStorage) {
+                // User with pending invites - show Activity screen after a short delay
+                // This applies to both new users and existing users with new invites
+                console.log(`User has ${pendingInvites.length} pending invite(s), navigating to Activity screen`);
                 setTimeout(() => {
-                    setActiveScreen('activity');
-                }, 1500);
+                    // Only navigate if user hasn't manually navigated away
+                    // Check if still on dashboard (default screen)
+                    setActiveScreen(prev => {
+                        // If user is still on dashboard (or hasn't changed screens), go to activity
+                        if (prev === 'dashboard' || prev === 'activity') {
+                            return 'activity';
+                        }
+                        return prev; // User has navigated elsewhere, don't force navigation
+                    });
+                }, 1000);
             }
         } catch (error: any) {
             console.error("Error fetching data from Firestore:", error);
@@ -1444,22 +1463,45 @@ const App: React.FC = () => {
       return;
     }
 
+    // Ensure user document exists before proceeding
+    if (!currentUser.id) {
+      alert('User account not properly initialized. Please try logging out and back in.');
+      return;
+    }
+
     try {
-      // Check if group exists and if user is already a member
       const groupRef = doc(db, 'groups', invite.groupId);
-      const groupDocSnap = await getDoc(groupRef);
+      const inviteRef = doc(db, 'groupInvites', inviteId);
       
-      if (!groupDocSnap.exists()) {
-        alert('The group for this invite no longer exists');
-        return;
+      // First, try to read the group to check if user is already a member
+      // This may fail for new users, which is okay - we'll handle it
+      let groupData: Group | null = null;
+      let userAlreadyMember = false;
+      try {
+        const groupDocSnap = await getDoc(groupRef);
+        if (groupDocSnap.exists()) {
+          groupData = { id: groupDocSnap.id, ...groupDocSnap.data() } as Group;
+          userAlreadyMember = groupData.members && groupData.members.includes(currentUser.id);
+        } else {
+          throw new Error('The group for this invite no longer exists');
+        }
+      } catch (readError: any) {
+        // If we can't read the group (permission denied), that's expected for new users
+        // We'll proceed with updating the invite and adding user to group
+        // The security rules will allow the update if user is not already a member
+        console.log('Could not read group before update (expected for new users):', readError);
+        if (readError?.code === 'permission-denied' || readError?.message?.includes('permission')) {
+          // This is expected - user is not a member yet, so they can't read the group
+          // We'll proceed with the update
+        } else {
+          // Other error (e.g., group doesn't exist) - rethrow
+          throw readError;
+        }
       }
 
-      const groupData = groupDocSnap.data() as Group;
-      
-      // Check if user is already a member
-      if (groupData.members && groupData.members.includes(currentUser.id)) {
-        // User is already a member, just update the invite status
-        await updateDoc(doc(db, 'groupInvites', inviteId), {
+      // If user is already a member, just update the invite status
+      if (userAlreadyMember && groupData) {
+        await updateDoc(inviteRef, {
           status: 'accepted',
           acceptedAt: new Date().toISOString(),
           invitedUserId: currentUser.id,
@@ -1469,20 +1511,13 @@ const App: React.FC = () => {
           inv.id === inviteId ? { ...inv, status: 'accepted' as const, acceptedAt: new Date().toISOString(), invitedUserId: currentUser.id } : inv
         ));
         
-        // Ensure group is in local state even if user is already a member
-        const existingGroup = { 
-          ...groupData, 
-          id: invite.groupId,
-          createdAt: groupData.createdAt instanceof Date ? groupData.createdAt : groupData.createdAt ? new Date(groupData.createdAt) : new Date(),
-          archived: groupData.archived || false
-        } as Group;
-        
+        // Ensure group is in local state
         setGroups(prev => {
           const exists = prev.some(g => g.id === invite.groupId);
           if (exists) {
-            return prev; // Already in state, no need to update
+            return prev;
           } else {
-            return [...prev, existingGroup]; // Add to state
+            return [...prev, groupData!];
           }
         });
         
@@ -1492,39 +1527,74 @@ const App: React.FC = () => {
         return;
       }
 
-      // Update invite status first
-      await updateDoc(doc(db, 'groupInvites', inviteId), {
-        status: 'accepted',
-        acceptedAt: new Date().toISOString(),
-        invitedUserId: currentUser.id,
+      // Use transaction to atomically update invite and group
+      // This ensures both operations succeed or fail together
+      await runTransaction(db, async (transaction) => {
+        // Verify invite still exists and is valid
+        const inviteDoc = await transaction.get(inviteRef);
+        if (!inviteDoc.exists()) {
+          throw new Error('Invite no longer exists');
+        }
+        
+        const inviteData = inviteDoc.data();
+        if (inviteData.status !== 'pending') {
+          throw new Error('Invite has already been processed');
+        }
+        
+        if (inviteData.invitedEmail.toLowerCase() !== currentUser.email?.toLowerCase()) {
+          throw new Error('This invite was not sent to your email address');
+        }
+
+        // Update invite status
+        transaction.update(inviteRef, {
+          status: 'accepted',
+          acceptedAt: new Date().toISOString(),
+          invitedUserId: currentUser.id,
+        });
+
+        // Add user to group using arrayUnion
+        // This will add the user only if they're not already in the array
+        // Security rules allow this update if user is not already a member
+        transaction.update(groupRef, {
+          members: arrayUnion(currentUser.id)
+        });
       });
 
-      // Add user to group (ensure no duplicates)
-      const existingMembers = groupData.members || [];
-      const updatedMembers = existingMembers.includes(currentUser.id) 
-        ? existingMembers // User already in members, don't add duplicate
-        : [...existingMembers, currentUser.id];
-      await updateDoc(groupRef, { members: updatedMembers });
-      
-      // Update local state - add group if it doesn't exist, or update if it does
-      const updatedGroup = { 
-        ...groupData, 
-        id: invite.groupId, 
-        members: updatedMembers,
-        createdAt: groupData.createdAt instanceof Date ? groupData.createdAt : groupData.createdAt ? new Date(groupData.createdAt) : new Date(),
-        archived: groupData.archived || false
-      } as Group;
-      
-      setGroups(prev => {
-        const existingGroupIndex = prev.findIndex(g => g.id === invite.groupId);
-        if (existingGroupIndex >= 0) {
-          // Group exists, update it
-          return prev.map(g => g.id === invite.groupId ? updatedGroup : g);
-        } else {
-          // Group doesn't exist in local state, add it
-          return [...prev, updatedGroup];
+      // After successful transaction, fetch the group to update local state
+      // Now that user is a member, they should be able to read it
+      // Reuse groupData variable (may be null if we couldn't read it earlier)
+      if (!groupData) {
+        try {
+          const groupDocSnap = await getDoc(groupRef);
+          if (groupDocSnap.exists()) {
+            groupData = { id: groupDocSnap.id, ...groupDocSnap.data() } as Group;
+          }
+        } catch (fetchError) {
+          console.warn('Could not fetch group after accepting invite:', fetchError);
+          // Use invite data to create a minimal group object for local state
+          groupData = {
+            id: invite.groupId,
+            name: invite.groupName,
+            members: [currentUser.id],
+            currency: 'USD', // Default, will be updated when group is properly fetched
+            createdAt: new Date().toISOString(),
+            archived: false
+          } as Group;
         }
-      });
+      }
+
+      // Update local state
+      if (groupData) {
+        setGroups(prev => {
+          const existingGroupIndex = prev.findIndex(g => g.id === invite.groupId);
+          if (existingGroupIndex >= 0) {
+            return prev.map(g => g.id === invite.groupId ? groupData! : g);
+          } else {
+            return [...prev, groupData!];
+          }
+        });
+      }
+      
       setGroupInvites(prev => prev.map(inv => 
         inv.id === inviteId ? { ...inv, status: 'accepted' as const, acceptedAt: new Date().toISOString(), invitedUserId: currentUser.id } : inv
       ));
@@ -1547,7 +1617,15 @@ const App: React.FC = () => {
     } catch (error: any) {
       console.error("Error accepting invite: ", error);
       const errorMessage = error?.message || error?.code || 'Unknown error';
-      alert(`Failed to accept invite: ${errorMessage}. Please try again.`);
+      
+      // Provide more helpful error messages
+      if (errorMessage.includes('permission') || errorMessage.includes('Permission')) {
+        alert(`Failed to accept invite: Permission denied. Please ensure you're logged in with the email address that received the invite (${invite.invitedEmail}).`);
+      } else if (errorMessage.includes('no longer exists')) {
+        alert(`Failed to accept invite: ${errorMessage}`);
+      } else {
+        alert(`Failed to accept invite: ${errorMessage}. Please try again.`);
+      }
     }
   };
 
@@ -1853,9 +1931,15 @@ const App: React.FC = () => {
 
   const hasActiveFilters = searchTerm !== '' || filterCategory !== 'all' || filterUser !== 'all';
 
+  // Calculate unread notifications + pending invites for Activity badge
   const unreadNotificationCount = useMemo(() => {
-    return notifications.filter(n => !n.read).length;
-  }, [notifications]);
+    const unreadNotifications = notifications.filter(n => !n.read).length;
+    const pendingInvitesCount = groupInvites.filter(inv => 
+      inv.status === 'pending' && 
+      inv.invitedEmail.toLowerCase() === currentUser?.email?.toLowerCase()
+    ).length;
+    return unreadNotifications + pendingInvitesCount;
+  }, [notifications, groupInvites, currentUser]);
   
   if (authLoading || loading) {
     return (
@@ -2032,9 +2116,7 @@ const App: React.FC = () => {
                   currency={activeGroup.currency}
                   balanceColor={balanceColor}
                   balanceDescription={balanceDescription}
-                  onAddGroupClick={() => setIsCreateGroupModalOpen(true)}
                   onAddMemberClick={handleOpenGroupManagement}
-                  onAddExpenseClick={() => setActiveScreen('add')}
                   onSettleClick={handleOpenSettleUp}
                 />
               ) : undefined}
@@ -2056,9 +2138,7 @@ const App: React.FC = () => {
                     currency={activeGroup.currency}
                     balanceColor={balanceColor}
                     balanceDescription={balanceDescription}
-                    onAddGroupClick={() => setIsCreateGroupModalOpen(true)}
                     onAddMemberClick={handleOpenGroupManagement}
-                    onAddExpenseClick={() => setActiveScreen('add')}
                     onSettleClick={handleOpenSettleUp}
                   />
                 ) : undefined}
@@ -2110,89 +2190,212 @@ const App: React.FC = () => {
       <div className="w-full max-w-md sm:max-w-lg lg:max-w-xl mx-auto relative flex flex-col min-h-screen">
         {/* Unified Container - Content and Nav as One Unit */}
         <div className="bg-gradient-to-b from-white via-stone-50/30 to-stone-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-t-3xl overflow-hidden shadow-lg border-x border-t border-stone-200 dark:border-gray-700 flex flex-col flex-grow mb-0">
-          {/* Integrated Header - Compact & Modern */}
-          <motion.header 
+          {/* Integrated Header - Clean Two-Row Layout */}
+          <motion.header
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative bg-gradient-to-br from-primary/15 via-primary/8 to-white dark:from-primary/20 dark:via-primary/12 dark:to-gray-800 px-4 pt-3 pb-3 border-b-2 border-primary/20 dark:border-primary/30"
+            className="relative bg-gradient-to-br from-primary/15 via-primary/8 to-white dark:from-primary/20 dark:via-primary/12 dark:to-gray-800 px-4 pt-4 pb-3 border-b-2 border-primary/20 dark:border-primary/30"
           >
-              {/* Header Content */}
-              <div className="flex items-center justify-between">
-                {/* Logo - Compact */}
+              {/* Row 1: Branding & Controls */}
+              <div className="flex items-center justify-between mb-3">
+                {/* Logo & App Name */}
                 <div className="flex items-center gap-2.5">
-                  <motion.div 
+                  <motion.div
                     whileHover={{ scale: 1.05 }}
                     className="bg-gradient-to-br from-white to-primary/5 dark:from-gray-900 dark:to-primary/10 rounded-xl p-2 shadow-md ring-1 ring-primary/20 dark:ring-primary/30"
                   >
-                    <img 
-                      src="/splitBi-logo-notext-svg.svg" 
-                      alt="SplitBi" 
-                      className="h-10 w-10 sm:h-12 sm:w-12"
+                    <img
+                      src="/splitBi-logo-notext-svg.svg"
+                      alt="SplitBi"
+                      className="h-10 w-10"
                     />
                   </motion.div>
                   <div>
-                    <h1 className="text-lg sm:text-xl font-extrabold text-charcoal dark:text-gray-100 tracking-tight">
+                    <h1 className="text-xl font-extrabold text-charcoal dark:text-gray-100 tracking-tight leading-none">
                       Split<span className="text-primary">Bi</span>
                     </h1>
-                    <p className="text-xs text-primary dark:text-primary-300 font-semibold tracking-wide uppercase hidden sm:block">
-                      Splitting expenses, made easy
-                    </p>
+                    <p className="text-[10px] text-sage dark:text-gray-400 font-medium tracking-wide">Split expenses smartly</p>
                   </div>
                 </div>
-                
-                {/* Right side: User Menu + Theme Toggle */}
-                <div className="flex flex-col items-end gap-1.5">
-                  <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+
+                {/* Controls: User Menu + Theme Toggle */}
+                <div className="flex items-center gap-3">
                   <motion.button
                     ref={userMenuButtonRef}
-                    whileTap={{ scale: 0.98 }}
+                    whileTap={{ scale: 0.96 }}
                     whileHover={{ scale: 1.02 }}
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowUserMenu(!showUserMenu);
                     }}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/90 dark:bg-gray-800 backdrop-blur-sm text-xs text-sage dark:text-gray-300 hover:text-charcoal dark:hover:text-gray-200 transition-all border border-primary/20 dark:border-primary/30 shadow-sm"
+                    className="relative flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-xl bg-white dark:bg-gray-700 hover:bg-gradient-to-br hover:from-white hover:to-stone-50 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all duration-200 border border-stone-200 dark:border-gray-600 shadow-md hover:shadow-lg group"
                   >
-                    <span className="font-semibold text-charcoal dark:text-gray-200 hidden sm:inline">{currentUser.name}</span>
-                    <span className="font-semibold text-charcoal dark:text-gray-200 sm:hidden">{currentUser.name.split(' ')[0]}</span>
-                    <svg className={`w-3 h-3 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
+                    {/* Avatar with status indicator */}
+                    <div className="relative">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary via-primary-600 to-primary-700 flex items-center justify-center text-white text-sm font-bold shadow-inner ring-2 ring-white dark:ring-gray-700">
+                        {currentUser.name.charAt(0).toUpperCase()}
+                      </div>
+                      {/* Online status indicator */}
+                      <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-gray-700 shadow-sm" />
+                    </div>
+
+                    {/* Name and chevron */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-sm text-charcoal dark:text-gray-100 hidden sm:inline max-w-[100px] truncate">
+                        {currentUser.name.split(' ')[0]}
+                      </span>
+                      <motion.svg
+                        className="w-3.5 h-3.5 text-sage dark:text-gray-400 group-hover:text-charcoal dark:group-hover:text-gray-200 transition-colors"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                        animate={{ rotate: showUserMenu ? 180 : 0 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      >
+                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </motion.svg>
+                    </div>
+
+                    {/* Subtle shine effect */}
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/40 to-transparent dark:from-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                   </motion.button>
+
+                  <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
                 </div>
               </div>
+
+              {/* Row 2: Group Selector (if groups exist) */}
+              {activeGroups.length > 0 && (
+                <div className="relative">
+                  <label className="block text-[10px] font-semibold text-primary dark:text-primary-300 uppercase tracking-wider mb-1.5">
+                    Active Group
+                  </label>
+                  <select
+                    value={activeGroupId || ''}
+                    onChange={(e) => setActiveGroupId(e.target.value)}
+                    className="w-full px-3 py-2.5 text-sm font-bold bg-white dark:bg-gray-700 border-2 border-primary/30 dark:border-primary/40 rounded-lg text-charcoal dark:text-gray-100 shadow-sm hover:border-primary/50 dark:hover:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all cursor-pointer"
+                  >
+                    {activeGroups.map(g => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               
               {/* User Menu Dropdown */}
               {showUserMenu && userMenuButtonRef.current && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-                  <motion.div 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="fixed z-[60] w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-stone-200 dark:border-gray-700 overflow-hidden"
+                  {/* Backdrop with blur */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="fixed inset-0 z-40 bg-black/5 dark:bg-black/20 backdrop-blur-[2px]"
+                    onClick={() => setShowUserMenu(false)}
+                  />
+
+                  {/* Dropdown Menu */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className="fixed z-[60] w-64 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-stone-200/50 dark:border-gray-700/50 overflow-hidden ring-1 ring-black/5 dark:ring-white/5"
                     style={{
-                      top: `${userMenuButtonRef.current.getBoundingClientRect().bottom + 8}px`,
+                      top: `${userMenuButtonRef.current.getBoundingClientRect().bottom + 12}px`,
                       right: `${window.innerWidth - userMenuButtonRef.current.getBoundingClientRect().right}px`
                     }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="p-4 border-b border-stone-200 dark:border-stone-700 bg-surface dark:bg-gray-900/50">
-                      <p className="text-xs text-sage dark:text-text-secondary-dark">Signed in as</p>
-                      <p className="text-sm font-semibold text-charcoal dark:text-text-primary-dark truncate">{currentUser.email}</p>
+                    {/* User Info Header */}
+                    <div className="p-4 border-b border-stone-200/70 dark:border-gray-700/70 bg-gradient-to-br from-primary/5 to-transparent dark:from-primary/10">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="relative">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary via-primary-600 to-primary-700 flex items-center justify-center text-white font-bold shadow-lg ring-2 ring-white/50 dark:ring-gray-700/50">
+                            {currentUser.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-gray-800 shadow-sm" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-charcoal dark:text-gray-100 truncate">{currentUser.name}</p>
+                          <p className="text-xs text-sage dark:text-gray-400 truncate">{currentUser.email}</p>
+                        </div>
+                      </div>
                     </div>
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        logout();
-                      }}
-                      className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
-                      Logout
-                    </motion.button>
+
+                    {/* Menu Items */}
+                    <div className="py-2">
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        whileHover={{ x: 4 }}
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          setIsHelpModalOpen(true);
+                        }}
+                        className="w-full px-4 py-3 text-left text-sm font-medium text-charcoal dark:text-gray-200 hover:bg-gradient-to-r hover:from-primary/5 hover:to-transparent dark:hover:from-primary/10 transition-all flex items-center gap-3 group"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">
+                          <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <span>Help & Guide</span>
+                      </motion.button>
+
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        whileHover={{ x: 4 }}
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          setIsFeedbackModalOpen(true);
+                        }}
+                        className="w-full px-4 py-3 text-left text-sm font-medium text-charcoal dark:text-gray-200 hover:bg-gradient-to-r hover:from-primary/5 hover:to-transparent dark:hover:from-primary/10 transition-all flex items-center gap-3 group"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center group-hover:bg-purple-100 dark:group-hover:bg-purple-900/50 transition-colors">
+                          <svg className="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                          </svg>
+                        </div>
+                        <span>Send Feedback</span>
+                      </motion.button>
+
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        whileHover={{ x: 4 }}
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          setIsCurrencyConverterOpen(true);
+                        }}
+                        className="w-full px-4 py-3 text-left text-sm font-medium text-charcoal dark:text-gray-200 hover:bg-gradient-to-r hover:from-primary/5 hover:to-transparent dark:hover:from-primary/10 transition-all flex items-center gap-3 group"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50 transition-colors">
+                          <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <span>Currency Converter</span>
+                      </motion.button>
+                    </div>
+
+                    {/* Logout Section */}
+                    <div className="border-t border-stone-200/70 dark:border-gray-700/70 pt-1 pb-2">
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        whileHover={{ x: 4 }}
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          logout();
+                        }}
+                        className="w-full px-4 py-3 text-left text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-gradient-to-r hover:from-red-50 hover:to-transparent dark:hover:from-red-900/20 transition-all flex items-center gap-3 group"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center group-hover:bg-red-100 dark:group-hover:bg-red-900/50 transition-colors">
+                          <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                        </div>
+                        <span>Logout</span>
+                      </motion.button>
+                    </div>
                   </motion.div>
                 </>
               )}
@@ -2219,220 +2422,19 @@ const App: React.FC = () => {
                 </div>
               )}
             </motion.header>
-            
-            {/* Utility Bar - Positioned below header */}
-            <UtilityBar
-              onFeedbackClick={() => setIsFeedbackModalOpen(true)}
-              onCurrencyConverterClick={() => setIsCurrencyConverterOpen(true)}
-              onHelpClick={() => setIsHelpModalOpen(true)}
-            />
-            
+
             {/* Dashboard Content - Part of Same Container */}
             {activeScreen === 'dashboard' && activeGroup && (
               <>
-                {/* Balance & Quick Actions Section - Split Layout */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="bg-gradient-to-br from-primary/8 via-white to-primary/5 dark:from-primary/15 dark:via-gray-700 dark:to-primary/10 px-4 py-4 sm:px-6 sm:py-4 rounded-t-2xl border-b-2 border-primary/20 dark:border-primary/30"
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    {/* Left Half - Balance */}
-                    <div className="flex flex-col justify-center">
-                      <div className="text-center md:text-left">
-                        <div className="relative inline-block">
-                          <p className={`text-2xl sm:text-3xl font-sans font-extrabold mb-1 tracking-tight ${balanceColor}`}>
-                            {formatCurrency(Math.abs(currentUserBalance), activeGroup?.currency || 'USD')}
-                          </p>
-                          {currentUserBalance > 0.01 && (
-                            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-pulse"></div>
-                          )}
-                        </div>
-                        <p className="text-xs sm:text-sm font-medium text-charcoal/80 dark:text-gray-300 mt-1">{balanceDescription}</p>
-                      </div>
-                    </div>
-
-                    {/* Right Half - Quick Actions */}
-                    <div className="flex flex-col justify-center">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          whileHover={{ scale: 1.05 }}
-                          onClick={() => setIsCreateGroupModalOpen(true)}
-                          className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all"
-                          title="Add Group"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          <span className="text-[10px] font-bold leading-tight text-center">Add Group</span>
-                        </motion.button>
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          whileHover={{ scale: 1.05 }}
-                          onClick={handleOpenGroupManagement}
-                          className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all"
-                          title="Add Member"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                          </svg>
-                          <span className="text-[10px] font-bold leading-tight text-center">Add Member</span>
-                        </motion.button>
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          whileHover={{ scale: 1.05 }}
-                          onClick={() => setActiveScreen('add')}
-                          className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all"
-                          title="Add Expense"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                          </svg>
-                          <span className="text-[10px] font-bold leading-tight text-center">Add Expense</span>
-                        </motion.button>
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          whileHover={{ scale: 1.05 }}
-                          onClick={handleOpenSettleUp}
-                          className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 bg-gradient-to-br from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all"
-                          title="Settle Up"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="text-[10px] font-bold leading-tight text-center">Settle Up</span>
-                        </motion.button>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Groups Section - Compact & Slick */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="px-4 py-2.5 sm:px-6 sm:py-3 bg-white dark:bg-gray-700 border-t-2 border-stone-200 dark:border-gray-600"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-base sm:text-lg font-sans font-extrabold text-charcoal dark:text-gray-100 tracking-tight">Groups</h3>
-                    <div className="flex items-center gap-3">
-                      <motion.button 
-                        whileTap={{ scale: 0.98 }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsCreateGroupModalOpen(true);
-                        }}
-                        className="text-xs sm:text-sm text-primary dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-400 transition-colors font-semibold"
-                      >
-                        Create
-                      </motion.button>
-                      {activeGroupId && activeGroup && !activeGroup.archived && totalDebt < 0.01 && (
-                        <motion.button 
-                          whileTap={{ scale: 0.98 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm('Archive this group? You can unarchive it later from the Archived Groups section.')) {
-                              handleArchiveGroup(activeGroupId);
-                            }
-                          }}
-                          className="text-xs sm:text-sm text-[#1E3450] dark:text-[#1E3450] hover:opacity-80 transition-colors font-semibold"
-                        >
-                          Archive
-                        </motion.button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-0.5">
-                    {activeGroups.map((group, index) => (
-                      <motion.div
-                        key={group.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.2 + index * 0.05 }}
-                        className={`flex items-center gap-2 py-1.5 px-2 rounded transition-all group ${
-                          activeGroupId === group.id 
-                            ? 'bg-primary/10 dark:bg-primary/20' 
-                            : 'hover:bg-primary/5 dark:hover:bg-gray-600/50'
-                        }`}
-                      >
-                        <div 
-                          onClick={() => {
-                            setActiveGroupId(group.id);
-                            // Stay on dashboard - just switch active group
-                          }}
-                          className="flex-grow flex items-center gap-2 cursor-pointer min-w-0"
-                        >
-                          <div className={`flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-colors ${
-                            activeGroupId === group.id 
-                              ? 'bg-primary dark:bg-primary-400' 
-                              : 'bg-stone-200 dark:bg-gray-600 group-hover:bg-primary/20 dark:group-hover:bg-primary/30'
-                          }`}>
-                            <GroupIcon 
-                              groupName={group.name} 
-                              className={`w-3 h-3 ${
-                                activeGroupId === group.id 
-                                  ? 'text-white dark:text-gray-900' 
-                                  : 'text-charcoal dark:text-gray-300'
-                              }`}
-                            />
-                          </div>
-                          <div className="flex-grow min-w-0 flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <p className={`text-sm font-sans font-extrabold truncate ${
-                                activeGroupId === group.id 
-                                ? 'text-primary dark:text-primary-300' 
-                                : 'text-charcoal dark:text-gray-100'
-                            }`}>
-                                {group.name}
-                              </p>
-                              {group.createdBy === currentUser.id && (
-                                <svg 
-                                  className={`w-3 h-3 flex-shrink-0 ${activeGroupId === group.id ? 'text-primary dark:text-primary-300' : 'text-amber-500 dark:text-amber-400'}`}
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                  title="You created this group"
-                                >
-                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                              <span className="text-xs text-sage dark:text-gray-400">
-                                {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
-                              </span>
-                              {activeGroupId === group.id && (
-                                <span className="w-1.5 h-1.5 bg-primary dark:bg-primary-300 rounded-full"></span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          whileHover={{ scale: 1.05 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingGroupId(group.id);
-                            setEditingGroupDebt(calculateGroupDebt(group.id));
-                            setIsGroupManagementModalOpen(true);
-                          }}
-                          className="flex-shrink-0 w-7 h-7 sm:w-6 sm:h-6 flex items-center justify-center rounded transition-all text-sage dark:text-gray-400 hover:text-primary dark:hover:text-primary-300 hover:bg-primary/10 dark:hover:bg-primary/20 opacity-70 sm:opacity-0 sm:group-hover:opacity-100 active:opacity-100"
-                          title="Group Settings"
-                        >
-                          <svg 
-                            className="w-4 h-4" 
-                            fill="currentColor" 
-                            viewBox="0 0 24 24"
-                          >
-                            <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.08.49 0 .61.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z" />
-                          </svg>
-                        </motion.button>
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
+                {/* Balance & Quick Actions Section */}
+                <BalanceHeader
+                  balance={currentUserBalance}
+                  currency={activeGroup?.currency || 'USD'}
+                  balanceColor={balanceColor}
+                  balanceDescription={balanceDescription}
+                  onAddMemberClick={handleOpenGroupManagement}
+                  onSettleClick={handleOpenSettleUp}
+                />
 
                 {/* Group Financial Summary Section */}
                 <GroupFinancialSummary
@@ -2440,6 +2442,62 @@ const App: React.FC = () => {
                   group={activeGroup}
                   balances={balances}
                 />
+
+                {/* Contextual Suggestions */}
+                {activeGroup && activeGroupMembers.length === 1 && activeGroupExpenses.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="mx-4 sm:mx-6 my-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-700 rounded-xl"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-800/50 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-bold text-charcoal dark:text-gray-100 mb-1">Invite members to start splitting expenses</h4>
+                        <p className="text-xs text-sage dark:text-gray-400 mb-2">Add roommates, friends, or travel buddies to track shared costs together</p>
+                        <motion.button
+                          whileTap={{ scale: 0.98 }}
+                          onClick={handleOpenGroupManagement}
+                          className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+                        >
+                          Invite Members →
+                        </motion.button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+                {activeGroup && currentUserBalance > 0.01 && activeGroupExpenses.length > 2 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="mx-4 sm:mx-6 my-3 p-3 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700 rounded-xl"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-800/50 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-bold text-charcoal dark:text-gray-100 mb-1">You're owed {formatCurrency(currentUserBalance, activeGroup?.currency || 'USD')}</h4>
+                        <p className="text-xs text-sage dark:text-gray-400 mb-2">Settle up to see who owes what and simplify your balances</p>
+                        <motion.button
+                          whileTap={{ scale: 0.98 }}
+                          onClick={handleOpenSettleUp}
+                          className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
+                        >
+                          View Balances →
+                        </motion.button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
 
                 {/* Recent Expenses Section */}
                 <motion.div 
@@ -2535,13 +2593,31 @@ const App: React.FC = () => {
                     })}
                     </div>
                     {activeGroupExpenses.length === 0 && (
-                      <div className="text-center py-6">
-                        <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-primary-50 dark:bg-primary/20 flex items-center justify-center border border-primary/20 dark:border-primary/30">
-                          <span className="text-primary dark:text-primary-300 text-lg">💰</span>
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="text-center py-8"
+                      >
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 flex items-center justify-center border-2 border-primary/20 dark:border-primary/30 shadow-sm">
+                          <svg className="w-8 h-8 text-primary dark:text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
                         </div>
-                        <p className="text-sm text-sage dark:text-gray-400">No expenses yet</p>
-                        <p className="text-xs text-sage dark:text-gray-500 mt-1">Add your first expense to get started</p>
-                      </div>
+                        <h4 className="text-base font-bold text-charcoal dark:text-gray-100 mb-2">No expenses yet</h4>
+                        <p className="text-sm text-sage dark:text-gray-400 mb-4 max-w-xs mx-auto">Track your first shared expense by tapping the green <span className="font-semibold text-primary">+</span> button below</p>
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          whileHover={{ scale: 1.05 }}
+                          onClick={() => setActiveScreen('add')}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white text-sm font-semibold rounded-lg shadow-md hover:shadow-lg transition-all"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                          </svg>
+                          Add Your First Expense
+                        </motion.button>
+                      </motion.div>
                     )}
                     {activeGroupExpenses.length > 3 && (
                       <div className="pt-3">

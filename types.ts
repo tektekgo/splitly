@@ -105,3 +105,20 @@ export interface GroupInvite {
   expiresAt?: string; // Optional: auto-expire after 7 days
   acceptedAt?: string; // When invite was accepted
 }
+
+// Admin-specific types
+export interface EnrichedGroup extends Group {
+  creatorName?: string;
+  creatorEmail?: string;
+  memberCount: number;
+  expenseCount: number;
+}
+
+export interface UserStats {
+  userId: string;
+  userName: string;
+  userEmail?: string;
+  groupCount: number;
+  expenseCount: number;
+  inviteCount: number;
+}

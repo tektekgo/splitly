@@ -7,7 +7,11 @@ export type AdminActionType =
   | 'archive_group'
   | 'unarchive_group'
   | 'delete_user'
-  | 'modify_group';
+  | 'modify_group'
+  | 'join_group_as_admin'
+  | 'view_user_details'
+  | 'lookup_group'
+  | 'search_users';
 
 export interface AdminActionLog {
   action: AdminActionType;

@@ -7,6 +7,7 @@ import { DeleteIcon } from './icons';
 import { getDatabaseStats, exportAllData, findOrphanedData, runCurrencyMigrationAdmin, deleteUserAndData, getAllUsers, type DatabaseStats, type DeleteUserResult } from '../utils/adminTools';
 import VersionFooter from './VersionFooter';
 import { formatCurrency } from '../utils/currencyFormatter';
+import AdminDashboardScreen from './AdminDashboardScreen';
 
 interface ProfileScreenProps {
     users: User[];
@@ -22,10 +23,14 @@ interface ProfileScreenProps {
     onClearCompletedInvites?: () => void;
     onUnarchiveGroup?: (groupId: string) => void;
     currentUserId?: string;
+    onViewGroup?: (group: Group) => void;
+    onDeleteGroup?: (groupId: string) => void;
+    onArchiveGroup?: (groupId: string) => void;
 }
 
-const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, groups = [], onCreateUser, onDeleteGuestUser, onUpdatePaymentInfo, onOpenInviteModal, onOpenGroupManagement, onOpenGroupSelector, groupInvites = [], onDeleteInvite, onClearCompletedInvites, onUnarchiveGroup, currentUserId }) => {
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, groups = [], onCreateUser, onDeleteGuestUser, onUpdatePaymentInfo, onOpenInviteModal, onOpenGroupManagement, onOpenGroupSelector, groupInvites = [], onDeleteInvite, onClearCompletedInvites, onUnarchiveGroup, currentUserId, onViewGroup, onDeleteGroup, onArchiveGroup }) => {
     const { currentUser } = useAuth();
+    const [profileTab, setProfileTab] = useState<'myProfile' | 'adminDashboard'>('myProfile');
     const [newUserName, setNewUserName] = useState('');
     const [stats, setStats] = useState<DatabaseStats | null>(null);
     const [loadingStats, setLoadingStats] = useState(false);
@@ -118,6 +123,35 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, groups = [], onCre
                     </h2>
                 </div>
 
+                {/* Tab Navigation (Admin Only) */}
+                {isAdmin && (
+                    <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 pb-2">
+                        <button
+                            onClick={() => setProfileTab('myProfile')}
+                            className={`px-4 py-2 font-semibold transition-colors text-sm border-b-2 ${
+                                profileTab === 'myProfile'
+                                    ? 'border-primary text-primary'
+                                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                            }`}
+                        >
+                            My Profile
+                        </button>
+                        <button
+                            onClick={() => setProfileTab('adminDashboard')}
+                            className={`px-4 py-2 font-semibold transition-colors text-sm border-b-2 ${
+                                profileTab === 'adminDashboard'
+                                    ? 'border-primary text-primary'
+                                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                            }`}
+                        >
+                            🔧 Admin Dashboard
+                        </button>
+                    </div>
+                )}
+
+                {/* My Profile Tab */}
+                {profileTab === 'myProfile' && (
+                    <>
                 {/* Your Account */}
                 <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-slate-200 dark:border-gray-600">
                     <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">Your Account</h3>
@@ -545,168 +579,18 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, groups = [], onCre
                         </div>
                     ) : null;
                 })()}
+                    </>
+                )}
 
-                {/* ⚠️ ADMIN TOOLS - Only visible to admins */}
-                {isAdmin && (
-                    <div className="mt-6 p-6 bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-lg">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xl font-bold text-red-900 dark:text-red-100">
-                                🔧 Admin Tools
-                            </h3>
-                            <span className="px-3 py-1 bg-red-600 text-white text-xs font-bold rounded-full">
-                                ADMIN ONLY
-                            </span>
-                        </div>
-
-                        {/* Database Stats */}
-                        <div className="mb-4">
-                            <button
-                                onClick={async () => {
-                                    setLoadingStats(true);
-                                    try {
-                                        const data = await getDatabaseStats();
-                                        setStats(data);
-                                    } catch (error) {
-                                        alert('Failed to load stats');
-                                    } finally {
-                                        setLoadingStats(false);
-                                    }
-                                }}
-                                disabled={loadingStats}
-                                className="w-full px-4 py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-700 disabled:bg-gray-400 transition-colors"
-                            >
-                                {loadingStats ? '⏳ Loading...' : '📊 View Database Stats'}
-                            </button>
-
-                            {/* Currency Migration Status */}
-                            {stats && (
-                                <div className="mt-3 p-3 bg-teal-light dark:bg-primary-900/20 border border-primary-300 dark:border-primary-700 rounded-lg">
-                                    <p className="text-sm text-primary dark:text-primary-100 font-medium">
-                                        💰 Currency Migration Status:
-                                    </p>
-                                    <p className="text-xs text-primary-800 dark:text-primary-200 mt-1">
-                                        Groups needing migration: {stats.currencyMigrationNeeded.groupsNeedMigration}
-                                        <br />
-                                        Expenses needing migration: {stats.currencyMigrationNeeded.expensesNeedMigration}
-                                    </p>
-                                    {(stats.currencyMigrationNeeded.groupsNeedMigration > 0 || stats.currencyMigrationNeeded.expensesNeedMigration > 0) && (
-                                        <button
-                                            onClick={async () => {
-                                                if (confirm('Run currency migration for existing data? This will add USD currency to groups and expenses that don\'t have it.')) {
-                                                    try {
-                                                        await runCurrencyMigrationAdmin();
-                                                        // Refresh stats after migration
-                                                        const data = await getDatabaseStats();
-                                                        setStats(data);
-                                                    } catch (error) {
-                                                        console.error('Migration failed:', error);
-                                                    }
-                                                }
-                                            }}
-                                            className="mt-2 px-3 py-1 bg-primary text-white text-xs font-medium rounded-full hover:bg-primary-700 transition-colors"
-                                        >
-                                            🚀 Run Currency Migration
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-
-                            {stats && (
-                                <div className="mt-3 p-4 bg-white dark:bg-gray-800 rounded-lg text-sm">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <p className="text-gray-600 dark:text-gray-400">Total Users</p>
-                                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalUsers}</p>
-                                            <p className="text-xs text-gray-500">
-                                                {stats.realUsers} real, {stats.simulatedUsers} guest
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-600 dark:text-gray-400">Total Groups</p>
-                                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalGroups}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-600 dark:text-gray-400">Total Expenses</p>
-                                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalExpenses}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-600 dark:text-gray-400">Pending Invites</p>
-                                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.pendingInvites}</p>
-                                        </div>
-                                        {stats.largestGroup && (
-                                            <div className="col-span-2">
-                                                <p className="text-gray-600 dark:text-gray-400">Largest Group</p>
-                                                <p className="font-semibold text-gray-900 dark:text-gray-100">
-                                                    {stats.largestGroup.name} ({stats.largestGroup.members} members)
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Admin Actions */}
-                        <div className="grid grid-cols-1 gap-3">
-                            <button
-                                onClick={exportAllData}
-                                className="px-4 py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-700 transition-colors"
-                            >
-                                📥 Export All Data (Backup)
-                            </button>
-
-                            <button
-                                onClick={async () => {
-                                    const orphaned = await findOrphanedData();
-                                    const total = orphaned.orphanedExpenses.length + 
-                                                 orphaned.orphanedGroupMembers.length + 
-                                                 orphaned.orphanedInvites.length;
-                                    
-                                    if (total === 0) {
-                                        alert('✅ No orphaned data found! Database is healthy.');
-                                    } else {
-                                        console.log('Orphaned data:', orphaned);
-                                        alert(
-                                            `⚠️ Found ${total} orphaned items:\n` +
-                                            `• ${orphaned.orphanedExpenses.length} expenses\n` +
-                                            `• ${orphaned.orphanedGroupMembers.length} group members\n` +
-                                            `• ${orphaned.orphanedInvites.length} invites\n\n` +
-                                            'Check console for details.'
-                                        );
-                                    }
-                                }}
-                                className="px-4 py-3 bg-yellow-600 text-white font-medium rounded-lg hover:bg-yellow-700 transition-colors"
-                            >
-                                🔍 Check for Orphaned Data
-                            </button>
-
-                            <button
-                                onClick={async () => {
-                                    setShowUserManagement(true);
-                                    setLoadingStats(true);
-                                    try {
-                                        const users = await getAllUsers();
-                                        setAllUsers(users);
-                                        setSelectedUserIds(new Set());
-                                        setDeleteResults([]);
-                                    } catch (error) {
-                                        alert('Failed to load users');
-                                    } finally {
-                                        setLoadingStats(false);
-                                    }
-                                }}
-                                className="px-4 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
-                            >
-                                🗑️ Manage & Delete Users
-                            </button>
-                        </div>
-
-                        <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg">
-                            <p className="text-xs text-yellow-900 dark:text-yellow-100">
-                                💡 <strong>Note:</strong> To enable admin tools for another user, set their user document field: <code className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">role: "admin"</code> in Firebase Console.
-                            </p>
-                        </div>
-                </div>
+                {/* Admin Dashboard Tab */}
+                {profileTab === 'adminDashboard' && isAdmin && (
+                    <AdminDashboardScreen
+                        currentUserId={currentUserId || currentUser?.id || ''}
+                        onViewGroup={onViewGroup}
+                        onDeleteUser={onDeleteGuestUser}
+                        onDeleteGroup={onDeleteGroup}
+                        onArchiveGroup={onArchiveGroup}
+                    />
                 )}
 
                 {/* User Management Modal */}

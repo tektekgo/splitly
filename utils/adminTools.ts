@@ -500,3 +500,236 @@ export const getAllUsers = async (): Promise<User[]> => {
   }
 };
 
+/**
+ * Get all groups (admin only - no member filter)
+ * Returns enriched group data with creator info and stats
+ */
+export const getAllGroupsAdmin = async (): Promise<import('../types').EnrichedGroup[]> => {
+  console.log('📊 Fetching all groups for admin...');
+
+  try {
+    const [groupsSnap, usersSnap, expensesSnap] = await Promise.all([
+      getDocs(collection(db, 'groups')),
+      getDocs(collection(db, 'users')),
+      getDocs(collection(db, 'expenses'))
+    ]);
+
+    const groups = groupsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
+    const users = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+    const expenses = expensesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as FinalExpense));
+
+    // Enrich groups with creator and stats
+    const enrichedGroups = groups.map(group => {
+      const creator = users.find(u => u.id === group.createdBy);
+      const groupExpenses = expenses.filter(exp => exp.groupId === group.id);
+
+      return {
+        ...group,
+        creatorName: creator?.name,
+        creatorEmail: creator?.email,
+        memberCount: group.members.length,
+        expenseCount: groupExpenses.length
+      };
+    });
+
+    console.log(`✅ Fetched ${enrichedGroups.length} groups`);
+    return enrichedGroups;
+
+  } catch (error) {
+    console.error('❌ Error fetching all groups:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get user's groups and expenses for troubleshooting
+ */
+export const getUserGroupsAndExpenses = async (userId: string): Promise<{
+  user: User | null;
+  groups: Group[];
+  expenses: FinalExpense[];
+  invitesSent: GroupInvite[];
+}> => {
+  console.log(`🔍 Fetching data for user ${userId}...`);
+
+  try {
+    const [usersSnap, groupsSnap, expensesSnap, invitesSnap] = await Promise.all([
+      getDocs(collection(db, 'users')),
+      getDocs(collection(db, 'groups')),
+      getDocs(collection(db, 'expenses')),
+      getDocs(collection(db, 'groupInvites'))
+    ]);
+
+    const user = usersSnap.docs.find(d => d.id === userId);
+    const userData = user ? ({ id: user.id, ...user.data() } as User) : null;
+
+    const allGroups = groupsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Group));
+    const userGroups = allGroups.filter(g => g.members.includes(userId));
+
+    const allExpenses = expensesSnap.docs.map(d => ({ id: d.id, ...d.data() } as FinalExpense));
+    const userExpenses = allExpenses.filter(exp =>
+      exp.paidBy === userId || exp.splits.some(s => s.userId === userId)
+    );
+
+    const allInvites = invitesSnap.docs.map(d => ({ id: d.id, ...d.data() } as GroupInvite));
+    const invitesSent = allInvites.filter(inv => inv.invitedBy === userId);
+
+    console.log(`✅ Found ${userGroups.length} groups, ${userExpenses.length} expenses, ${invitesSent.length} invites`);
+
+    return {
+      user: userData,
+      groups: userGroups,
+      expenses: userExpenses,
+      invitesSent
+    };
+
+  } catch (error) {
+    console.error(`❌ Error fetching user data for ${userId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Search users by email or name
+ */
+export const searchUsers = async (searchTerm: string): Promise<import('../types').UserStats[]> => {
+  console.log(`🔍 Searching users: "${searchTerm}"...`);
+
+  try {
+    const [usersSnap, groupsSnap, expensesSnap, invitesSnap] = await Promise.all([
+      getDocs(collection(db, 'users')),
+      getDocs(collection(db, 'groups')),
+      getDocs(collection(db, 'expenses')),
+      getDocs(collection(db, 'groupInvites'))
+    ]);
+
+    const users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() } as User));
+    const groups = groupsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Group));
+    const expenses = expensesSnap.docs.map(d => ({ id: d.id, ...d.data() } as FinalExpense));
+    const invites = invitesSnap.docs.map(d => ({ id: d.id, ...d.data() } as GroupInvite));
+
+    // Filter users by search term
+    const searchLower = searchTerm.toLowerCase();
+    const matchingUsers = users.filter(u =>
+      u.name.toLowerCase().includes(searchLower) ||
+      u.email?.toLowerCase().includes(searchLower)
+    );
+
+    // Calculate stats for each matching user
+    const userStats = matchingUsers.map(user => {
+      const groupCount = groups.filter(g => g.members.includes(user.id)).length;
+      const expenseCount = expenses.filter(exp =>
+        exp.paidBy === user.id || exp.splits.some(s => s.userId === user.id)
+      ).length;
+      const inviteCount = invites.filter(inv => inv.invitedBy === user.id).length;
+
+      return {
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        groupCount,
+        expenseCount,
+        inviteCount
+      };
+    });
+
+    console.log(`✅ Found ${userStats.length} matching users`);
+    return userStats;
+
+  } catch (error) {
+    console.error('❌ Error searching users:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get group by ID (admin can access any group)
+ */
+export const getGroupById = async (groupId: string): Promise<Group | null> => {
+  console.log(`🔍 Fetching group ${groupId}...`);
+
+  try {
+    const groupsSnap = await getDocs(collection(db, 'groups'));
+    const groupDoc = groupsSnap.docs.find(d => d.id === groupId);
+
+    if (!groupDoc) {
+      console.log('❌ Group not found');
+      return null;
+    }
+
+    const group = { id: groupDoc.id, ...groupDoc.data() } as Group;
+    console.log(`✅ Found group: ${group.name}`);
+    return group;
+
+  } catch (error) {
+    console.error(`❌ Error fetching group ${groupId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Join group as admin for troubleshooting
+ * Adds admin to group members and logs the action
+ */
+export const joinGroupAsAdmin = async (groupId: string, adminUserId: string): Promise<void> => {
+  console.log(`🔧 Admin ${adminUserId} joining group ${groupId}...`);
+
+  try {
+    const groupDoc = doc(db, 'groups', groupId);
+    const groupSnap = await getDocs(collection(db, 'groups'));
+    const group = groupSnap.docs.find(d => d.id === groupId);
+
+    if (!group) {
+      throw new Error('Group not found');
+    }
+
+    const groupData = { id: group.id, ...group.data() } as Group;
+
+    // Check if already a member
+    if (groupData.members.includes(adminUserId)) {
+      console.log('⚠️ Admin is already a member');
+      return;
+    }
+
+    // Add admin to members
+    const updatedMembers = [...groupData.members, adminUserId];
+    await updateDoc(groupDoc, {
+      members: updatedMembers
+    });
+
+    console.log(`✅ Admin added to group ${groupData.name}`);
+
+  } catch (error) {
+    console.error(`❌ Error joining group:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Get recent admin actions for audit log
+ */
+export const getRecentAdminActions = async (limit: number = 50): Promise<any[]> => {
+  console.log(`📋 Fetching recent admin actions (limit: ${limit})...`);
+
+  try {
+    const actionsSnap = await getDocs(collection(db, 'adminActions'));
+    const actions = actionsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Sort by timestamp (newest first)
+    const sortedActions = actions.sort((a, b) => {
+      const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
+      const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
+      return timeB - timeA;
+    });
+
+    const limitedActions = sortedActions.slice(0, limit);
+    console.log(`✅ Fetched ${limitedActions.length} admin actions`);
+
+    return limitedActions;
+
+  } catch (error) {
+    console.error('❌ Error fetching admin actions:', error);
+    throw error;
+  }
+};
+

@@ -59,6 +59,41 @@ const AdminGroupBrowser: React.FC<AdminGroupBrowserProps> = ({
       filtered = filtered.filter(g => g.archived);
     }
 
+    // Helper function to safely convert createdAt to timestamp
+    // Handles Firestore Timestamp, Date, string, or undefined
+    const getCreatedAtTimestamp = (createdAt: any): number => {
+      if (!createdAt) return 0;
+      
+      // Firestore Timestamp has toMillis() method
+      if (typeof createdAt.toMillis === 'function') {
+        return createdAt.toMillis();
+      }
+      
+      // Firestore Timestamp has toDate() method
+      if (typeof createdAt.toDate === 'function') {
+        return createdAt.toDate().getTime();
+      }
+      
+      // Already a Date object
+      if (createdAt instanceof Date) {
+        return createdAt.getTime();
+      }
+      
+      // ISO string or other string format
+      if (typeof createdAt === 'string') {
+        const parsed = new Date(createdAt);
+        return isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+      }
+      
+      // Fallback: try to convert directly (might fail, but we handle it)
+      try {
+        const date = new Date(createdAt);
+        return isNaN(date.getTime()) ? 0 : date.getTime();
+      } catch {
+        return 0;
+      }
+    };
+
     // Sort
     const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
@@ -69,8 +104,8 @@ const AdminGroupBrowser: React.FC<AdminGroupBrowserProps> = ({
         case 'expenses':
           return b.expenseCount - a.expenseCount;
         case 'created':
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          const dateA = getCreatedAtTimestamp(a.createdAt);
+          const dateB = getCreatedAtTimestamp(b.createdAt);
           return dateB - dateA;
         default:
           return 0;

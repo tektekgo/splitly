@@ -27,6 +27,7 @@ import { simplifyDebts } from './utils/debtSimplification';
 import { formatCurrency } from './utils/currencyFormatter';
 import { logError } from './utils/errorLogger';
 import { sendGroupInviteEmail } from './utils/emailService';
+import { logAdminAction } from './utils/adminLogger';
 import { db } from './firebase';
 import { collection, getDocs, getDoc, doc, writeBatch, addDoc, updateDoc, deleteDoc, query, where, arrayUnion, runTransaction } from 'firebase/firestore';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -1012,18 +1013,40 @@ const App: React.FC = () => {
 
   const handleArchiveGroup = async (groupId: string) => {
     try {
+      const group = groups.find(g => g.id === groupId);
+      if (!group) return;
+
       const groupDocRef = doc(db, 'groups', groupId);
-      await updateDoc(groupDocRef, { 
-        archived: true, 
-        archivedAt: new Date() 
+      await updateDoc(groupDocRef, {
+        archived: true,
+        archivedAt: new Date()
       });
-      
-      setGroups(prev => prev.map(g => 
-        g.id === groupId 
+
+      // Log admin action if admin is archiving someone else's group
+      const isAdmin = currentUser?.role === 'admin';
+      const isCreator = group.createdBy === currentUser.id;
+      if (isAdmin && !isCreator) {
+        const creator = users.find(u => u.id === group.createdBy);
+        await logAdminAction({
+          action: 'archive_group',
+          admin: currentUser,
+          targetType: 'group',
+          targetId: groupId,
+          targetName: group.name,
+          originalCreator: creator,
+          metadata: {
+            memberCount: group.members.length,
+            currency: group.currency
+          }
+        });
+      }
+
+      setGroups(prev => prev.map(g =>
+        g.id === groupId
           ? { ...g, archived: true, archivedAt: new Date() }
           : g
       ));
-      
+
       // If archived group was active, switch to another group or dashboard
       if (activeGroupId === groupId) {
         const activeGroups = groups.filter(g => !g.archived && g.id !== groupId);
@@ -1033,7 +1056,7 @@ const App: React.FC = () => {
           setActiveGroupId(null);
         }
       }
-      
+
       setEditingGroupId(null);
     } catch (error) {
       console.error("Error archiving group: ", error);
@@ -1044,19 +1067,75 @@ const App: React.FC = () => {
   const handleUnarchiveGroup = async (groupId: string) => {
     try {
       const groupDocRef = doc(db, 'groups', groupId);
-      await updateDoc(groupDocRef, { 
+      await updateDoc(groupDocRef, {
         archived: false,
         archivedAt: null
       });
-      
-      setGroups(prev => prev.map(g => 
-        g.id === groupId 
+
+      setGroups(prev => prev.map(g =>
+        g.id === groupId
           ? { ...g, archived: false, archivedAt: undefined }
           : g
       ));
     } catch (error) {
       console.error("Error unarchiving group: ", error);
       alert("Failed to unarchive group. Please try again.");
+    }
+  };
+
+  const handleLeaveGroup = async (groupId: string) => {
+    try {
+      const group = groups.find(g => g.id === groupId);
+      if (!group) {
+        alert("Group not found.");
+        return;
+      }
+
+      // Check if user has any outstanding balances in this group
+      const groupExpenses = expenses.filter(e => e.groupId === groupId);
+      const userBalance = calculateUserBalance(currentUser.id, groupExpenses, group.members);
+
+      if (Math.abs(userBalance) > 0.01) {
+        alert(`You have an outstanding balance of ${formatCurrency(Math.abs(userBalance), group.currency)}. Please settle all debts before leaving the group.`);
+        return;
+      }
+
+      const confirmMessage = `Are you sure you want to leave "${group.name}"?\n\nYou will no longer have access to this group's expenses and cannot rejoin unless invited again.`;
+
+      if (!window.confirm(confirmMessage)) {
+        return;
+      }
+
+      // Remove current user from group members
+      const updatedMembers = group.members.filter(id => id !== currentUser.id);
+
+      if (updatedMembers.length === 0) {
+        alert("Cannot leave group: You are the last member. Please delete the group instead.");
+        return;
+      }
+
+      const groupDocRef = doc(db, 'groups', groupId);
+      await updateDoc(groupDocRef, {
+        members: updatedMembers
+      });
+
+      // Remove group from local state
+      setGroups(prev => prev.filter(g => g.id !== groupId));
+
+      // If this was the active group, switch to another or null
+      if (activeGroupId === groupId) {
+        const remainingGroups = groups.filter(g => g.id !== groupId && !g.archived);
+        if (remainingGroups.length > 0) {
+          setActiveGroupId(remainingGroups[0].id);
+        } else {
+          setActiveGroupId(null);
+        }
+      }
+
+      setEditingGroupId(null);
+    } catch (error) {
+      console.error("Error leaving group: ", error);
+      alert("Failed to leave group. Please try again.");
     }
   };
 
@@ -1109,17 +1188,45 @@ const App: React.FC = () => {
 
   const handleDeleteGroup = async (groupIdToDelete: string) => {
     try {
+        const group = groups.find(g => g.id === groupIdToDelete);
+        if (!group) return;
+
+        // Get expense count before deletion
+        const groupExpenses = expenses.filter(e => e.groupId === groupIdToDelete);
+        const expenseCount = groupExpenses.length;
+
+        // Log admin action if admin is deleting someone else's group
+        const isAdmin = currentUser?.role === 'admin';
+        const isCreator = group.createdBy === currentUser.id;
+        if (isAdmin && !isCreator) {
+          const creator = users.find(u => u.id === group.createdBy);
+          await logAdminAction({
+            action: 'delete_group',
+            admin: currentUser,
+            targetType: 'group',
+            targetId: groupIdToDelete,
+            targetName: group.name,
+            originalCreator: creator,
+            metadata: {
+              memberCount: group.members.length,
+              expenseCount: expenseCount,
+              currency: group.currency,
+              wasArchived: group.archived || false
+            }
+          });
+        }
+
         const batch = writeBatch(db);
-        
+
         // Delete the group document
         const groupDocRef = doc(db, 'groups', groupIdToDelete);
         batch.delete(groupDocRef);
-        
+
         // Find and delete all associated expenses
         const expensesQuery = query(collection(db, 'expenses'), where('groupId', '==', groupIdToDelete));
         const expensesSnapshot = await getDocs(expensesQuery);
         expensesSnapshot.forEach(doc => batch.delete(doc.ref));
-        
+
         await batch.commit();
 
         setExpenses(prev => prev.filter(e => e.groupId !== groupIdToDelete));
@@ -2840,10 +2947,12 @@ const App: React.FC = () => {
               group={groupForEditing}
               allUsers={users}
               currentUserId={currentUser.id}
+              currentUser={currentUser}
               onSave={handleSaveGroupChanges}
               onDelete={handleDeleteGroup}
               onArchive={handleArchiveGroup}
               onUnarchive={handleUnarchiveGroup}
+              onLeaveGroup={handleLeaveGroup}
               totalDebt={editingGroupDebt}
               onCreateUser={handleCreateUser}
               groupInvites={groupInvites}

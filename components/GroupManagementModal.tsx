@@ -9,24 +9,29 @@ interface GroupManagementModalProps {
   group: Group;
   allUsers: User[];
   currentUserId: string;
+  currentUser: User;
   onSave: (updatedGroup: Group) => void;
   onDelete: (groupId: string) => void;
   onArchive?: (groupId: string) => void;
   onUnarchive?: (groupId: string) => void;
+  onLeaveGroup?: (groupId: string) => void;
   totalDebt: number;
   onCreateUser: (name: string) => Promise<void>;
   groupInvites?: GroupInvite[];
   onInviteMember?: () => void;
   onDeleteInvite?: (inviteId: string) => void;
+  onTransferOwnership?: (groupId: string, newOwnerId: string) => void;
 }
 
-const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onClose, group, allUsers, currentUserId, onSave, onDelete, onArchive, onUnarchive, totalDebt, onCreateUser, groupInvites = [], onInviteMember, onDeleteInvite }) => {
+const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onClose, group, allUsers, currentUserId, currentUser, onSave, onDelete, onArchive, onUnarchive, onLeaveGroup, totalDebt, onCreateUser, groupInvites = [], onInviteMember, onDeleteInvite, onTransferOwnership }) => {
   const [groupName, setGroupName] = useState(group.name);
   const [memberIds, setMemberIds] = useState(group.members);
   const [selectedUserToAdd, setSelectedUserToAdd] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [newUserName, setNewUserName] = useState('');
+  const [showTransferOwnership, setShowTransferOwnership] = useState(false);
+  const [selectedNewOwner, setSelectedNewOwner] = useState('');
 
   useEffect(() => {
     if (group) {
@@ -60,6 +65,12 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
   const isDeleteDisabled = totalDebt > 0.01;
   const isArchived = group.archived || false;
   const canArchive = !isArchived && totalDebt < 0.01; // Can archive when all debts are settled
+
+  // Permission checks
+  const isGroupCreator = group.createdBy === currentUserId;
+  const isAdmin = currentUser?.role === 'admin';
+  const canDeleteOrArchive = isGroupCreator || isAdmin;
+  const groupCreator = allUsers.find(u => u.id === group.createdBy);
 
   if (!isOpen) return null;
 
@@ -118,6 +129,28 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
         // This is primarily handled by the disabled attribute, but this is a safeguard.
         return;
     }
+
+    // Enhanced warning for admins deleting non-owned groups
+    if (isAdmin && !isGroupCreator) {
+      const expenseCount = groupInvites?.filter(i => i.groupId === group.id).length || 0;
+      const memberCount = group.members.length;
+      const confirmMessage = `⚠️ ADMIN ACTION - PERMANENT DELETION
+
+You are about to DELETE "${group.name}" created by ${groupCreator?.name || 'another user'}.
+
+This will PERMANENTLY:
+• Delete the group
+• Delete ALL expenses in this group
+• Remove ALL ${memberCount} member(s)
+• This CANNOT be undone
+
+Are you absolutely sure you want to proceed?`;
+
+      if (!window.confirm(confirmMessage)) {
+        return;
+      }
+    }
+
     setShowDeleteConfirm(true);
   };
 
@@ -128,15 +161,52 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg border border-stone-100 dark:border-gray-700" onClick={e => e.stopPropagation()}>
-        <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">Group Settings</h2>
-            <p className="text-sm text-sage dark:text-gray-400 mt-1">Manage members, invites, and settings for {group.name}</p>
+        <div className="p-6 border-b border-border-light dark:border-border-dark">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">Group Settings</h2>
+                {isGroupCreator && (
+                  <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-md flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    Owner
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-sage dark:text-gray-400 mt-1">Manage members, invites, and settings for {group.name}</p>
+              {groupCreator && !isGroupCreator && (
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-sage dark:text-gray-400">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span>Created by <span className="font-semibold text-charcoal dark:text-gray-200">{groupCreator.name}</span></span>
+                </div>
+              )}
+            </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-4">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
         </div>
+
+        {/* Admin Badge - shown when admin manages non-owned group */}
+        {isAdmin && !isGroupCreator && (
+          <div className="mx-6 mt-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-2 border-blue-200 dark:border-blue-700">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-blue-900 dark:text-blue-100">Admin Mode</p>
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  Managing {groupCreator?.name || "another user"}'s group
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="p-6 max-h-[60vh] overflow-y-auto space-y-6">
             <div>
@@ -433,7 +503,8 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                         </div>
                     ) : (
                         <>
-                            {canArchive && onArchive && (
+                            {/* Archive option - only for group creator or admin */}
+                            {canArchive && onArchive && canDeleteOrArchive && (
                                 <div className="mb-4 p-3 bg-[#1E3450]/10 dark:bg-[#1E3450]/20 rounded-lg border border-[#1E3450]/30">
                                     <div className="flex items-center justify-between">
                                         <div>
@@ -442,7 +513,11 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                                         </div>
                                         <button
                                             onClick={() => {
-                                                if (window.confirm('Archive this group? You can unarchive it later from the Archived Groups section.')) {
+                                                const message = isAdmin && !isGroupCreator
+                                                  ? `⚠️ ADMIN ACTION\n\nArchive "${group.name}" created by ${groupCreator?.name || 'another user'}?\n\nYou can unarchive it later from the Archived Groups section.`
+                                                  : 'Archive this group? You can unarchive it later from the Archived Groups section.';
+
+                                                if (window.confirm(message)) {
                                                     onArchive(group.id);
                                                     onClose();
                                                 }
@@ -455,17 +530,41 @@ const GroupManagementModal: React.FC<GroupManagementModalProps> = ({ isOpen, onC
                                     </div>
                                 </div>
                             )}
+
                             <div className="flex justify-between items-center gap-3">
                                 <div className="flex flex-col gap-2">
-                                    <button
-                                        onClick={handleRequestDelete}
-                                        disabled={isDeleteDisabled}
-                                        className="px-5 py-2 bg-red-100 dark:bg-red-900/30 text-error font-semibold rounded-lg hover:bg-red-200 dark:hover:bg-red-900/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
-                                        title={isDeleteDisabled ? `Settle outstanding debts of $${totalDebt.toFixed(2)} to enable deletion` : 'Permanently delete this group and all its expenses'}
-                                    >
-                                        Delete Group
-                                    </button>
-                                    {isDeleteDisabled && <p className="text-xs text-error mt-1">Settle debts to delete.</p>}
+                                    {/* Delete Group - only for creator or admin */}
+                                    {canDeleteOrArchive ? (
+                                        <>
+                                            <button
+                                                onClick={handleRequestDelete}
+                                                disabled={isDeleteDisabled}
+                                                className="px-5 py-2 bg-red-100 dark:bg-red-900/30 text-error font-semibold rounded-lg hover:bg-red-200 dark:hover:bg-red-900/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
+                                                title={isDeleteDisabled ? `Settle outstanding debts of $${totalDebt.toFixed(2)} to enable deletion` : 'Permanently delete this group and all its expenses'}
+                                            >
+                                                Delete Group
+                                            </button>
+                                            {isDeleteDisabled && <p className="text-xs text-error mt-1">Settle debts to delete.</p>}
+                                        </>
+                                    ) : (
+                                        /* Leave Group - for invited members */
+                                        onLeaveGroup && (
+                                            <>
+                                                <button
+                                                    onClick={() => {
+                                                        onLeaveGroup(group.id);
+                                                        onClose();
+                                                    }}
+                                                    disabled={totalDebt > 0.01}
+                                                    className="px-5 py-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-semibold rounded-lg hover:bg-orange-200 dark:hover:bg-orange-900/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
+                                                    title={totalDebt > 0.01 ? `Settle outstanding debts of $${totalDebt.toFixed(2)} before leaving` : 'Leave this group (you can be invited again later)'}
+                                                >
+                                                    Leave Group
+                                                </button>
+                                                {totalDebt > 0.01 && <p className="text-xs text-orange-700 dark:text-orange-400 mt-1">Settle debts to leave.</p>}
+                                            </>
+                                        )
+                                    )}
                                 </div>
                                 <div className="flex gap-3">
                                     <button

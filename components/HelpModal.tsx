@@ -69,6 +69,18 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour, i
                 <p>Split<span className="text-primary">Bi</span> helps you track and split shared expenses with roommates, friends, and family. Here's how to get started:</p>
               </Section>
 
+              <div className="bg-primary/10 dark:bg-primary/20 border-2 border-primary/30 rounded-lg p-4">
+                <p className="font-semibold text-primary dark:text-primary-200 mb-2">🧪 You're Beta Testing!</p>
+                <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-2">
+                  Thank you for being an early tester! Your feedback is invaluable in making Split<span className="text-primary">Bi</span> better.
+                </p>
+                <ul className="list-disc list-inside text-sm space-y-1 text-text-secondary-light dark:text-text-secondary-dark">
+                  <li>Expect occasional bugs or quirks as we improve the app</li>
+                  <li>Your data is safe, but we're still refining features</li>
+                  <li>Use the <strong>💬 Send Feedback</strong> button to report issues or suggest improvements</li>
+                </ul>
+              </div>
+
               <Section title="Step 1: Create Your First Group">
                 <ol className="list-decimal list-inside space-y-2">
                   <li>Click the <strong>Groups</strong> tab at the bottom</li>

@@ -49,12 +49,12 @@ export const BUILD_DATE = '${buildDate}';
 
 export function getVersionString(): string {
   const date = new Date(BUILD_DATE);
-  const formattedDate = date.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
+  const formattedDate = date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
   });
-  return \`v\${VERSION_MAJOR}.\${VERSION_MINOR}.\${VERSION_PATCH} · Built \${formattedDate}\`;
+  return \`v\${VERSION_MAJOR}.\${VERSION_MINOR}.\${VERSION_PATCH} Beta · Built \${formattedDate}\`;
 }
 
 export function getVersion(): { major: number; minor: number; patch: number; buildDate: string } {

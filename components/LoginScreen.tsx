@@ -168,13 +168,14 @@ const LoginScreen: React.FC = () => {
                   className="h-16 w-16"
                 />
               </motion.div>
-              <motion.h1 
+              <motion.h1
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-3xl font-extrabold text-white tracking-tight mb-1"
+                className="text-3xl font-extrabold text-white tracking-tight mb-1 flex items-center gap-2"
               >
-                Split<span className="text-primary-200">Bi</span>
+                <span>Split<span className="text-primary-200">Bi</span></span>
+                <span className="text-xs font-bold px-2 py-1 bg-primary-200 text-primary-900 rounded-full">BETA</span>
               </motion.h1>
               <motion.p 
                 initial={{ opacity: 0 }}

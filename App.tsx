@@ -2887,13 +2887,14 @@ const App: React.FC = () => {
       />
       
       {/* Help Modal */}
-      <HelpModal 
+      <HelpModal
         isOpen={isHelpModalOpen}
         onClose={() => setIsHelpModalOpen(false)}
         onRestartTour={() => {
           localStorage.removeItem('onboarding-completed');
           setShowOnboarding(true);
         }}
+        isAdmin={currentUser?.role === 'admin'}
       />
 
       {/* Feedback Modal */}

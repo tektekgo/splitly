@@ -4,11 +4,12 @@ interface HelpModalProps {
   isOpen: boolean;
   onClose: () => void;
   onRestartTour?: () => void;
+  isAdmin?: boolean;
 }
 
-type TabType = 'getting-started' | 'groups' | 'expenses' | 'invites' | 'privacy';
+type TabType = 'getting-started' | 'groups' | 'expenses' | 'invites' | 'privacy' | 'admin';
 
-const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour }) => {
+const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour, isAdmin = false }) => {
   const [activeTab, setActiveTab] = useState<TabType>('getting-started');
 
   if (!isOpen) return null;
@@ -19,6 +20,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
     { id: 'expenses' as TabType, label: 'Expenses', icon: '🧾' },
     { id: 'invites' as TabType, label: 'Invites', icon: '✉️' },
     { id: 'privacy' as TabType, label: 'Privacy', icon: '🛡️' },
+    ...(isAdmin ? [{ id: 'admin' as TabType, label: 'Admin Tools', icon: '🔧' }] : []),
   ];
 
   return (
@@ -242,9 +244,72 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                 </div>
               </Section>
 
-              <Section title="Can I delete a group?">
-                <p className="mb-2">Yes, but only if all debts are settled (everyone owes $0.00).</p>
-                <p className="text-sm text-amber-600 dark:text-amber-400">⚠️ Tip: Use "Settle Up" to record payments first, then delete the group.</p>
+              <Section title="Who can delete or archive a group? 👑">
+                <div className="space-y-3">
+                  <p className="mb-2"><strong>Only the group creator (owner) or admin can delete/archive groups.</strong></p>
+
+                  <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
+                    <p className="font-semibold mb-2">🌟 Group Creator (Owner):</p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      <li>Has a gold "Owner" badge next to their name</li>
+                      <li>Can delete the group (if all debts settled)</li>
+                      <li>Can archive/unarchive the group</li>
+                      <li>Can manage all group settings</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <p className="font-semibold mb-2">👥 Invited Members:</p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      <li>Can add expenses</li>
+                      <li>Can view group details</li>
+                      <li><strong>Cannot</strong> delete or archive the group</li>
+                      <li><strong>Can leave</strong> the group (if balance is $0)</li>
+                    </ul>
+                  </div>
+
+                  <p className="text-sm text-amber-600 dark:text-amber-400 mt-3">
+                    ⚠️ To delete a group, all debts must be settled (everyone owes $0.00).
+                  </p>
+                </div>
+              </Section>
+
+              <Section title="How do I leave a group I didn't create?">
+                <p className="mb-2">If you were invited to a group, you can leave it:</p>
+                <ol className="list-decimal list-inside space-y-2">
+                  <li>Open the group → Click <strong>Manage</strong></li>
+                  <li>Scroll to the bottom</li>
+                  <li>Click <strong>"Leave Group"</strong> button</li>
+                </ol>
+                <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg mt-3 text-sm">
+                  <p className="font-semibold mb-2">⚠️ Requirements to leave:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Your balance must be $0.00 (all debts settled)</li>
+                    <li>You cannot rejoin unless invited again</li>
+                    <li>You'll lose access to the group's expenses</li>
+                  </ul>
+                </div>
+              </Section>
+
+              <Section title="What is archiving a group? 📦">
+                <p className="mb-2">Archiving lets you hide old/inactive groups without deleting them.</p>
+                <div className="space-y-3 mt-3">
+                  <div className="bg-teal-light dark:bg-primary-900/20 p-3 rounded-lg">
+                    <strong>When Archived:</strong>
+                    <ul className="list-disc list-inside text-sm mt-2 space-y-1">
+                      <li>Group moves to "Archived Groups" section</li>
+                      <li>Not shown in active groups list</li>
+                      <li>All data preserved (expenses, members, balances)</li>
+                      <li>Can be unarchived anytime by creator/admin</li>
+                    </ul>
+                  </div>
+                  <p className="text-sm">
+                    <strong>To archive:</strong> Open group → Manage → Click "Archive Group"
+                  </p>
+                  <p className="text-sm">
+                    <strong>To unarchive:</strong> Profile → Archived Groups → Click "Unarchive"
+                  </p>
+                </div>
               </Section>
 
               <Section title="What if I created 'John' as a guest, but then real John signs up?">
@@ -400,6 +465,18 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
                   <li>Real users must accept invites - no forced adding</li>
                   <li>Your data is stored securely in Firebase</li>
                 </ul>
+                <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg mt-3 text-sm">
+                  <p className="font-semibold mb-2">🔧 Admin Access:</p>
+                  <p>App administrators have elevated access for support and troubleshooting purposes. They can:</p>
+                  <ul className="list-disc list-inside space-y-1 mt-2">
+                    <li>View all groups and users in the system</li>
+                    <li>Join groups temporarily to help troubleshoot issues</li>
+                    <li>Access system-wide statistics and health checks</li>
+                  </ul>
+                  <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                    All admin actions are logged for security and accountability.
+                  </p>
+                </div>
               </Section>
 
               <Section title="Who can see my expenses?">
@@ -449,6 +526,112 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestartTour })
 
               <Section title="Do you sell my data?">
                 <p className="font-bold text-primary">Absolutely not! Your data is yours. We don't sell, share, or monetize your personal information.</p>
+              </Section>
+            </div>
+          )}
+
+          {activeTab === 'admin' && isAdmin && (
+            <div className="space-y-6">
+              <Section title="Admin Dashboard Overview 🔧">
+                <p className="mb-3">As an admin, you have access to powerful tools for managing and troubleshooting the application.</p>
+                <div className="bg-primary/5 dark:bg-primary/10 p-4 rounded-lg">
+                  <p className="font-semibold mb-2">Dashboard Tab:</p>
+                  <ul className="list-disc list-inside text-sm space-y-1">
+                    <li>View system-wide statistics (users, groups, expenses)</li>
+                    <li>Monitor recent admin actions</li>
+                    <li>Check database health and integrity</li>
+                    <li>Track pending invites and notifications</li>
+                  </ul>
+                </div>
+              </Section>
+
+              <Section title="User Lookup 👤">
+                <p className="mb-2">Search and manage users in the system:</p>
+                <ol className="list-decimal list-inside space-y-2">
+                  <li>Go to Profile → <strong>Users</strong> tab</li>
+                  <li>Search by email or name</li>
+                  <li>View user details:
+                    <ul className="list-disc list-inside ml-6 mt-1 text-sm">
+                      <li>Groups they're a member of</li>
+                      <li>Expenses created</li>
+                      <li>Invites sent/received</li>
+                      <li>User statistics</li>
+                    </ul>
+                  </li>
+                  <li>Delete users if needed (with balance validation)</li>
+                </ol>
+              </Section>
+
+              <Section title="Group Browser 🏘️">
+                <p className="mb-2">View and manage all groups in the system:</p>
+                <div className="space-y-3">
+                  <div className="bg-teal-light dark:bg-primary-900/20 p-3 rounded-lg">
+                    <strong>Features:</strong>
+                    <ul className="list-disc list-inside text-sm mt-2 space-y-1">
+                      <li>Search groups by name or creator</li>
+                      <li>Filter by active/archived status</li>
+                      <li>Sort by members, expenses, or date</li>
+                      <li>View group details (creator, members, currency)</li>
+                      <li>Join group temporarily as admin</li>
+                      <li>Delete or archive groups</li>
+                    </ul>
+                  </div>
+                  <p className="text-sm">
+                    <strong>To access:</strong> Profile → <strong>Groups</strong> tab
+                  </p>
+                </div>
+              </Section>
+
+              <Section title="System Tools ⚙️">
+                <p className="mb-2">Access maintenance and diagnostic tools:</p>
+                <div className="space-y-2">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                    <strong className="text-primary">Export All Data</strong>
+                    <p className="text-sm mt-1">Download complete database backup as JSON</p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                    <strong className="text-primary">Check Orphaned Data</strong>
+                    <p className="text-sm mt-1">Find data integrity issues (orphaned expenses, members, invites)</p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                    <strong className="text-primary">Currency Migration</strong>
+                    <p className="text-sm mt-1">Run migration to add currency fields to older groups/expenses</p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                    <strong className="text-primary">Database Stats</strong>
+                    <p className="text-sm mt-1">View notifications, error logs, and activity metrics</p>
+                  </div>
+                </div>
+                <p className="text-sm mt-3">
+                  <strong>To access:</strong> Profile → <strong>System Tools</strong> tab
+                </p>
+              </Section>
+
+              <Section title="Admin Action Logging 📝">
+                <p className="mb-2">All administrative actions are automatically logged for security and accountability:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>User deletion</li>
+                  <li>Group deletion/archiving</li>
+                  <li>Joining groups as admin</li>
+                  <li>User and group lookups</li>
+                  <li>System maintenance operations</li>
+                </ul>
+                <p className="text-sm text-primary dark:text-primary-400 mt-3">
+                  💡 View recent admin actions in the Dashboard tab
+                </p>
+              </Section>
+
+              <Section title="Best Practices 🎯">
+                <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
+                  <p className="font-semibold mb-2">⚠️ Admin Guidelines:</p>
+                  <ul className="list-disc list-inside text-sm space-y-1">
+                    <li>Only join groups when troubleshooting specific issues</li>
+                    <li>Leave groups after resolving the issue</li>
+                    <li>Verify balance is $0 before deleting users/groups</li>
+                    <li>Use export feature before major data operations</li>
+                    <li>Check orphaned data regularly for system health</li>
+                  </ul>
+                </div>
               </Section>
             </div>
           )}

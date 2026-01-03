@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import InfoTooltip from './InfoTooltip';
 import { DeleteIcon } from './icons';
 import { getDatabaseStats, exportAllData, findOrphanedData, runCurrencyMigrationAdmin, deleteUserAndData, getAllUsers, type DatabaseStats, type DeleteUserResult } from '../utils/adminTools';
-import VersionFooter from './VersionFooter';
 import { formatCurrency } from '../utils/currencyFormatter';
 import AdminDashboardScreen from './AdminDashboardScreen';
 
@@ -846,8 +845,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, groups = [], onCre
                     </div>
                 )}
 
-                {/* Version Footer */}
-                <VersionFooter className="pt-4 mt-4 border-t border-slate-200 dark:border-gray-600" />
             </div>
         </div>
     );

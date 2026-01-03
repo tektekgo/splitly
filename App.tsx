@@ -2917,9 +2917,12 @@ const App: React.FC = () => {
                 </div>
               </motion.div>
             )}
-            
+
             {/* Other Screens - Integrated into same container */}
             {(activeScreen !== 'dashboard' || !activeGroup) && renderContent()}
+
+            {/* Version Footer - Appears on all screens */}
+            <VersionFooter className="pt-4 pb-2 px-4 mt-auto" />
         </div>
       </div>
 

@@ -147,6 +147,7 @@ const App: React.FC = () => {
 
   const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0);
   const userMenuButtonRef = useRef<HTMLButtonElement>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showAddHint, setShowAddHint] = useState(() => !localStorage.getItem('add-hint-dismissed'));
@@ -454,7 +455,7 @@ const App: React.FC = () => {
         }
     };
     fetchData();
-  }, [currentUser]);
+  }, [currentUser, dataRefreshTrigger]);
 
   // Handle password reset link and invite links from email
   useEffect(() => {
@@ -1630,6 +1631,10 @@ const App: React.FC = () => {
         });
         
         alert(`You're already a member of "${invite.groupName}"!`);
+
+        // Trigger data refetch to ensure latest data is loaded
+        setDataRefreshTrigger(prev => prev + 1);
+
         setActiveGroupId(invite.groupId);
         setActiveScreen('dashboard');
         return;
@@ -1720,6 +1725,10 @@ const App: React.FC = () => {
       }
 
       alert(`You've joined "${invite.groupName}"!`);
+
+      // Trigger data refetch to ensure all group members and data are loaded
+      setDataRefreshTrigger(prev => prev + 1);
+
       setActiveGroupId(invite.groupId);
       setActiveScreen('dashboard');
     } catch (error: any) {

@@ -235,7 +235,39 @@ const App: React.FC = () => {
                 // Create empty snapshot - new users won't have groups anyway
                 groupsSnapshot = { docs: [] } as any;
             }
-            
+
+            // After fetching groups, fetch all group members (other real users)
+            // Extract all unique member IDs from all groups
+            const allMemberIds = new Set<string>();
+            groupsSnapshot.docs.forEach((groupDoc: any) => {
+                const groupData = groupDoc.data();
+                if (groupData.members && Array.isArray(groupData.members)) {
+                    groupData.members.forEach((memberId: string) => allMemberIds.add(memberId));
+                }
+            });
+
+            // Remove IDs we already have (current user + simulated users)
+            const existingUserIds = new Set(allUserDocs.map((doc: any) => doc.id));
+            const memberIdsToFetch = Array.from(allMemberIds).filter(id => !existingUserIds.has(id));
+
+            // Fetch missing group member documents
+            if (memberIdsToFetch.length > 0) {
+                console.log(`Fetching ${memberIdsToFetch.length} group members...`);
+                for (const userId of memberIdsToFetch) {
+                    try {
+                        const userDocRef = doc(db, 'users', userId);
+                        const userDocSnap = await getDoc(userDocRef);
+                        if (userDocSnap.exists()) {
+                            allUserDocs.push(userDocSnap);
+                        }
+                    } catch (error: any) {
+                        console.warn(`Could not fetch user ${userId}:`, error);
+                        // Continue with other users
+                    }
+                }
+                console.log(`Total users loaded: ${allUserDocs.length}`);
+            }
+
             // Get group IDs for fetching expenses
             const groupIds = groupsSnapshot.docs.map(doc => doc.id);
             

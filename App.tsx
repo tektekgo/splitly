@@ -1959,6 +1959,7 @@ const App: React.FC = () => {
     if (activeGroupId) {
       setEditingGroupDebt(calculateGroupDebt(activeGroupId));
       setEditingGroupId(activeGroupId);
+      setIsGroupManagementModalOpen(true);
     }
   };
 

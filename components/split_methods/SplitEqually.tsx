@@ -39,7 +39,11 @@ const SplitEqually: React.FC<SplitEquallyProps> = ({ totalAmount, members, curre
 
   useEffect(() => {
     if (selectedMembers.size === 0) {
-      onUpdateSplits([], 'Please select at least one person for the expense.');
+      onUpdateSplits([], null); // No error - user can save without selecting splits
+      return;
+    }
+    if (selectedMembers.size === 1) {
+      onUpdateSplits([], 'To split an expense, select at least 2 people. (Or save without selecting anyone for a personal expense)');
       return;
     }
     const splits = Array.from(selectedMembers).map(userId => ({

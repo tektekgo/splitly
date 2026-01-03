@@ -40,6 +40,11 @@ const SplitUnequally: React.FC<SplitUnequallyProps> = ({ totalAmount, members, c
       }
     });
 
+    if (validSplits.length === 1) {
+      onUpdateSplits([], 'To split an expense, select at least 2 people. (Or save without selecting anyone for a personal expense)');
+      return;
+    }
+
     if (totalAmount > 0 && Math.abs(remaining) > 0.001) {
       onUpdateSplits(validSplits, `The total split (${formatCurrency(totalSplit, currency)}) does not match the expense amount (${formatCurrency(totalAmount, currency)}).`);
     } else {

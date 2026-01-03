@@ -392,7 +392,7 @@ const App: React.FC = () => {
                     console.log('Auto-accepting invite from URL:', inviteIdFromStorage);
                     // Small delay to ensure UI is ready
                     setTimeout(() => {
-                        handleAcceptInvite(inviteIdFromStorage);
+                        handleAcceptInvite(inviteIdFromStorage, invitesData);
                         sessionStorage.removeItem('pendingInviteId');
                         setPendingInviteId(null);
                     }, 500);
@@ -1553,8 +1553,9 @@ const App: React.FC = () => {
     }
   };
 
-  const handleAcceptInvite = async (inviteId: string) => {
-    const invite = groupInvites.find(inv => inv.id === inviteId);
+  const handleAcceptInvite = async (inviteId: string, invitesArray?: GroupInvite[]) => {
+    const invitesToSearch = invitesArray || groupInvites;
+    const invite = invitesToSearch.find(inv => inv.id === inviteId);
     if (!invite) {
       alert('Invite not found');
       return;

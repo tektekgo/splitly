@@ -638,7 +638,11 @@ const App: React.FC = () => {
   const archivedGroups = useMemo(() => groups.filter(g => g.archived), [groups]);
   const activeGroupMembers = useMemo(() => {
     if (!activeGroup) return [];
-    return users.filter(u => activeGroup.members.includes(u.id));
+    const members = users.filter(u => activeGroup.members.includes(u.id));
+    console.log(`Active group "${activeGroup.name}" has ${activeGroup.members.length} member IDs:`, activeGroup.members);
+    console.log(`Loaded ${users.length} total users`);
+    console.log(`Found ${members.length} matching members:`, members.map(m => m.name));
+    return members;
   }, [activeGroup, users]);
   const groupForEditing = useMemo(() => groups.find(g => g.id === editingGroupId), [groups, editingGroupId]);
 

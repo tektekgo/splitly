@@ -176,22 +176,22 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
         />
       </div>
 
-      <div>
-        <label htmlFor="expenseDate" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Date</label>
-        <input
-          id="expenseDate"
-          type="date"
-          value={expenseDate}
-          onChange={(e) => setExpenseDate(e.target.value)}
-          max={new Date().toISOString().split('T')[0]}
-          required
-          className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary text-sm"
-        />
-      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="expenseDate" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Date</label>
+          <input
+            id="expenseDate"
+            type="date"
+            value={expenseDate}
+            onChange={(e) => setExpenseDate(e.target.value)}
+            max={new Date().toISOString().split('T')[0]}
+            required
+            className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary text-sm"
+          />
+        </div>
 
-      <div className="flex space-x-4">
-        <div className="w-1/3">
-          <label htmlFor="amount" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Amount</label>
+        <div>
+          <label htmlFor="amount" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Amount ({group.currency})</label>
           <div className="mt-1 relative rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
               <span className="text-gray-500 dark:text-gray-400 sm:text-sm">{getCurrencySymbol(group.currency)}</span>
@@ -208,44 +208,40 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
               className="block w-full pl-7 pr-3 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
             />
           </div>
-          <p className="mt-1 text-xs text-text-secondary-light dark:text-text-secondary-dark">
-            Currency: {group.currency}
-          </p>
-        </div>
-        <div className="w-2/3">
-            <label htmlFor="category" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">
-                Category
-            </label>
-            <div className="mt-1 relative">
-                <select
-                    id="category"
-                    value={category}
-                    onChange={(e) => {
-                        setCategory(e.target.value as Category);
-                        setCategoryManuallySet(true);
-                    }}
-                    className="block w-full pl-3 pr-10 py-2 border border-border-light dark:border-border-dark bg-white dark:bg-gray-800 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-                    >
-                    {CATEGORIES.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                </select>
-            </div>
         </div>
       </div>
-      
-      <div>
-        <label htmlFor="paidBy" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Paid by</label>
-        <select
-          id="paidBy"
-          value={paidBy}
-          onChange={(e) => setPaidBy(e.target.value)}
-          className="mt-1 block w-full pl-3 pr-10 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-        >
-          {members.map(member => (
-            <option key={member.id} value={member.id}>{member.name}</option>
-          ))}
-        </select>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="category" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Category</label>
+          <select
+            id="category"
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value as Category);
+              setCategoryManuallySet(true);
+            }}
+            className="mt-1 block w-full pl-3 pr-10 py-2 border border-border-light dark:border-border-dark bg-white dark:bg-gray-800 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+          >
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="paidBy" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Paid by</label>
+          <select
+            id="paidBy"
+            value={paidBy}
+            onChange={(e) => setPaidBy(e.target.value)}
+            className="mt-1 block w-full pl-3 pr-10 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+          >
+            {members.map(member => (
+              <option key={member.id} value={member.id}>{member.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div>

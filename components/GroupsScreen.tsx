@@ -318,6 +318,27 @@ const GroupsScreen: React.FC<GroupsScreenProps> = ({ groups, users, expenses, ac
                                                             }`}>
                                                                 {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
                                                             </p>
+                                                            {/* Member Avatars */}
+                                                            <div className="flex -space-x-2 ml-1">
+                                                                {group.members.slice(0, 5).map((memberId) => {
+                                                                    const member = users.find(u => u.id === memberId);
+                                                                    if (!member) return null;
+                                                                    return (
+                                                                        <div
+                                                                            key={memberId}
+                                                                            className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center text-white text-[10px] font-bold ring-2 ring-white dark:ring-gray-800"
+                                                                            title={member.name}
+                                                                        >
+                                                                            {member.name.charAt(0).toUpperCase()}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                                {group.members.length > 5 && (
+                                                                    <div className="w-6 h-6 rounded-full bg-gray-400 dark:bg-gray-600 flex items-center justify-center text-white text-[10px] font-bold ring-2 ring-white dark:ring-gray-800">
+                                                                        +{group.members.length - 5}
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                             {stats && stats.expenseCount > 0 && (
                                                                 <>
                                                                     <span className="text-sage dark:text-gray-500">•</span>
@@ -411,6 +432,27 @@ const GroupsScreen: React.FC<GroupsScreenProps> = ({ groups, users, expenses, ac
                                                                                     <p className="text-xs font-medium text-sage dark:text-gray-500">
                                                                                         {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
                                                                                     </p>
+                                                                                    {/* Member Avatars */}
+                                                                                    <div className="flex -space-x-2 ml-1">
+                                                                                        {group.members.slice(0, 5).map((memberId) => {
+                                                                                            const member = users.find(u => u.id === memberId);
+                                                                                            if (!member) return null;
+                                                                                            return (
+                                                                                                <div
+                                                                                                    key={memberId}
+                                                                                                    className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center text-white text-[10px] font-bold ring-2 ring-white dark:ring-gray-800"
+                                                                                                    title={member.name}
+                                                                                                >
+                                                                                                    {member.name.charAt(0).toUpperCase()}
+                                                                                                </div>
+                                                                                            );
+                                                                                        })}
+                                                                                        {group.members.length > 5 && (
+                                                                                            <div className="w-6 h-6 rounded-full bg-gray-400 dark:bg-gray-600 flex items-center justify-center text-white text-[10px] font-bold ring-2 ring-white dark:ring-gray-800">
+                                                                                                +{group.members.length - 5}
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
                                                                                     {stats && stats.expenseCount > 0 && (
                                                                                         <>
                                                                                             <span className="text-sage dark:text-gray-600">•</span>

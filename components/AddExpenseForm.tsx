@@ -102,13 +102,15 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
     let errorMsg = error;
     if (!errorMsg) {
         if (numericAmount <= 0) errorMsg = 'Amount must be greater than 0.';
-        else if (splits.length === 0) errorMsg = 'Expense must be split with at least one person.';
     }
 
     if (errorMsg) {
       alert(`Please fix the errors before saving:\n- ${errorMsg}`);
       return;
     }
+
+    // If no splits are selected, default to the payer owning 100% of the expense
+    const finalSplits = splits.length > 0 ? splits : [{ userId: paidBy, amount: numericAmount }];
 
     const finalExpense: FinalExpense = {
       id: expenseToEdit?.id || crypto.randomUUID(),
@@ -120,7 +122,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
       paidBy,
       expenseDate: new Date(expenseDate).toISOString(),
       splitMethod,
-      splits,
+      splits: finalSplits,
     };
     onSaveExpense(finalExpense);
     if (!isEditing) {
@@ -265,7 +267,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
         )}
         <button
           type="submit"
-          disabled={!!error || !description || numericAmount <= 0 || splits.length < 1}
+          disabled={!!error || !description || numericAmount <= 0}
           className="w-full flex justify-center py-2 px-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-all"
         >
           {isEditing ? 'Update Expense' : 'Save Expense'}

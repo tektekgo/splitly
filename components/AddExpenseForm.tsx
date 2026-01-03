@@ -27,6 +27,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<Category>(Category.FoodAndDrink);
   const [paidBy, setPaidBy] = useState(currentUserId);
+  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD format
   const [splitMethod, setSplitMethod] = useState<SplitMethod>(SplitMethod.Equal);
   const [splits, setSplits] = useState<ExpenseSplit[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +44,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
     setCategory(Category.FoodAndDrink);
     setCategoryManuallySet(false);
     setPaidBy(currentUserId);
+    setExpenseDate(new Date().toISOString().split('T')[0]);
     setSplitMethod(SplitMethod.Equal);
     setSplits([]);
     setError(null);
@@ -56,6 +58,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
       setCategory(expenseToEdit.category);
       setCategoryManuallySet(true);
       setPaidBy(expenseToEdit.paidBy);
+      setExpenseDate(expenseToEdit.expenseDate.split('T')[0]); // Convert ISO string to YYYY-MM-DD
       setSplitMethod(expenseToEdit.splitMethod);
       setSplits(expenseToEdit.splits); // this will be passed down
       setSplitComponentKey(prevKey => prevKey + 1); // Force re-render of split component
@@ -115,7 +118,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
       currency: group.currency,
       category,
       paidBy,
-      expenseDate: expenseToEdit?.expenseDate || new Date().toISOString(),
+      expenseDate: new Date(expenseDate).toISOString(),
       splitMethod,
       splits,
     };
@@ -168,6 +171,19 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
           placeholder="e.g., Dinner at restaurant"
           required
           className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-primary focus:border-primary text-sm"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="expenseDate" className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Date</label>
+        <input
+          id="expenseDate"
+          type="date"
+          value={expenseDate}
+          onChange={(e) => setExpenseDate(e.target.value)}
+          max={new Date().toISOString().split('T')[0]}
+          required
+          className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary text-sm"
         />
       </div>
 

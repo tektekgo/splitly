@@ -17,17 +17,19 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({
   showPopularFirst = true,
 }) => {
   const currencies = getCurrencyList();
-  
+
   // Popular currencies to show first
   const popularCurrencies = ['USD', 'EUR', 'GBP', 'INR', 'CAD', 'AUD', 'JPY'];
-  
+
   // Sort currencies with popular ones first if requested
-  const sortedCurrencies = showPopularFirst 
+  const sortedCurrencies = showPopularFirst
     ? [
         ...currencies.filter(c => popularCurrencies.includes(c.code)),
-        ...currencies.filter(c => !popularCurrencies.includes(c.code))
+        ...currencies
+          .filter(c => !popularCurrencies.includes(c.code))
+          .sort((a, b) => a.name.localeCompare(b.name)) // Sort alphabetically by currency name
       ]
-    : currencies;
+    : currencies.sort((a, b) => a.name.localeCompare(b.name)); // Always sort alphabetically when not showing popular first
 
   return (
     <select

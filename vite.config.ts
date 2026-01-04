@@ -12,7 +12,13 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       host: '0.0.0.0',
     },
-    plugins: [vitePluginVersion(), react()],
+    plugins: [
+      vitePluginVersion(), 
+      react({
+        // Ensure React 19 compatibility
+        jsxRuntime: 'automatic',
+      })
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
@@ -47,7 +53,11 @@ export default defineConfig(({ mode }) => {
       // Use commonjs format for better compatibility
       commonjsOptions: {
         include: [/node_modules/],
+        transformMixedEsModules: true,
       },
+      // Optimize for React 19
+      target: 'esnext',
+      minify: 'esbuild',
     },
     define: {
       'import.meta.env.VITE_FIREBASE_API_KEY': JSON.stringify(env.VITE_FIREBASE_API_KEY),

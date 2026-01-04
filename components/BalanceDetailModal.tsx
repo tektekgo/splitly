@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import type { FinalExpense, User } from '../types';
 import { Category } from '../types';
 import { CategoryIcon } from './icons';
+import { formatCurrency, formatExpenseAmount } from '../utils/currencyFormatter';
 
 interface BalanceDetailModalProps {
   isOpen: boolean;
@@ -48,14 +49,17 @@ const BalanceDetailModal: React.FC<BalanceDetailModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Get currency from first expense (all expenses in same group have same currency)
+  const currency = allExpenses.length > 0 ? allExpenses[0].currency : 'USD';
+
   const renderSummary = () => {
     if (Math.abs(netBalance) < 0.01) {
       return <p className="text-lg text-text-secondary-light dark:text-text-secondary-dark">You and {targetUser.name} are settled up.</p>;
     }
     if (netBalance > 0) {
-      return <p className="text-lg text-success">{targetUser.name} owes you <span className="font-bold">${netBalance.toFixed(2)}</span>.</p>;
+      return <p className="text-lg text-success">{targetUser.name} owes you <span className="font-bold">{formatCurrency(netBalance, currency)}</span>.</p>;
     }
-    return <p className="text-lg text-error">You owe {targetUser.name} <span className="font-bold">${(-netBalance).toFixed(2)}</span>.</p>;
+    return <p className="text-lg text-error">You owe {targetUser.name} <span className="font-bold">{formatCurrency(-netBalance, currency)}</span>.</p>;
   };
 
   return (
@@ -124,7 +128,7 @@ const BalanceDetailModal: React.FC<BalanceDetailModalProps> = ({
                                     <div>
                                         <p className="font-semibold text-text-primary-light dark:text-text-primary-dark">{expense.description}</p>
                                         <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                                            {text} <span className="font-medium text-text-primary-light dark:text-text-primary-dark">${expense.amount.toFixed(2)}</span>
+                                            {text} <span className="font-medium text-text-primary-light dark:text-text-primary-dark">{formatExpenseAmount(expense)}</span>
                                         </p>
                                     </div>
                                 </div>
@@ -134,7 +138,7 @@ const BalanceDetailModal: React.FC<BalanceDetailModalProps> = ({
                                     ) : (
                                         <p className="font-semibold text-error">You owe</p>
                                     )}
-                                    <p className="font-bold text-lg">${Math.abs(expense.effect).toFixed(2)}</p>
+                                    <p className="font-bold text-lg">{formatCurrency(Math.abs(expense.effect), expense.currency || 'USD')}</p>
                                 </div>
                             </li>
                         )

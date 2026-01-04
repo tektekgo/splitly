@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FinalExpense, User } from '../types';
 import { CategoryIcon, EditIcon, DeleteIcon } from './icons';
+import { formatExpenseAmount, formatCurrency } from '../utils/currencyFormatter';
 
 interface ExpenseItemProps {
   expense: FinalExpense;
@@ -28,11 +29,16 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, members, onDelete, o
         action();
     }
 
+    // Format net effect with currency (use expense currency which is group currency)
+    const formatNetEffect = (amount: number) => {
+      return formatCurrency(amount, expense.currency || 'USD');
+    };
+
     const statusBadge = Math.abs(netEffect) < 0.01 
         ? { text: 'No cost to you', color: 'text-sage bg-stone-100 dark:bg-gray-700' }
         : netEffect > 0 
-        ? { text: `You get back $${netEffect.toFixed(2)}`, color: 'text-primary bg-teal-light dark:bg-primary/20' }
-        : { text: `You owe $${(-netEffect).toFixed(2)}`, color: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20' };
+        ? { text: `You get back ${formatNetEffect(netEffect)}`, color: 'text-primary bg-teal-light dark:bg-primary/20' }
+        : { text: `You owe ${formatNetEffect(-netEffect)}`, color: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20' };
 
     return (
         <motion.li 
@@ -61,7 +67,7 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, members, onDelete, o
             <div className="text-right flex-shrink-0 ml-3 flex items-center gap-2">
                 <div className="text-right">
                     <p className="text-lg font-sans font-extrabold text-charcoal dark:text-gray-100">
-                        ${expense.amount.toFixed(2)}
+                        {formatExpenseAmount(expense)}
                     </p>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

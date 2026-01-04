@@ -47,7 +47,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const openZelle = () => {
     if (!paymentInfo.zelle) return;
     // Zelle doesn't have a reliable deep link, so we'll copy details
-    const zelleDetails = `Send $${amount.toFixed(2)} to ${toUser.name.replace(' (You)', '')} via Zelle\nEmail/Phone: ${paymentInfo.zelle}`;
+    const zelleDetails = `Send ${formatCurrency(amount, currency)} to ${toUser.name.replace(' (You)', '')} via Zelle\nEmail/Phone: ${paymentInfo.zelle}`;
     navigator.clipboard.writeText(zelleDetails);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

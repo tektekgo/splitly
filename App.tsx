@@ -24,7 +24,7 @@ import type { FinalExpense, SimplifiedDebt, User, Group, Notification, GroupInvi
 import { SplitMethod, Category, NotificationType } from './types';
 import { MoonIcon, SunIcon, UsersIcon, EditIcon, DeleteIcon } from './components/icons';
 import { simplifyDebts } from './utils/debtSimplification';
-import { formatCurrency } from './utils/currencyFormatter';
+import { formatCurrency, formatExpenseAmount } from './utils/currencyFormatter';
 import { logError } from './utils/errorLogger';
 import { sendGroupInviteEmail } from './utils/emailService';
 import { logAdminAction } from './utils/adminLogger';
@@ -888,7 +888,7 @@ const App: React.FC = () => {
                         return [newExpenseWithId, ...filtered];
                     });
                     setEditingExpense(null);
-                    message = `${currentUserData.name.replace(' (You)', '')} added a new expense: "${expense.description}" for $${expense.amount.toFixed(2)}.`;
+                    message = `${currentUserData.name.replace(' (You)', '')} added a new expense: "${expense.description}" for ${formatExpenseAmount(expenseWithGroupId)}.`;
                     type = NotificationType.ExpenseAdded;
                 } else {
                     // Re-throw other errors (like permission-denied)
@@ -912,7 +912,7 @@ const App: React.FC = () => {
                 }
                 return [newExpenseWithId, ...prevExpenses];
             });
-            message = `${currentUserData.name.replace(' (You)', '')} added a new expense: "${expense.description}" for $${expense.amount.toFixed(2)}.`;
+            message = `${currentUserData.name.replace(' (You)', '')} added a new expense: "${expense.description}" for ${formatExpenseAmount(expenseWithGroupId)}.`;
             type = NotificationType.ExpenseAdded;
         }
 
@@ -2792,7 +2792,7 @@ const App: React.FC = () => {
                           <div className="flex-shrink-0 flex items-center gap-2">
                             <div className="text-right">
                               <p className="text-lg font-sans font-extrabold text-charcoal dark:text-gray-100">
-                                {formatCurrency(expense.amount, activeGroup?.currency || 'USD')}
+                                {formatExpenseAmount(expense)}
                               </p>
                             </div>
                             <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

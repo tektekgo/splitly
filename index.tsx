@@ -26,7 +26,15 @@ async function initApp() {
   }
 
   try {
-    // Dynamically import to ensure proper initialization order
+    // CRITICAL: Load React and ReactDOM first to ensure scheduler is initialized
+    // This prevents framer-motion from trying to access React's scheduler before it's ready
+    await import('react');
+    await import('react-dom/client');
+    
+    // Small delay to ensure React's internal scheduler is fully initialized
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    // Now load the app components
     const [{ default: App }, { AuthProvider }] = await Promise.all([
       import('./App'),
       import('./contexts/AuthContext')

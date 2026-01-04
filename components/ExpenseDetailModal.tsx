@@ -1,6 +1,7 @@
 import React from 'react';
 import type { FinalExpense, User } from '../types';
 import { CategoryIcon } from './icons';
+import { formatExpenseAmount, formatCurrency } from '../utils/currencyFormatter';
 
 interface ExpenseDetailModalProps {
   isOpen: boolean;
@@ -37,8 +38,21 @@ const ExpenseDetailModal: React.FC<ExpenseDetailModalProps> = ({ isOpen, onClose
         <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4">
             <div className="flex justify-between items-baseline">
                 <span className="text-lg text-text-secondary-light dark:text-text-secondary-dark">Amount:</span>
-                <span className="text-3xl font-extrabold text-primary">${expense.amount.toFixed(2)}</span>
+                <span className="text-3xl font-extrabold text-primary">{formatExpenseAmount(expense)}</span>
             </div>
+            {expense.originalCurrency && expense.originalCurrency !== expense.currency && (
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mb-1">
+                  Original: {formatCurrency(expense.originalAmount || 0, expense.originalCurrency)}
+                </p>
+                {expense.exchangeRate && (
+                  <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                    Exchange rate: 1 {expense.originalCurrency} = {expense.exchangeRate.toFixed(4)} {expense.currency}
+                    {expense.rateDate && ` (${expense.rateDate})`}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="flex justify-between items-baseline">
                 <span className="text-md text-text-secondary-light dark:text-text-secondary-dark">Paid by:</span>
                 <span className="font-semibold text-text-primary-light dark:text-text-primary-dark">{payer?.name.replace(' (You)', '')}</span>
@@ -60,7 +74,7 @@ const ExpenseDetailModal: React.FC<ExpenseDetailModalProps> = ({ isOpen, onClose
                                     <img src={member.avatarUrl} alt={member.name} className="w-8 h-8 rounded-full mr-3"/>
                                     <span className="font-medium text-text-primary-light dark:text-text-primary-dark">{member.name.replace(' (You)', '')}</span>
                                 </div>
-                                <span className="font-semibold text-error">${split.amount.toFixed(2)}</span>
+                                <span className="font-semibold text-error">{formatCurrency(split.amount, expense.currency)}</span>
                             </li>
                         );
                     })}

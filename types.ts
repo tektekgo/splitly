@@ -59,13 +59,19 @@ export interface FinalExpense {
   id:string;
   groupId: string; // Added to link expense to a group
   description: string;
-  amount: number;
-  currency: string; // Inherited from group, stored for reference
+  amount: number; // Converted to group currency (base currency)
+  currency: string; // Group currency (base currency for display and calculations)
   category: Category;
   paidBy: string; // User ID
   expenseDate: string; // ISO 8601 date string
   splitMethod: SplitMethod;
   splits: ExpenseSplit[];
+  // Multi-currency support fields (optional - only present if expense was entered in different currency)
+  originalAmount?: number; // Amount entered by user in original currency
+  originalCurrency?: string; // Currency in which expense was entered
+  exchangeRate?: number; // Exchange rate used for conversion (originalCurrency to group currency)
+  rateDate?: string; // Date when exchange rate was fetched/used (ISO 8601)
+  rateSource?: 'auto' | 'manual'; // How the exchange rate was obtained
 }
 
 export interface SimplifiedDebt {

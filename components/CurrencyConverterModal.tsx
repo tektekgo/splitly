@@ -1,28 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { getCurrencyList, getCurrencySymbol } from '../utils/currencyFormatter';
 
 interface CurrencyConverterModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const CURRENCIES = [
-  { code: 'USD', name: 'US Dollar', symbol: '$' },
-  { code: 'EUR', name: 'Euro', symbol: '€' },
-  { code: 'GBP', name: 'British Pound', symbol: '£' },
-  { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
-  { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
-  { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
-  { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF' },
-  { code: 'CNY', name: 'Chinese Yuan', symbol: '¥' },
-  { code: 'INR', name: 'Indian Rupee', symbol: '₹' },
-  { code: 'MXN', name: 'Mexican Peso', symbol: '$' },
-  { code: 'BRL', name: 'Brazilian Real', symbol: 'R$' },
-  { code: 'ZAR', name: 'South African Rand', symbol: 'R' },
-  { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$' },
-  { code: 'HKD', name: 'Hong Kong Dollar', symbol: 'HK$' },
-  { code: 'NZD', name: 'New Zealand Dollar', symbol: 'NZ$' },
-];
+// Use the same currency list as groups
+const CURRENCIES = getCurrencyList().map(currency => ({
+  code: currency.code,
+  name: currency.name,
+  symbol: currency.symbol,
+}));
 
 const CurrencyConverterModal: React.FC<CurrencyConverterModalProps> = ({ isOpen, onClose }) => {
   const [fromCurrency, setFromCurrency] = useState('USD');
@@ -98,6 +88,10 @@ const CurrencyConverterModal: React.FC<CurrencyConverterModalProps> = ({ isOpen,
 
   const fromCurrencyInfo = CURRENCIES.find(c => c.code === fromCurrency);
   const toCurrencyInfo = CURRENCIES.find(c => c.code === toCurrency);
+  
+  // Get currency symbol (fallback to code if not found)
+  const fromSymbol = fromCurrencyInfo?.symbol || getCurrencySymbol(fromCurrency);
+  const toSymbol = toCurrencyInfo?.symbol || getCurrencySymbol(toCurrency);
 
   if (!isOpen) return null;
 
@@ -188,7 +182,7 @@ const CurrencyConverterModal: React.FC<CurrencyConverterModalProps> = ({ isOpen,
             </label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal dark:text-gray-300 font-semibold">
-                {fromCurrencyInfo?.symbol}
+                {fromSymbol}
               </span>
               <input
                 type="number"
@@ -214,7 +208,7 @@ const CurrencyConverterModal: React.FC<CurrencyConverterModalProps> = ({ isOpen,
             <div className="p-5 bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 rounded-xl border-2 border-primary/20 dark:border-primary/30">
               <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-1">Converted Amount</p>
               <p className="text-3xl font-extrabold text-primary dark:text-primary-300">
-                {toCurrencyInfo?.symbol} {convertedAmount.toFixed(2)}
+                {toSymbol} {convertedAmount.toFixed(2)}
               </p>
               {exchangeRate !== null && exchangeRate !== 1 && (
                 <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-2">

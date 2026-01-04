@@ -40,12 +40,19 @@ import InfoTooltip from './components/InfoTooltip';
 import GroupSelector from './components/GroupSelector';
 import InviteMemberModal from './components/InviteMemberModal';
 import HelpModal from './components/HelpModal';
-import OnboardingTour from './components/OnboardingTour';
+// import OnboardingTour from './components/OnboardingTour'; // Temporarily disabled - react-joyride incompatible with React 19
 
-const genAI = new GoogleGenerativeAI((import.meta as any).env?.VITE_GEMINI_API_KEY || "");
+// Initialize genAI lazily to avoid initialization order issues
+let genAI: GoogleGenerativeAI | null = null;
+const getGenAI = () => {
+  if (!genAI) {
+    genAI = new GoogleGenerativeAI((import.meta as any).env?.VITE_GEMINI_API_KEY || "");
+  }
+  return genAI;
+};
 
-// Group type icon component
-const GroupIcon: React.FC<{ groupName: string; className?: string }> = ({ groupName, className = 'w-5 h-5' }) => {
+// Group type icon component - function declaration to avoid hoisting issues
+function GroupIcon({ groupName, className = 'w-5 h-5' }: { groupName: string; className?: string }) {
     const name = groupName.toLowerCase();
     if (name.includes('room') || name.includes('home') || name.includes('house')) {
         return (
@@ -74,12 +81,13 @@ const GroupIcon: React.FC<{ groupName: string; className?: string }> = ({ groupN
     } else {
         return <UsersIcon className={className} />;
     }
-};
+}
 
 type Theme = 'light' | 'dark';
 type Screen = 'dashboard' | 'add' | 'groups' | 'profile' | 'activity';
 
-const ThemeToggle: React.FC<{ theme: Theme, toggleTheme: () => void }> = ({ theme, toggleTheme }) => {
+// ThemeToggle component - function declaration to avoid hoisting issues
+function ThemeToggle({ theme, toggleTheme }: { theme: Theme, toggleTheme: () => void }) {
   const isDark = theme === 'dark';
 
   return (
@@ -121,9 +129,10 @@ const ThemeToggle: React.FC<{ theme: Theme, toggleTheme: () => void }> = ({ them
       <span className="sr-only">Toggle theme</span>
     </motion.button>
   );
-};
+}
 
-const App: React.FC = () => {
+// App component - function declaration to avoid hoisting issues
+function App() {
   const { currentUser, loading: authLoading, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [expenses, setExpenses] = useState<FinalExpense[]>([]);
@@ -823,7 +832,7 @@ const App: React.FC = () => {
         return null;
     }
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = getGenAI().getGenerativeModel({ model: "gemini-1.5-flash" });
         const prompt = `Analyze this expense description and return ONLY the category name from this list: ${CATEGORIES.join(', ')}. Description: "${description}". Return just the category name, nothing else.`;
         
         const result = await model.generateContent(prompt);
@@ -3033,11 +3042,11 @@ const App: React.FC = () => {
         onClose={() => setIsCurrencyConverterOpen(false)}
       />
 
-      {/* Onboarding Tour - Only for first-time users */}
-      <OnboardingTour 
+      {/* Onboarding Tour - Temporarily disabled - react-joyride incompatible with React 19 */}
+      {/* <OnboardingTour 
         run={showOnboarding}
         onFinish={handleFinishOnboarding}
-      />
+      /> */}
 
       {isSettleUpModalOpen && activeGroup && currentUser && (
         <SettleUpModal
@@ -3129,6 +3138,6 @@ const App: React.FC = () => {
       />
     </div>
   );
-};
+}
 
 export default App;

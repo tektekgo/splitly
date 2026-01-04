@@ -182,9 +182,33 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent submission while exchange rate is loading
+    if (isLoadingRate && originalCurrency !== group.currency) {
+      alert('Please wait for the exchange rate to load before saving.');
+      return;
+    }
+
     let errorMsg = error;
     if (!errorMsg) {
-        if (numericAmount <= 0) errorMsg = 'Amount must be greater than 0.';
+        if (numericAmount <= 0) {
+          errorMsg = 'Amount must be greater than 0.';
+        }
+    }
+
+    // Validate converted amount if currency is different from group currency
+    if (!errorMsg && originalCurrency !== group.currency) {
+      // Calculate final amount synchronously (in case state hasn't updated yet)
+      const currentRate = isRateManual 
+        ? (parseFloat(exchangeRateManual) || 1) 
+        : exchangeRate;
+      const calculatedAmount = numericAmount * currentRate;
+      
+      if (calculatedAmount <= 0) {
+        errorMsg = 'Converted amount must be greater than 0. Please check the exchange rate.';
+      } else if (!currentRate || currentRate <= 0) {
+        errorMsg = 'Please enter a valid exchange rate.';
+      }
     }
 
     if (errorMsg) {
@@ -197,9 +221,23 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
     const finalSplits = splits.length > 0 ? splits : [];
 
     // Determine final amount (converted to group currency)
-    const finalAmount = originalCurrency === group.currency 
-      ? numericAmount 
-      : convertedAmount;
+    // Calculate synchronously to avoid race condition with async state updates
+    let finalAmount: number;
+    if (originalCurrency === group.currency) {
+      finalAmount = numericAmount;
+    } else {
+      // Use calculated amount (synchronously computed) instead of state
+      // This prevents race condition where state hasn't updated yet
+      const currentRate = isRateManual 
+        ? (parseFloat(exchangeRateManual) || 1) 
+        : exchangeRate;
+      finalAmount = numericAmount * currentRate;
+      
+      // Double-check: if calculated amount is invalid, use state as fallback
+      if (finalAmount <= 0 && convertedAmount > 0) {
+        finalAmount = convertedAmount;
+      }
+    }
 
     // Build expense object with multi-currency support
     const finalExpense: FinalExpense = {

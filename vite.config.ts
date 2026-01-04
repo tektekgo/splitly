@@ -29,22 +29,35 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks: (id) => {
+            // CRITICAL: React must be in its own chunk and load first
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
             // Put Firebase in its own chunk
             if (id.includes('firebase')) {
               return 'firebase';
             }
-            // Put React in its own chunk
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'react-vendor';
-            }
-            // Put UI libraries in their own chunk
+            // Put UI libraries in their own chunk (loads after React)
             if (id.includes('framer-motion')) {
               return 'ui-vendor';
+            }
+            // Put App in its own chunk to avoid circular dependencies
+            if (id.includes('App.tsx') || id.includes('App.jsx')) {
+              return 'app';
             }
             // Put node_modules in vendor chunk
             if (id.includes('node_modules')) {
               return 'vendor';
             }
+          },
+          // Ensure proper chunk loading order
+          entryFileNames: 'assets/[name]-[hash].js',
+          chunkFileNames: (chunkInfo) => {
+            // React vendor must load first
+            if (chunkInfo.name === 'react-vendor') {
+              return 'assets/react-vendor-[hash].js';
+            }
+            return 'assets/[name]-[hash].js';
           }
         }
       },

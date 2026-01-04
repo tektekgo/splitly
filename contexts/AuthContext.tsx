@@ -80,13 +80,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await signInWithPopup(auth, provider);
   };*/
   const signInWithGoogle = async () => {
-    if (typeof (window as any).Capacitor !== 'undefined') {
-      // Use native Google Auth plugin
+    if (typeof (window as any).Capacitor !== 'undefined' && (window as any).Capacitor.isNativePlatform()) {
+      // Use native Google Auth plugin (only on iOS/Android, not web)
       const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
       
-      // Initialize GoogleAuth (ADD THIS)
+      // Initialize GoogleAuth for Capacitor (Android/iOS)
       await GoogleAuth.initialize({
-        clientId: '116751855385-jui3nnb6f763ur1gkank103h783427t1.apps.googleusercontent.com',
+        clientId: '116751855385-jui3nnb6f763ur1gkank103h7834271t.apps.googleusercontent.com',
         scopes: ['profile', 'email'],
         grantOfflineAccess: true,
       });
@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
       await signInWithCredential(auth, credential);
     } else {
-      // Use web popup (PWA/browser)
+      // Use web popup (PWA/browser) - uses OAuth client configured in Firebase Console
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
     }

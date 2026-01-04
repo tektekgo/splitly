@@ -42,6 +42,15 @@ import InviteMemberModal from './components/InviteMemberModal';
 import HelpModal from './components/HelpModal';
 // import OnboardingTour from './components/OnboardingTour'; // Temporarily disabled - react-joyride incompatible with React 19
 
+// Development-only logging (disabled in production for privacy/security)
+const isDev = import.meta.env.DEV;
+const devLog = (...args: any[]) => {
+  if (isDev) console.log(...args);
+};
+const devWarn = (...args: any[]) => {
+  if (isDev) devWarn(...args);
+};
+
 // Initialize genAI lazily to avoid initialization order issues
 let genAI: GoogleGenerativeAI | null = null;
 const getGenAI = () => {
@@ -186,7 +195,7 @@ function App() {
         let invitesData: GroupInvite[] = [];
         
         try {
-            console.log("Fetching data from Firestore...");
+            devLog("Fetching data from Firestore...");
             
             // PRIVACY & SECURITY: Only fetch users relevant to current user
             // Previously fetched ALL users (privacy issue at scale)
@@ -201,7 +210,7 @@ function App() {
             try {
                 currentUserDocSnap = await getDoc(currentUserDocRef);
             } catch (error: any) {
-                console.warn("Could not fetch current user document (may not exist yet):", error);
+                devWarn("Could not fetch current user document (may not exist yet):", error);
                 // Document might not exist yet - this is OK for brand new users
                 currentUserDocSnap = { exists: () => false } as any;
             }
@@ -215,7 +224,7 @@ function App() {
                 );
                 simulatedUsersSnapshot = await getDocs(usersQuery);
             } catch (error: any) {
-                console.warn("Could not fetch simulated users (may be blocked by security rules):", error);
+                devWarn("Could not fetch simulated users (may be blocked by security rules):", error);
                 // Create empty snapshot - new users won't have simulated users anyway
                 simulatedUsersSnapshot = { docs: [] } as any;
             }
@@ -229,7 +238,7 @@ function App() {
             allUserDocs.push(...simulatedUsersSnapshot.docs);
             const usersSnapshot = { docs: allUserDocs };
             
-            console.log(`Loaded ${allUserDocs.length} users (1 real + ${simulatedUsersSnapshot.docs.length} guest)`);
+            devLog(`Loaded ${allUserDocs.length} users (1 real + ${simulatedUsersSnapshot.docs.length} guest)`);
             
             // Fetch only groups where current user is a member
             let groupsSnapshot;
@@ -240,7 +249,7 @@ function App() {
                 );
                 groupsSnapshot = await getDocs(groupsQuery);
             } catch (error: any) {
-                console.warn("Could not fetch groups (may be blocked by security rules):", error);
+                devWarn("Could not fetch groups (may be blocked by security rules):", error);
                 // Create empty snapshot - new users won't have groups anyway
                 groupsSnapshot = { docs: [] } as any;
             }
@@ -261,7 +270,7 @@ function App() {
 
             // Fetch missing group member documents
             if (memberIdsToFetch.length > 0) {
-                console.log(`Fetching ${memberIdsToFetch.length} group members...`);
+                devLog(`Fetching ${memberIdsToFetch.length} group members...`);
                 for (const userId of memberIdsToFetch) {
                     try {
                         const userDocRef = doc(db, 'users', userId);
@@ -270,11 +279,11 @@ function App() {
                             allUserDocs.push(userDocSnap);
                         }
                     } catch (error: any) {
-                        console.warn(`Could not fetch user ${userId}:`, error);
+                        devWarn(`Could not fetch user ${userId}:`, error);
                         // Continue with other users
                     }
                 }
-                console.log(`Total users loaded: ${allUserDocs.length}`);
+                devLog(`Total users loaded: ${allUserDocs.length}`);
             }
 
             // Get group IDs for fetching expenses
@@ -296,7 +305,7 @@ function App() {
                         expensesData.push(...expensesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FinalExpense)));
                     }
                 } catch (error: any) {
-                    console.warn("Could not fetch expenses (may be blocked by security rules):", error);
+                    devWarn("Could not fetch expenses (may be blocked by security rules):", error);
                     // Continue with empty expenses array
                 }
             }
@@ -309,7 +318,7 @@ function App() {
                 const notificationsQuery = await getDocs(collection(db, 'notifications'));
                 notificationsSnapshot = notificationsQuery;
             } catch (error: any) {
-                console.warn("Could not fetch notifications (may be blocked by security rules):", error);
+                devWarn("Could not fetch notifications (may be blocked by security rules):", error);
                 // Create empty snapshot to prevent errors
                 notificationsSnapshot = { docs: [] };
             }
@@ -331,7 +340,7 @@ function App() {
                     getDocs(receivedInvitesQuery)
                 ]);
             } catch (error: any) {
-                console.warn("Could not fetch group invites (may be blocked by security rules):", error);
+                devWarn("Could not fetch group invites (may be blocked by security rules):", error);
                 // Create empty snapshots - new users won't have invites anyway
                 sentInvitesSnapshot = { docs: [] } as any;
                 receivedInvitesSnapshot = { docs: [] } as any;
@@ -349,7 +358,7 @@ function App() {
             if (!currentUserInArray) {
                 // Add current user from AuthContext to ensure it's always available
                 usersData = [currentUser, ...usersData];
-                console.log("Added current user from AuthContext to users array (document may not exist in Firestore yet)");
+                devLog("Added current user from AuthContext to users array (document may not exist in Firestore yet)");
             }
             
             const groupsData = groupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
@@ -376,7 +385,7 @@ function App() {
                 try {
                     return { id: doc.id, ...doc.data() } as Notification;
                 } catch (e) {
-                    console.warn("Error processing notification:", e);
+                    devWarn("Error processing notification:", e);
                     return null;
                 }
             }).filter((notif): notif is Notification => notif !== null);
@@ -400,7 +409,7 @@ function App() {
                 if (!uniqueExpenses.has(expense.id)) {
                     uniqueExpenses.set(expense.id, expense);
                 } else {
-                    console.warn(`Duplicate expense ID detected during fetch: ${expense.id} - "${expense.description}"`);
+                    devWarn(`Duplicate expense ID detected during fetch: ${expense.id} - "${expense.description}"`);
                 }
             });
             const deduplicatedExpenses = Array.from(uniqueExpenses.values());
@@ -420,7 +429,7 @@ function App() {
                 if (prev) return prev;
                 return activeGroupsData.length > 0 ? activeGroupsData[0].id : null;
             });
-            console.log("Data fetched successfully.");
+            devLog("Data fetched successfully.");
             
             // Auto-accept invite if there's a pending invite ID from URL
             const inviteIdFromStorage = sessionStorage.getItem('pendingInviteId') || pendingInviteId;
@@ -431,7 +440,7 @@ function App() {
                     inv.invitedEmail.toLowerCase() === currentUser.email?.toLowerCase()
                 );
                 if (inviteToAccept) {
-                    console.log('Auto-accepting invite from URL:', inviteIdFromStorage);
+                    devLog('Auto-accepting invite from URL:', inviteIdFromStorage);
                     // Small delay to ensure UI is ready
                     setTimeout(() => {
                         handleAcceptInvite(inviteIdFromStorage, invitesData);
@@ -454,7 +463,7 @@ function App() {
             if (pendingInvites.length > 0 && !inviteIdFromStorage) {
                 // User with pending invites - show Activity screen after a short delay
                 // This applies to both new users and existing users with new invites
-                console.log(`User has ${pendingInvites.length} pending invite(s), navigating to Activity screen`);
+                devLog(`User has ${pendingInvites.length} pending invite(s), navigating to Activity screen`);
                 setTimeout(() => {
                     // Only navigate if user hasn't manually navigated away
                     // Check if still on dashboard (default screen)
@@ -489,7 +498,7 @@ function App() {
             if (error?.code !== 'permission-denied') {
                 alert("Could not fetch data from the database. Please check your Firebase connection and configuration.");
             } else {
-                console.warn("Permission denied - some data may not be available. This is normal for new users.");
+                devWarn("Permission denied - some data may not be available. This is normal for new users.");
             }
         } finally {
             setLoading(false);
@@ -510,14 +519,14 @@ function App() {
       if (mode === 'resetPassword' && actionCode) {
         // Show password reset form
         // We'll handle this in LoginScreen component
-        console.log('Password reset link detected');
+        devLog('Password reset link detected');
         // Store the action code in sessionStorage for LoginScreen to use
         sessionStorage.setItem('passwordResetCode', actionCode);
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
       } else if (inviteId) {
         // Store invite ID for processing after signup/login
-        console.log('Invite link detected:', inviteId);
+        devLog('Invite link detected:', inviteId);
         setPendingInviteId(inviteId);
         // Store in sessionStorage as backup
         sessionStorage.setItem('pendingInviteId', inviteId);
@@ -648,9 +657,9 @@ function App() {
   const activeGroupMembers = useMemo(() => {
     if (!activeGroup) return [];
     const members = users.filter(u => activeGroup.members.includes(u.id));
-    console.log(`Active group "${activeGroup.name}" has ${activeGroup.members.length} member IDs:`, activeGroup.members);
-    console.log(`Loaded ${users.length} total users`);
-    console.log(`Found ${members.length} matching members:`, members.map(m => m.name));
+    devLog(`Active group "${activeGroup.name}" has ${activeGroup.members.length} member IDs:`, activeGroup.members);
+    devLog(`Loaded ${users.length} total users`);
+    devLog(`Found ${members.length} matching members:`, members.map(m => m.name));
     return members;
   }, [activeGroup, users]);
   const groupForEditing = useMemo(() => groups.find(g => g.id === editingGroupId), [groups, editingGroupId]);
@@ -687,6 +696,49 @@ function App() {
     }
   }, [activeGroups, activeGroupId]);
 
+  // Helper function to fetch and update users for a group's members
+  // This ensures all group members are in the users state before UI updates
+  // Uses functional updates to avoid stale closure issues
+  const fetchGroupMembers = useCallback(async (group: Group): Promise<void> => {
+    if (!group.members || group.members.length === 0) return;
+
+    devLog(`Fetching group members for group "${group.name}" (${group.members.length} members)...`);
+    const fetchedUsers: User[] = [];
+
+    // Fetch ALL group member documents in parallel (functional update will handle deduplication)
+    await Promise.all(
+      group.members.map(async (userId) => {
+        try {
+          const userDocRef = doc(db, 'users', userId);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            fetchedUsers.push({ id: userDocSnap.id, ...userDocSnap.data() } as User);
+          } else {
+            devWarn(`User document ${userId} does not exist for group "${group.name}"`);
+          }
+        } catch (error: any) {
+          devWarn(`Could not fetch user ${userId} for group "${group.name}":`, error);
+          // Continue with other users - don't fail the whole operation
+        }
+      })
+    );
+
+    // Update users state with fetched members using functional update (handles deduplication)
+    if (fetchedUsers.length > 0) {
+      setUsers(prev => {
+        const existingIds = new Set(prev.map(u => u.id));
+        const newUsers = fetchedUsers.filter(u => !existingIds.has(u.id));
+        if (newUsers.length > 0) {
+          devLog(`Adding ${newUsers.length} new members to users state:`, newUsers.map(u => u.name || u.id));
+          return [...prev, ...newUsers];
+        }
+        return prev;
+      });
+    } else {
+      devWarn(`No user documents found for group "${group.name}" members`);
+    }
+  }, []); // No dependencies - uses functional updates to avoid stale closures
+
   // CRITICAL FIX: Ensure all members are fetched when a group becomes active
   // This handles cases where group is set active before members are loaded
   useEffect(() => {
@@ -697,7 +749,7 @@ function App() {
       );
       
       if (missingMembers.length > 0) {
-        console.log(`Active group "${activeGroup.name}" has ${missingMembers.length} members not in users state, fetching...`);
+        devLog(`Active group "${activeGroup.name}" has ${missingMembers.length} members not in users state, fetching...`);
         fetchGroupMembers(activeGroup);
       }
     }
@@ -739,12 +791,12 @@ function App() {
         // Secondary check: detect potential duplicates by description+amount+date
         const duplicateKey = `${expense.description}|${expense.amount}|${expense.expenseDate}`;
         if (seenDescriptions.has(duplicateKey)) {
-          console.warn(`Potential duplicate expense detected: "${expense.description}" (ID: ${expense.id})`);
+          devWarn(`Potential duplicate expense detected: "${expense.description}" (ID: ${expense.id})`);
         } else {
           seenDescriptions.set(duplicateKey, expense);
         }
       } else {
-        console.warn(`Duplicate expense ID detected: ${expense.id} - "${expense.description}"`);
+        devWarn(`Duplicate expense ID detected: ${expense.id} - "${expense.description}"`);
       }
     });
     
@@ -868,8 +920,8 @@ function App() {
             const expenseDocRef = doc(db, 'expenses', editingExpense.id);
             // Remove 'id' field before updating - Firestore doesn't allow updating document IDs
             const { id, ...expenseDataWithoutId } = expenseWithGroupId;
-            console.log('Updating expense:', editingExpense.id, expenseDataWithoutId);
-            console.log('Current user:', currentUser.id, 'Active group:', activeGroupId);
+            devLog('Updating expense:', editingExpense.id, expenseDataWithoutId);
+            devLog('Current user:', currentUser.id, 'Active group:', activeGroupId);
             
             try {
                 // Try to update the expense
@@ -888,7 +940,7 @@ function App() {
             } catch (updateError: any) {
                 // If update fails with "not-found", create it as new
                 if (updateError?.code === 'not-found') {
-                    console.warn(`Expense document ${editingExpense.id} does not exist in Firestore. Creating as new expense instead.`);
+                    devWarn(`Expense document ${editingExpense.id} does not exist in Firestore. Creating as new expense instead.`);
                     const docRef = await addDoc(collection(db, 'expenses'), expenseDataWithoutId);
                     const newExpenseWithId = { ...expenseDataWithoutId, id: docRef.id };
                     setExpenses(prevExpenses => {
@@ -907,8 +959,8 @@ function App() {
         } else {
             // Remove 'id' field before creating - Firestore will generate its own ID
             const { id, ...expenseDataWithoutId } = expenseWithGroupId;
-            console.log('Creating expense:', expenseDataWithoutId);
-            console.log('Current user:', currentUser.id, 'Active group:', activeGroupId);
+            devLog('Creating expense:', expenseDataWithoutId);
+            devLog('Current user:', currentUser.id, 'Active group:', activeGroupId);
             const docRef = await addDoc(collection(db, 'expenses'), expenseDataWithoutId);
             const newExpenseWithId = { ...expenseDataWithoutId, id: docRef.id };
             // Ensure no duplicates when adding new expense
@@ -916,7 +968,7 @@ function App() {
                 // Check if expense with this ID already exists (shouldn't happen, but safety check)
                 const exists = prevExpenses.some(e => e.id === newExpenseWithId.id);
                 if (exists) {
-                    console.warn('Expense with ID already exists, updating instead of adding:', newExpenseWithId.id);
+                    devWarn('Expense with ID already exists, updating instead of adding:', newExpenseWithId.id);
                     return prevExpenses.map(e => e.id === newExpenseWithId.id ? newExpenseWithId : e);
                 }
                 return [newExpenseWithId, ...prevExpenses];
@@ -936,7 +988,7 @@ function App() {
             const notificationDocRef = await addDoc(collection(db, 'notifications'), newNotification);
             setNotifications(prev => [{ id: notificationDocRef.id, ...newNotification }, ...prev]);
         } catch (notificationError: any) {
-            console.warn("Failed to create notification (expense was saved):", notificationError);
+            devWarn("Failed to create notification (expense was saved):", notificationError);
             // Don't throw - expense was saved successfully
         }
     } catch (error: any) {
@@ -1051,7 +1103,7 @@ function App() {
     // Remove any duplicate member IDs (defense in depth)
     const uniqueMembers = Array.from(new Set(updatedGroup.members));
     if (uniqueMembers.length !== updatedGroup.members.length) {
-        console.warn('Duplicate members detected in group update, removing duplicates');
+        devWarn('Duplicate members detected in group update, removing duplicates');
         updatedGroup = { ...updatedGroup, members: uniqueMembers };
     }
     
@@ -1335,7 +1387,7 @@ function App() {
             archived: newGroupData.archived || false,
         };
         
-        console.log('Creating group with data:', groupDataWithCreator);
+        devLog('Creating group with data:', groupDataWithCreator);
         const docRef = await addDoc(collection(db, 'groups'), groupDataWithCreator);
         const newGroup = { ...groupDataWithCreator, id: docRef.id };
         setGroups(prev => [...prev, newGroup]);
@@ -1389,11 +1441,11 @@ function App() {
             createdAt: new Date().toISOString()
         };
 
-        console.log('Creating simulated user with data:', newUserNoId);
+        devLog('Creating simulated user with data:', newUserNoId);
         const docRef = await addDoc(collection(db, 'users'), newUserNoId);
         const newUser = { id: docRef.id, ...newUserNoId };
         setUsers(prev => [...prev, newUser]);
-        console.log('Successfully created simulated user:', newUser.id);
+        devLog('Successfully created simulated user:', newUser.id);
     } catch (error: any) {
         logError('Create User', error, { userName: name, currentUserId: currentUser?.id });
         console.error("Error creating user: ", error);
@@ -1620,49 +1672,6 @@ function App() {
     }
   };
 
-  // Helper function to fetch and update users for a group's members
-  // This ensures all group members are in the users state before UI updates
-  // Uses functional updates to avoid stale closure issues
-  const fetchGroupMembers = useCallback(async (group: Group): Promise<void> => {
-    if (!group.members || group.members.length === 0) return;
-
-    console.log(`Fetching group members for group "${group.name}" (${group.members.length} members)...`);
-    const fetchedUsers: User[] = [];
-    
-    // Fetch ALL group member documents in parallel (functional update will handle deduplication)
-    await Promise.all(
-      group.members.map(async (userId) => {
-        try {
-          const userDocRef = doc(db, 'users', userId);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists()) {
-            fetchedUsers.push({ id: userDocSnap.id, ...userDocSnap.data() } as User);
-          } else {
-            console.warn(`User document ${userId} does not exist for group "${group.name}"`);
-          }
-        } catch (error: any) {
-          console.warn(`Could not fetch user ${userId} for group "${group.name}":`, error);
-          // Continue with other users - don't fail the whole operation
-        }
-      })
-    );
-
-    // Update users state with fetched members using functional update (handles deduplication)
-    if (fetchedUsers.length > 0) {
-      setUsers(prev => {
-        const existingIds = new Set(prev.map(u => u.id));
-        const newUsers = fetchedUsers.filter(u => !existingIds.has(u.id));
-        if (newUsers.length > 0) {
-          console.log(`Adding ${newUsers.length} new members to users state:`, newUsers.map(u => u.name || u.id));
-          return [...prev, ...newUsers];
-        }
-        return prev;
-      });
-    } else {
-      console.warn(`No user documents found for group "${group.name}" members`);
-    }
-  }, []); // No dependencies - uses functional updates to avoid stale closures
-
   const handleAcceptInvite = async (inviteId: string, invitesArray?: GroupInvite[]) => {
     const invitesToSearch = invitesArray || groupInvites;
     const invite = invitesToSearch.find(inv => inv.id === inviteId);
@@ -1707,7 +1716,7 @@ function App() {
         // If we can't read the group (permission denied), that's expected for new users
         // We'll proceed with updating the invite and adding user to group
         // The security rules will allow the update if user is not already a member
-        console.log('Could not read group before update (expected for new users):', readError);
+        devLog('Could not read group before update (expected for new users):', readError);
         if (readError?.code === 'permission-denied' || readError?.message?.includes('permission')) {
           // This is expected - user is not a member yet, so they can't read the group
           // We'll proceed with the update
@@ -1786,22 +1795,34 @@ function App() {
       // Now that user is a member, they should be able to read it
       // Reuse groupData variable (may be null if we couldn't read it earlier)
       if (!groupData) {
-        try {
-          const groupDocSnap = await getDoc(groupRef);
-          if (groupDocSnap.exists()) {
-            groupData = { id: groupDocSnap.id, ...groupDocSnap.data() } as Group;
+        // Retry logic: Firestore might need a moment for permissions to propagate
+        let retryCount = 0;
+        const maxRetries = 3;
+        while (retryCount < maxRetries && !groupData) {
+          try {
+            // Add small delay before retry (except first attempt)
+            if (retryCount > 0) {
+              await new Promise(resolve => setTimeout(resolve, 500 * retryCount));
+              devLog(`Retrying group fetch (attempt ${retryCount + 1}/${maxRetries})...`);
+            }
+
+            const groupDocSnap = await getDoc(groupRef);
+            if (groupDocSnap.exists()) {
+              groupData = { id: groupDocSnap.id, ...groupDocSnap.data() } as Group;
+              devLog(`Successfully fetched group "${groupData.name}" with ${groupData.members.length} members`);
+              break;
+            } else {
+              throw new Error('Group document does not exist');
+            }
+          } catch (fetchError: any) {
+            retryCount++;
+            devWarn(`Could not fetch group (attempt ${retryCount}/${maxRetries}):`, fetchError);
+
+            if (retryCount >= maxRetries) {
+              // After max retries, throw error instead of using broken fallback
+              throw new Error(`Failed to fetch group after ${maxRetries} attempts. Please try refreshing the page.`);
+            }
           }
-        } catch (fetchError) {
-          console.warn('Could not fetch group after accepting invite:', fetchError);
-          // Use invite data to create a minimal group object for local state
-          groupData = {
-            id: invite.groupId,
-            name: invite.groupName,
-            members: [currentUser.id],
-            currency: 'USD', // Default, will be updated when group is properly fetched
-            createdAt: new Date().toISOString(),
-            archived: false
-          } as Group;
         }
       }
 
@@ -1834,7 +1855,7 @@ function App() {
           await updateDoc(doc(db, 'notifications', relatedNotification.id), { read: true });
           setNotifications(prev => prev.map(n => n.id === relatedNotification.id ? { ...n, read: true } : n));
         } catch (notifError) {
-          console.warn("Failed to mark notification as read:", notifError);
+          devWarn("Failed to mark notification as read:", notifError);
           // Don't fail the whole operation if notification update fails
         }
       }

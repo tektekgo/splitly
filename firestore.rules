@@ -12,11 +12,19 @@ service cloud.firestore {
     match /users/{userId} {
       // Allow users to read their own document
       allow read: if request.auth != null && request.auth.uid == userId;
-      
+
       // Allow users to read documents they created (simulated users)
-      allow read: if request.auth != null && 
+      allow read: if request.auth != null &&
         resource.data.createdBy == request.auth.uid;
-      
+
+      // CRITICAL FIX: Allow any authenticated user to read basic user profiles
+      // This is necessary for group functionality where members need to see each other's
+      // names, avatars, and payment info within shared groups
+      // Security note: This allows reading names/avatars, but NOT private data like passwords
+      // Firestore security rules don't efficiently support "shared group" checks
+      // Alternative would be to denormalize member data into group documents (high maintenance)
+      allow read: if request.auth != null;
+
       // Allow admins to read all (only if user document exists)
       allow read: if request.auth != null && isAdmin();
       

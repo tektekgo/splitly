@@ -678,6 +678,22 @@ const App: React.FC = () => {
     }
   }, [activeGroups, activeGroupId]);
 
+  // CRITICAL FIX: Ensure all members are fetched when a group becomes active
+  // This handles cases where group is set active before members are loaded
+  useEffect(() => {
+    if (activeGroup && activeGroup.members && activeGroup.members.length > 0) {
+      // Check if we're missing any member user documents
+      const missingMembers = activeGroup.members.filter(memberId => 
+        !users.some(u => u.id === memberId)
+      );
+      
+      if (missingMembers.length > 0) {
+        console.log(`Active group "${activeGroup.name}" has ${missingMembers.length} members not in users state, fetching...`);
+        fetchGroupMembers(activeGroup);
+      }
+    }
+  }, [activeGroup, users, fetchGroupMembers]);
+
 
   // Mark notifications as read when activity screen is viewed
   useEffect(() => {
@@ -741,7 +757,8 @@ const App: React.FC = () => {
       const payerInGroup = memberBalances.has(expense.paidBy);
       const isPayment = expense.category === 'Payment';
       // Regular expenses need 2+ people in splits. Payment expenses need 1 (payer is paidBy, recipient is in splits)
-      if (payerInGroup && expense.splits && (isPayment ? expense.splits.length >= 1 : expense.splits.length >= 2)) {
+      // Personal expenses (splits.length === 0) are intentionally ignored - they don't affect group balances
+      if (payerInGroup && expense.splits && expense.splits.length > 0 && (isPayment ? expense.splits.length >= 1 : expense.splits.length >= 2)) {
         if (isPayment) {
           // Backward compatibility: Detect old payment structure (paidBy = recipient, payer in splits)
           // Old structure: expenseDate before 2025-12-21 (when we fixed the semantic inconsistency)
@@ -1032,6 +1049,10 @@ const App: React.FC = () => {
     try {
         const groupDocRef = doc(db, 'groups', updatedGroup.id);
         await updateDoc(groupDocRef, { name: updatedGroup.name, members: updatedGroup.members });
+        
+        // CRITICAL FIX: Fetch any newly added members before updating state
+        await fetchGroupMembers(updatedGroup);
+        
         setGroups(prev => prev.map(g => g.id === updatedGroup.id ? updatedGroup : g));
         setEditingGroupId(null);
         
@@ -1590,6 +1611,49 @@ const App: React.FC = () => {
     }
   };
 
+  // Helper function to fetch and update users for a group's members
+  // This ensures all group members are in the users state before UI updates
+  // Uses functional updates to avoid stale closure issues
+  const fetchGroupMembers = useCallback(async (group: Group): Promise<void> => {
+    if (!group.members || group.members.length === 0) return;
+
+    console.log(`Fetching group members for group "${group.name}" (${group.members.length} members)...`);
+    const fetchedUsers: User[] = [];
+    
+    // Fetch ALL group member documents in parallel (functional update will handle deduplication)
+    await Promise.all(
+      group.members.map(async (userId) => {
+        try {
+          const userDocRef = doc(db, 'users', userId);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            fetchedUsers.push({ id: userDocSnap.id, ...userDocSnap.data() } as User);
+          } else {
+            console.warn(`User document ${userId} does not exist for group "${group.name}"`);
+          }
+        } catch (error: any) {
+          console.warn(`Could not fetch user ${userId} for group "${group.name}":`, error);
+          // Continue with other users - don't fail the whole operation
+        }
+      })
+    );
+
+    // Update users state with fetched members using functional update (handles deduplication)
+    if (fetchedUsers.length > 0) {
+      setUsers(prev => {
+        const existingIds = new Set(prev.map(u => u.id));
+        const newUsers = fetchedUsers.filter(u => !existingIds.has(u.id));
+        if (newUsers.length > 0) {
+          console.log(`Adding ${newUsers.length} new members to users state:`, newUsers.map(u => u.name || u.id));
+          return [...prev, ...newUsers];
+        }
+        return prev;
+      });
+    } else {
+      console.warn(`No user documents found for group "${group.name}" members`);
+    }
+  }, []); // No dependencies - uses functional updates to avoid stale closures
+
   const handleAcceptInvite = async (inviteId: string, invitesArray?: GroupInvite[]) => {
     const invitesToSearch = invitesArray || groupInvites;
     const invite = invitesToSearch.find(inv => inv.id === inviteId);
@@ -1732,6 +1796,12 @@ const App: React.FC = () => {
         }
       }
 
+      // CRITICAL FIX: Fetch all group members' user documents immediately
+      // This ensures activeGroupMembers is complete before UI updates
+      if (groupData) {
+        await fetchGroupMembers(groupData);
+      }
+
       // Update local state
       if (groupData) {
         setGroups(prev => {
@@ -1762,11 +1832,13 @@ const App: React.FC = () => {
 
       alert(`You've joined "${invite.groupName}"!`);
 
-      // Trigger data refetch to ensure all group members and data are loaded
-      setDataRefreshTrigger(prev => prev + 1);
-
+      // Set active group AFTER users have been fetched and state updated
+      // This ensures activeGroupMembers will include all members
       setActiveGroupId(invite.groupId);
       setActiveScreen('dashboard');
+
+      // Trigger data refetch to ensure all group data is fully loaded
+      setDataRefreshTrigger(prev => prev + 1);
     } catch (error: any) {
       console.error("Error accepting invite: ", error);
       const errorMessage = error?.message || error?.code || 'Unknown error';
@@ -1950,8 +2022,9 @@ const App: React.FC = () => {
 
     deduplicatedExpenses.forEach(expense => {
         // Regular expenses need 2+ people in splits. Payment expenses need 1 (payer is paidBy, recipient is in splits)
+        // Personal expenses (splits.length === 0) are intentionally ignored - they don't affect group balances
         const isPayment = expense.category === 'Payment';
-        if (memberBalances.has(expense.paidBy) && expense.splits && (isPayment ? expense.splits.length >= 1 : expense.splits.length >= 2)) {
+        if (memberBalances.has(expense.paidBy) && expense.splits && expense.splits.length > 0 && (isPayment ? expense.splits.length >= 1 : expense.splits.length >= 2)) {
             if (isPayment) {
                 // Backward compatibility: Detect old payment structure (paidBy = recipient, payer in splits)
                 // Old structure: expenseDate before 2025-12-21 (when we fixed the semantic inconsistency)
@@ -2029,8 +2102,9 @@ const App: React.FC = () => {
     activeGroupExpenses.forEach(expense => {
         const payerInGroup = balances.has(expense.paidBy);
         // Regular expenses need 2+ people in splits. Payment expenses need 1 (payer is paidBy, recipient is in splits)
+        // Personal expenses (splits.length === 0) are intentionally ignored - they don't affect group balances
         const isPayment = expense.category === 'Payment';
-        if (payerInGroup && expense.splits && (isPayment ? expense.splits.length >= 1 : expense.splits.length >= 2)) {
+        if (payerInGroup && expense.splits && expense.splits.length > 0 && (isPayment ? expense.splits.length >= 1 : expense.splits.length >= 2)) {
             if (isPayment) {
                 // Backward compatibility: Detect old payment structure (paidBy = recipient, payer in splits)
                 // Old structure: expenseDate before 2025-12-21 (when we fixed the semantic inconsistency)

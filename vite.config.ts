@@ -18,6 +18,37 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, '.'),
       }
     },
+    build: {
+      // Improve chunking to avoid circular dependency issues
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            // Put Firebase in its own chunk
+            if (id.includes('firebase')) {
+              return 'firebase';
+            }
+            // Put React in its own chunk
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
+            // Put UI libraries in their own chunk
+            if (id.includes('framer-motion')) {
+              return 'ui-vendor';
+            }
+            // Put node_modules in vendor chunk
+            if (id.includes('node_modules')) {
+              return 'vendor';
+            }
+          }
+        }
+      },
+      // Increase chunk size warning limit
+      chunkSizeWarningLimit: 1000,
+      // Use commonjs format for better compatibility
+      commonjsOptions: {
+        include: [/node_modules/],
+      },
+    },
     define: {
       'import.meta.env.VITE_FIREBASE_API_KEY': JSON.stringify(env.VITE_FIREBASE_API_KEY),
       'import.meta.env.VITE_FIREBASE_AUTH_DOMAIN': JSON.stringify(env.VITE_FIREBASE_AUTH_DOMAIN),

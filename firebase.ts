@@ -2,7 +2,7 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+// GoogleAuth is imported dynamically in AuthContext when needed (Capacitor only)
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -25,16 +25,12 @@ if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'undefined') {
   console.warn('The app will still load, but authentication features will not work.');
 }
 
-// Initialize Firebase
-let app;
-try {
-  app = initializeApp(firebaseConfig);
-} catch (error) {
-  console.error('❌ Firebase initialization error:', error);
-  // Create a mock app object to prevent crashes
-  throw new Error('Firebase configuration is invalid. Please check your .env.local file.');
-}
+// Initialize Firebase immediately
+// This must happen at module load time to avoid circular dependency issues
+const app = initializeApp(firebaseConfig);
+
 // Initialize Cloud Firestore and get a reference to the service
+// Export these immediately to avoid initialization order issues
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 // Initialize Google Auth for Capacitor

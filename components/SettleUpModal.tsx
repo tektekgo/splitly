@@ -27,8 +27,9 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({ isOpen, onClose, expenses
       const payerInGroup = balances.has(expense.paidBy);
       // Only process expenses that have splits with 2+ people - expenses without proper splits shouldn't affect balances
       // Exception: Payment expenses (category === 'Payment') represent money transfers and should always be processed
+      // Personal expenses (splits.length === 0) are intentionally ignored - they don't affect group balances
       const isPayment = expense.category === 'Payment';
-      if (payerInGroup && expense.splits && (isPayment ? expense.splits.length >= 1 : expense.splits.length >= 2)) {
+      if (payerInGroup && expense.splits && expense.splits.length > 0 && (isPayment ? expense.splits.length >= 1 : expense.splits.length >= 2)) {
           if (isPayment) {
               // Backward compatibility: Detect old payment structure (paidBy = recipient, payer in splits)
               // Old structure: expenseDate before 2025-12-21 (when we fixed the semantic inconsistency)

@@ -109,8 +109,9 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ members, currentUserId,
       return;
     }
 
-    // If no splits are selected, default to the payer owning 100% of the expense
-    const finalSplits = splits.length > 0 ? splits : [{ userId: paidBy, amount: numericAmount }];
+    // If no splits are selected, save as personal expense (empty splits array)
+    // Personal expenses don't affect group balances - they're just for record-keeping
+    const finalSplits = splits.length > 0 ? splits : [];
 
     const finalExpense: FinalExpense = {
       id: expenseToEdit?.id || crypto.randomUUID(),

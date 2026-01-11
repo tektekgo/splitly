@@ -3,6 +3,8 @@ import type { User, Category } from '../types';
 import { SearchIcon } from './icons';
 import InfoTooltip from './InfoTooltip';
 
+export type DatePreset = 'all' | 'today' | 'week' | 'month' | '30days' | 'custom';
+
 interface ExpenseFilterProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
@@ -12,6 +14,12 @@ interface ExpenseFilterProps {
   onUserChange: (value: string | 'all') => void;
   members: User[];
   categories: Category[];
+  filterDatePreset: DatePreset;
+  onDatePresetChange: (value: DatePreset) => void;
+  filterDateFrom: string;
+  onDateFromChange: (value: string) => void;
+  filterDateTo: string;
+  onDateToChange: (value: string) => void;
 }
 
 const ExpenseFilter: React.FC<ExpenseFilterProps> = ({
@@ -23,6 +31,12 @@ const ExpenseFilter: React.FC<ExpenseFilterProps> = ({
   onUserChange,
   members,
   categories,
+  filterDatePreset,
+  onDatePresetChange,
+  filterDateFrom,
+  onDateFromChange,
+  filterDateTo,
+  onDateToChange,
 }) => {
   return (
     <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-stone-200 dark:border-gray-600">
@@ -47,7 +61,7 @@ const ExpenseFilter: React.FC<ExpenseFilterProps> = ({
           />
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <select
           value={filterCategory}
           onChange={(e) => onCategoryChange(e.target.value as Category | 'all')}
@@ -68,7 +82,47 @@ const ExpenseFilter: React.FC<ExpenseFilterProps> = ({
             <option key={member.id} value={member.id}>{member.name}</option>
           ))}
         </select>
+        <select
+          value={filterDatePreset}
+          onChange={(e) => onDatePresetChange(e.target.value as DatePreset)}
+          className="block w-full pl-3 pr-10 py-2 bg-content-light dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+        >
+          <option value="all">All Time</option>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+          <option value="30days">Last 30 Days</option>
+          <option value="custom">Custom Range</option>
+        </select>
       </div>
+      {filterDatePreset === 'custom' && (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="dateFrom" className="block text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark mb-1">
+              From
+            </label>
+            <input
+              id="dateFrom"
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => onDateFromChange(e.target.value)}
+              className="block w-full pl-3 pr-3 py-2 bg-content-light dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+            />
+          </div>
+          <div>
+            <label htmlFor="dateTo" className="block text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark mb-1">
+              To
+            </label>
+            <input
+              id="dateTo"
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => onDateToChange(e.target.value)}
+              className="block w-full pl-3 pr-3 py-2 bg-content-light dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

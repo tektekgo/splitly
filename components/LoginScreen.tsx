@@ -136,8 +136,8 @@ const LoginScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream via-primary/5 to-cream dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-      <motion.div 
+    <div className="min-h-screen bg-gradient-to-br from-cream via-primary/5 to-cream dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex flex-col items-center justify-center p-4">
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-stone-100 dark:border-stone-700 w-full max-w-sm overflow-hidden"
@@ -311,6 +311,7 @@ const LoginScreen: React.FC = () => {
                         placeholder="Enter new password (min 6 characters)"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
+                        autoComplete="new-password"
                         className="w-full pl-12 pr-6 py-3.5 bg-white dark:bg-gray-700 border-2 border-stone-200 dark:border-gray-600 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all text-charcoal dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                         required
                       />
@@ -337,6 +338,7 @@ const LoginScreen: React.FC = () => {
                         placeholder="Confirm new password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
+                        autoComplete="new-password"
                         className="w-full pl-12 pr-6 py-3.5 bg-white dark:bg-gray-700 border-2 border-stone-200 dark:border-gray-600 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all text-charcoal dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                         required
                       />
@@ -512,6 +514,7 @@ const LoginScreen: React.FC = () => {
                   placeholder="Minimum 6 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
                   className="w-full pl-12 pr-6 py-3.5 bg-white dark:bg-gray-700 border-2 border-stone-200 dark:border-gray-600 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all text-charcoal dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                   required
                 />
@@ -630,7 +633,7 @@ const LoginScreen: React.FC = () => {
           )}
 
           {/* Version Footer */}
-          <VersionFooter className="mt-8 pt-4 border-t border-stone-100 dark:border-gray-700" />
+          <VersionFooter className="mt-6 pt-3 opacity-50" />
         </div>
       </motion.div>
     </div>

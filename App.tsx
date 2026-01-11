@@ -12,7 +12,6 @@ import ExpenseDetailModal from './components/ExpenseDetailModal';
 import ExpenseFilter from './components/ExpenseFilter';
 import BalanceDetailModal from './components/BalanceDetailModal';
 import BottomNav from './components/BottomNav';
-import VersionFooter from './components/VersionFooter';
 import GroupManagementModal from './components/GroupManagementModal';
 import GroupsScreen from './components/GroupsScreen';
 import CreateGroupModal from './components/CreateGroupModal';
@@ -48,7 +47,7 @@ const devLog = (...args: any[]) => {
   if (isDev) console.log(...args);
 };
 const devWarn = (...args: any[]) => {
-  if (isDev) devWarn(...args);
+  if (isDev) console.warn(...args);
 };
 
 // Initialize genAI lazily to avoid initialization order issues
@@ -775,6 +774,9 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<Category | 'all'>('all');
   const [filterUser, setFilterUser] = useState<string | 'all'>('all');
+  const [filterDatePreset, setFilterDatePreset] = useState<'all' | 'today' | 'week' | 'month' | '30days' | 'custom'>('all');
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
+  const [filterDateTo, setFilterDateTo] = useState<string>('');
 
   const activeGroupExpenses = useMemo(() => {
     if (!activeGroupId) return [];
@@ -2118,10 +2120,46 @@ function App() {
       const searchTermMatch = searchTerm === '' || expense.description.toLowerCase().includes(searchTerm.toLowerCase());
       const categoryMatch = filterCategory === 'all' || expense.category === filterCategory;
       const userMatch = filterUser === 'all' || expense.paidBy === filterUser || expense.splits.some(s => s.userId === filterUser);
-      
-      return searchTermMatch && categoryMatch && userMatch;
+
+      // Date filtering logic
+      let dateMatch = true;
+      if (filterDatePreset !== 'all') {
+        const expenseDate = new Date(expense.expenseDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (filterDatePreset === 'today') {
+          const expenseDateOnly = new Date(expenseDate);
+          expenseDateOnly.setHours(0, 0, 0, 0);
+          dateMatch = expenseDateOnly.getTime() === today.getTime();
+        } else if (filterDatePreset === 'week') {
+          const weekAgo = new Date(today);
+          weekAgo.setDate(today.getDate() - 7);
+          dateMatch = expenseDate >= weekAgo;
+        } else if (filterDatePreset === 'month') {
+          const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+          dateMatch = expenseDate >= monthStart;
+        } else if (filterDatePreset === '30days') {
+          const thirtyDaysAgo = new Date(today);
+          thirtyDaysAgo.setDate(today.getDate() - 30);
+          dateMatch = expenseDate >= thirtyDaysAgo;
+        } else if (filterDatePreset === 'custom') {
+          if (filterDateFrom) {
+            const fromDate = new Date(filterDateFrom);
+            fromDate.setHours(0, 0, 0, 0);
+            dateMatch = expenseDate >= fromDate;
+          }
+          if (dateMatch && filterDateTo) {
+            const toDate = new Date(filterDateTo);
+            toDate.setHours(23, 59, 59, 999);
+            dateMatch = expenseDate <= toDate;
+          }
+        }
+      }
+
+      return searchTermMatch && categoryMatch && userMatch && dateMatch;
     });
-  }, [activeGroupExpenses, searchTerm, filterCategory, filterUser]);
+  }, [activeGroupExpenses, searchTerm, filterCategory, filterUser, filterDatePreset, filterDateFrom, filterDateTo]);
   
   const simplifiedDebts = useMemo(() => {
     if (!activeGroupMembers || activeGroupMembers.length === 0) return [];
@@ -2187,7 +2225,7 @@ function App() {
     return simplifiedDebts.reduce((sum, debt) => sum + Math.abs(debt.amount), 0);
   }, [simplifiedDebts]);
 
-  const hasActiveFilters = searchTerm !== '' || filterCategory !== 'all' || filterUser !== 'all';
+  const hasActiveFilters = searchTerm !== '' || filterCategory !== 'all' || filterUser !== 'all' || filterDatePreset !== 'all';
 
   // Calculate unread notifications + pending invites for Activity badge
   const unreadNotificationCount = useMemo(() => {
@@ -2444,10 +2482,11 @@ function App() {
   }
 
   return (
-    <div className="bg-cream dark:bg-surface-dark font-sans text-charcoal dark:text-text-primary-dark transition-colors duration-300 min-h-screen flex items-center justify-center pb-32" style={{ backgroundColor: '#FDFCF9' }}>
-      <div className="w-full max-w-md sm:max-w-lg lg:max-w-xl mx-auto relative flex flex-col min-h-screen">
-        {/* Unified Container - Content and Nav as One Unit */}
-        <div className="bg-gradient-to-b from-white via-stone-50/30 to-stone-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-t-3xl overflow-hidden shadow-lg border-x border-t border-stone-200 dark:border-gray-700 flex flex-col flex-grow mb-0">
+    <div className="bg-cream dark:bg-surface-dark font-sans text-charcoal dark:text-text-primary-dark transition-colors duration-300 fixed inset-0 flex items-center justify-center p-0 sm:p-4" style={{ backgroundColor: '#FDFCF9' }}>
+      {/* Unified App Shell - One container with rounded corners */}
+      <div className="w-full max-w-md sm:max-w-lg lg:max-w-xl h-full sm:h-[calc(100vh-2rem)] flex flex-col bg-gradient-to-b from-white via-stone-50/30 to-stone-100 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 sm:rounded-3xl overflow-hidden shadow-xl sm:border border-stone-200 dark:border-gray-700">
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
           {/* Integrated Header - Clean Two-Row Layout */}
           <motion.header
             initial={{ opacity: 0, y: -20 }}
@@ -2913,7 +2952,7 @@ function App() {
                           All Expenses
                         </h3>
                         <span className="text-xs font-bold text-primary dark:text-primary-300 bg-primary/10 dark:bg-primary/20 px-3 py-1.5 rounded-full border-2 border-primary/30 dark:border-primary/40">
-                          {searchTerm !== '' || filterCategory !== 'all' || filterUser !== 'all' 
+                          {hasActiveFilters
                             ? `${filteredExpenses.length} of ${activeGroupExpenses.length}`
                             : `${activeGroupExpenses.length} total`}
                         </span>
@@ -2940,6 +2979,12 @@ function App() {
                       onUserChange={setFilterUser}
                       members={activeGroupMembers}
                       categories={CATEGORIES}
+                      filterDatePreset={filterDatePreset}
+                      onDatePresetChange={setFilterDatePreset}
+                      filterDateFrom={filterDateFrom}
+                      onDateFromChange={setFilterDateFrom}
+                      filterDateTo={filterDateTo}
+                      onDateToChange={setFilterDateTo}
                     />
                     
                     {/* Expense List */}
@@ -2953,7 +2998,7 @@ function App() {
                           setActiveScreen('add');
                         }}
                         onViewExpense={handleViewExpense}
-                        hasActiveFilters={searchTerm !== '' || filterCategory !== 'all' || filterUser !== 'all'}
+                        hasActiveFilters={hasActiveFilters}
                         originalExpenseCount={activeGroupExpenses.length}
                         currentUserId={currentUser?.id || ''}
                       />
@@ -3028,17 +3073,15 @@ function App() {
 
             {/* Other Screens - Integrated into same container */}
             {(activeScreen !== 'dashboard' || !activeGroup) && renderContent()}
-
-            {/* Version Footer - Appears on all screens */}
-            <VersionFooter className="pt-4 pb-2 px-4 mt-auto" />
         </div>
-      </div>
 
-      <BottomNav 
-        activeScreen={activeScreen} 
-        onNavigate={setActiveScreen} 
-        notificationCount={unreadNotificationCount} 
-      />
+        {/* Bottom Navigation - Part of unified container */}
+        <BottomNav
+          activeScreen={activeScreen}
+          onNavigate={setActiveScreen}
+          notificationCount={unreadNotificationCount}
+        />
+      </div>
       
       {/* Help Modal */}
       <HelpModal

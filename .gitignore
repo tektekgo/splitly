@@ -49,6 +49,11 @@ android/local.properties
 android/.idea/
 android/captures/
 android/app/release/
+
+# Android signing (NEVER commit keystores!)
+*.keystore
+*.jks
+keystore.properties
 # Windows reserved device names (can't be added to git)
 nul
 NUL

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SplitBi Feature Graphic</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 1024px;
+      height: 500px;
+      overflow: hidden;
+      background: #15803d;
+    }
+    .container {
+      width: 1024px;
+      height: 500px;
+      background: linear-gradient(135deg, #15803d 0%, #16a34a 50%, #22c55e 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Decorative circles */
+    .circle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+    }
+    .circle-1 {
+      width: 300px;
+      height: 300px;
+      top: -100px;
+      right: -50px;
+    }
+    .circle-2 {
+      width: 200px;
+      height: 200px;
+      bottom: -80px;
+      left: -60px;
+    }
+    .circle-3 {
+      width: 150px;
+      height: 150px;
+      top: 50%;
+      right: 20%;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .content {
+      display: flex;
+      align-items: center;
+      gap: 50px;
+      z-index: 1;
+    }
+
+    .logo-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .logo-box {
+      width: 140px;
+      height: 140px;
+      background: white;
+      border-radius: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      margin-bottom: 20px;
+    }
+
+    .logo-box img {
+      width: 100px;
+      height: 100px;
+    }
+
+    .app-name {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 48px;
+      font-weight: 800;
+      color: white;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+
+    .app-name span {
+      color: #bbf7d0;
+    }
+
+    .text-section {
+      flex: 1;
+    }
+
+    .tagline {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 42px;
+      font-weight: 700;
+      color: white;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+
+    .features {
+      display: flex;
+      gap: 30px;
+    }
+
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.2);
+      padding: 12px 20px;
+      border-radius: 50px;
+      backdrop-filter: blur(10px);
+    }
+
+    .feature-icon {
+      font-size: 24px;
+    }
+
+    .feature-text {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Decorative circles -->
+    <div class="circle circle-1"></div>
+    <div class="circle circle-2"></div>
+    <div class="circle circle-3"></div>
+
+    <div class="content">
+      <div class="logo-section">
+        <div class="logo-box">
+          <img src="splitBi-logo-notext-svg.svg" alt="SplitBi">
+        </div>
+        <div class="app-name">Split<span>Bi</span></div>
+      </div>
+
+      <div class="text-section">
+        <div class="tagline">Split Expenses<br>With Friends</div>
+        <div class="features">
+          <div class="feature">
+            <span class="feature-icon">👥</span>
+            <span class="feature-text">Groups</span>
+          </div>
+          <div class="feature">
+            <span class="feature-icon">💰</span>
+            <span class="feature-text">Track Balances</span>
+          </div>
+          <div class="feature">
+            <span class="feature-icon">✓</span>
+            <span class="feature-text">Settle Up</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

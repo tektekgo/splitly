@@ -54,6 +54,7 @@ android/app/release/
 *.keystore
 *.jks
 keystore.properties
+keystore.txt
 # Windows reserved device names (can't be added to git)
 nul
 NUL

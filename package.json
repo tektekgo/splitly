@@ -12,7 +12,7 @@
     "sync": "npx cap sync"
   },
   "dependencies": {
-    "@capacitor/android": "^7.4.4",
+    "@capacitor/android": "^8.0.0",
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",

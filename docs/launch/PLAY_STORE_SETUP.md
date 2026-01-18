@@ -110,6 +110,23 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// Get version from git commit count (matches web versioning)
+def getGitCommitCount = { ->
+    try {
+        def stdout = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'rev-list', '--count', 'HEAD'
+            standardOutput = stdout
+        }
+        return Integer.parseInt(stdout.toString().trim())
+    } catch (Exception e) {
+        logger.warn("Could not get git commit count, using fallback")
+        return 1
+    }
+}
+
+def commitCount = getGitCommitCount()
+
 android {
     namespace "app.splitbi.splitbi"
     compileSdk rootProject.ext.compileSdkVersion
@@ -118,8 +135,8 @@ android {
         applicationId "app.splitbi.splitbi"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3  // Increment for each upload
-        versionName "1.0.2"
+        versionCode commitCount  // Auto-increments with each commit
+        versionName "1.0.${commitCount}"  // Matches web version
     }
 
     signingConfigs {
@@ -143,13 +160,17 @@ android {
 }
 ```
 
-### 4. Configure Java Home (if needed)
+> **Note:** Version is now automatic! Both web and Android use git commit count as the patch version (e.g., `1.0.76`). No manual version updates needed.
 
-Add to `android/gradle.properties`:
+### 4. Configure Java Home (local builds only)
+
+For local Windows builds, add to `android/local.properties` (this file is gitignored):
 
 ```properties
 org.gradle.java.home=C:/Program Files/Android/Android Studio/jbr
 ```
+
+> **Important:** Do NOT add this to `gradle.properties` as it will break CI builds on Linux. The CI uses `setup-java` action instead.
 
 ### 5. Update SDK Version
 
@@ -394,8 +415,9 @@ Navigate to: **Testing** → **Internal testing**
 4. Copy the **opt-in URL** and share with testers
 
 ### Version Code Management:
-- Each upload requires a **unique, higher version code**
-- If you get "Version code already used" error, increment `versionCode` in `build.gradle`
+- Version is now **automatic** - derived from git commit count
+- Each commit automatically increments the version
+- No manual version updates needed in `build.gradle`
 
 ---
 
@@ -559,7 +581,8 @@ After 14 days with 12+ testers, you can apply for **Production** access.
 ## Troubleshooting
 
 ### "Version code already used"
-- Increment `versionCode` in `android/app/build.gradle`
+- This shouldn't happen with auto-versioning (git commit count)
+- If it does, make a new commit to increment the version
 - Rebuild the AAB
 
 ### "Something went wrong" on Google Sign-In
@@ -567,8 +590,9 @@ After 14 days with 12+ testers, you can apply for **Production** access.
 2. Most common: Missing the **App signing key** SHA-1 (Google's key, not yours)
 3. Find it in Play Console → Setup → App integrity → App signing
 
-### Java version error during build
-- Add `org.gradle.java.home=C:/Program Files/Android/Android Studio/jbr` to `gradle.properties`
+### Java version error during build (local)
+- Add `org.gradle.java.home=C:/Program Files/Android/Android Studio/jbr` to `android/local.properties`
+- Do NOT add to `gradle.properties` (breaks CI)
 
 ### API level too low error
 - Update `targetSdkVersion` in `android/variables.gradle` to meet current Play Store requirements
@@ -593,23 +617,18 @@ After 14 days with 12+ testers, you can apply for **Production** access.
 ## Quick Reference: Build & Deploy Checklist
 
 ```bash
-# 1. Update version in android/app/build.gradle
-#    - Increment versionCode (required for each upload)
-#    - Update versionName if desired
+# 1. Build and sync (version auto-generated from git commit count)
+npm run build:android
 
-# 2. Build web app
-npm run build
-
-# 3. Sync to Android
-npx cap sync android
-
-# 4. Build signed AAB
+# 2. Build signed AAB
 cd android
 ./gradlew bundleRelease
 
-# 5. Upload to Play Console
+# 3. Upload to Play Console
 #    File: android/app/build/outputs/bundle/release/app-release.aab
 ```
+
+> **Version Management:** No manual version updates needed! Both web and Android automatically use git commit count as the patch version. Each commit increments the version on both platforms.
 
 ---
 
@@ -619,10 +638,12 @@ cd android
 |------|---------|
 | `android/splitbi-release.keystore` | Release signing key (DO NOT COMMIT) |
 | `android/keystore.properties` | Keystore credentials (DO NOT COMMIT) |
-| `android/app/build.gradle` | Signing config, version codes |
+| `android/local.properties` | Local machine settings incl. Java home (DO NOT COMMIT) |
+| `android/app/build.gradle` | Signing config, auto-versioning from git |
 | `android/variables.gradle` | SDK versions |
-| `android/gradle.properties` | Java home path |
+| `android/gradle.properties` | Gradle JVM settings (no Java home here!) |
 | `android/app/google-services.json` | Firebase config with SHA-1 |
+| `plugins/vite-plugin-version.js` | Auto-generates web version from git commit count |
 | `public/privacy.html` | Privacy policy page |
 | `public/delete-account.html` | Account deletion request page |
 | `public/feature-graphic.html` | Feature graphic template |
@@ -631,6 +652,6 @@ cd android
 
 ---
 
-*Last updated: January 12, 2026*
-*App version: 1.0.2 (versionCode 3)*
-*Status: Closed testing submitted for review*
+*Last updated: January 18, 2026*
+*App version: Auto-generated from git commit count (e.g., 1.0.76)*
+*Status: Closed testing active*

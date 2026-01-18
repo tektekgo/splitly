@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "splitlyapp-cc612"
+    "default": "splitbi-dev",
+    "dev": "splitbi-dev",
+    "prod": "splitlyapp-cc612"
   }
 }

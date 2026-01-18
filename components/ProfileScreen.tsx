@@ -543,9 +543,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, groups = [], onCre
                                                         {group.name}
                                                     </p>
                                                     {isCreatedByUser && (
-                                                        <svg 
+                                                        <svg
                                                             className="w-3.5 h-3.5 flex-shrink-0 text-amber-500 dark:text-amber-400"
-                                                            fill="currentColor" 
+                                                            fill="currentColor"
                                                             viewBox="0 0 20 20"
                                                             title="You created this group"
                                                         >
@@ -578,6 +578,49 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ users, groups = [], onCre
                         </div>
                     ) : null;
                 })()}
+
+                {/* Legal & Account Section */}
+                <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-slate-200 dark:border-gray-600">
+                    <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">Legal & Account</h3>
+                    <div className="space-y-2">
+                        <a
+                            href="https://splitbi.app/privacy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-gray-600 rounded-md hover:bg-slate-100 dark:hover:bg-gray-500 transition-colors"
+                        >
+                            <span className="text-slate-500 dark:text-slate-400">🔒</span>
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Privacy Policy</span>
+                            <svg className="w-4 h-4 text-slate-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                        </a>
+                        <a
+                            href="https://splitbi.app/terms"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-gray-600 rounded-md hover:bg-slate-100 dark:hover:bg-gray-500 transition-colors"
+                        >
+                            <span className="text-slate-500 dark:text-slate-400">📜</span>
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Terms of Service</span>
+                            <svg className="w-4 h-4 text-slate-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                        </a>
+                        <a
+                            href="https://splitbi.app/delete-account"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-gray-600 rounded-md hover:bg-slate-100 dark:hover:bg-gray-500 transition-colors"
+                        >
+                            <span className="text-slate-500 dark:text-slate-400">🗑️</span>
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Delete Account</span>
+                            <svg className="w-4 h-4 text-slate-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
                     </>
                 )}
 

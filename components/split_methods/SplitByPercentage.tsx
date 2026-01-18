@@ -56,11 +56,20 @@ const SplitByPercentage: React.FC<SplitByPercentageProps> = ({ totalAmount, memb
     return 'text-error';
   }
 
+  const isSingleMemberGroup = members.length === 1;
+
   return (
     <div className="space-y-3">
+      {isSingleMemberGroup && (
+        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-md">
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            Add more members to this group to split expenses.
+          </p>
+        </div>
+      )}
       <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
         {members.map(member => (
-          <div key={member.id} className="flex items-center justify-between p-2">
+          <div key={member.id} className={`flex items-center justify-between p-2 ${isSingleMemberGroup ? 'opacity-50' : ''}`}>
             <div className="flex items-center">
               <img src={member.avatarUrl} alt={member.name} className="w-8 h-8 rounded-full mr-3" />
               <span className="text-gray-800 dark:text-gray-200">{member.name}</span>
@@ -78,7 +87,8 @@ const SplitByPercentage: React.FC<SplitByPercentageProps> = ({ totalAmount, memb
                   step="0.01"
                   min="0"
                   max="100"
-                  className="block w-full pl-2 pr-6 py-1 bg-transparent border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary focus:border-primary sm:text-sm"
+                  disabled={isSingleMemberGroup}
+                  className="block w-full pl-2 pr-6 py-1 bg-transparent border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary focus:border-primary sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                  <div className="pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center">
                     <span className="text-gray-500 dark:text-gray-400 sm:text-sm">%</span>

@@ -2,6 +2,48 @@
 
 This document captures all steps and form values used to set up SplitBi on Google Play Store. Use this as a reference for future app releases or similar projects.
 
+---
+
+## Current Status & Next Steps
+
+**Status:** Closed Testing - Submitted for Review (January 12, 2026)
+
+### Where We Are Now
+- [x] Android release build configured
+- [x] Play Console app created
+- [x] App content forms completed
+- [x] Store listing completed
+- [x] Internal testing live and working
+- [x] Google Sign-In configured (both SHA-1 fingerprints added)
+- [x] Closed testing track created and submitted for review
+- [ ] **Recruit 12 testers** ← YOU ARE HERE
+- [ ] Wait 14 days after testers opt-in
+- [ ] Apply for production access
+
+### Immediate Next Steps
+1. Share tester signup form: `https://forms.gle/iqXkrtbmauh6PzWD9`
+2. As responses come in, add emails to Play Console tester list
+3. Send opt-in link to added testers: `https://play.google.com/apps/testing/app.splitbi.splitbi`
+4. Track progress in Play Console (see "Tracking Testers" section below)
+
+### Tracking Testers in Play Console
+1. Go to **Play Console** → **SplitBi**
+2. **Testing** → **Closed testing** → **Alpha**
+3. Look at the **Statistics** or **Testers** tab to see:
+   - Number of testers who opted in
+   - Number of downloads/installs
+4. **Dashboard** → **Statistics** shows overall install metrics
+
+### Resume Prompt for Claude
+Copy this to start a new Claude session:
+```
+I'm continuing work on publishing SplitBi to Google Play Store.
+Read docs/launch/PLAY_STORE_SETUP.md for full context and current status.
+Current stage: Recruiting testers for Closed Testing (need 12 testers for 14 days).
+```
+
+---
+
 ## Table of Contents
 1. [Prerequisites](#prerequisites)
 2. [Android Release Build Setup](#android-release-build-setup)

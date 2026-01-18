@@ -53,8 +53,17 @@ const SplitEqually: React.FC<SplitEquallyProps> = ({ totalAmount, members, curre
     onUpdateSplits(splits, null);
   }, [selectedMembers, amountPerPerson, onUpdateSplits]);
 
+  const isSingleMemberGroup = members.length === 1;
+
   return (
     <div className="space-y-3">
+      {isSingleMemberGroup && (
+        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-md">
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            Add more members to this group to split expenses.
+          </p>
+        </div>
+      )}
       <div className="flex justify-between items-center text-sm font-medium text-gray-700 dark:text-gray-300">
         <span>Split between:</span>
         <span className="px-2 py-1 bg-primary text-white rounded-md">
@@ -63,7 +72,14 @@ const SplitEqually: React.FC<SplitEquallyProps> = ({ totalAmount, members, curre
       </div>
       <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
         {members.map(member => (
-          <label key={member.id} className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">
+          <label
+            key={member.id}
+            className={`flex items-center justify-between p-2 rounded-md ${
+              isSingleMemberGroup
+                ? 'opacity-50 cursor-not-allowed'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer'
+            }`}
+          >
             <div className="flex items-center">
               <img src={member.avatarUrl} alt={member.name} className="w-8 h-8 rounded-full mr-3" />
               <span className="text-gray-800 dark:text-gray-200">{member.name}</span>
@@ -72,7 +88,8 @@ const SplitEqually: React.FC<SplitEquallyProps> = ({ totalAmount, members, curre
               type="checkbox"
               checked={selectedMembers.has(member.id)}
               onChange={() => handleToggleMember(member.id)}
-              className="h-5 w-5 rounded border-gray-300 dark:border-gray-600 bg-transparent dark:focus:ring-offset-gray-900 text-primary focus:ring-primary"
+              disabled={isSingleMemberGroup}
+              className="h-5 w-5 rounded border-gray-300 dark:border-gray-600 bg-transparent dark:focus:ring-offset-gray-900 text-primary focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </label>
         ))}

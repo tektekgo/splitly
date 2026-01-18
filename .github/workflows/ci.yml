@@ -121,6 +121,7 @@ jobs:
           args: >
             -Dsonar.projectKey=tektekgo_splitly
             -Dsonar.organization=tektekgo
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }}
 
   # ============================================
   # JOB 4: Dependency Audit

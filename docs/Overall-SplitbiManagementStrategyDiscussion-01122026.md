@@ -1,6 +1,6 @@
 # Overall Splitbi Management Strategy Discussion
-**Date:** January 12, 2026
-**Status:** Firebase Dev Environment COMPLETED
+**Date:** January 12-13, 2026
+**Status:** Firebase Dev Environment + CI/CD Pipeline COMPLETED
 
 ---
 
@@ -13,6 +13,8 @@
 6. [Automated Testing Strategy](#6-automated-testing-strategy)
 7. [Implementation Decisions](#7-implementation-decisions)
 8. [Daily Operations Guide](#8-daily-operations-guide)
+9. [CI/CD Pipeline (GitHub Actions)](#9-cicd-pipeline-github-actions)
+10. [Progress Checklist](#10-progress-checklist)
 
 ---
 
@@ -325,7 +327,71 @@ If you're seeing prod data in dev (or vice versa):
 
 ---
 
-## 9. Progress Checklist
+## 9. CI/CD Pipeline (GitHub Actions)
+
+### ✅ COMPLETED - January 12-13, 2026
+
+### How It Works
+
+```
+git push to main
+       │
+       ▼
+┌──────────────────────────────────────────────────┐
+│              GITHUB ACTIONS                       │
+│                                                   │
+│  CI Workflow              Deploy Workflow         │
+│  ├── Build & Test         ├── Deploy to Firebase │
+│  ├── Snyk Security Scan   └── Build Android AAB  │
+│  ├── SonarCloud Analysis                         │
+│  └── Dependency Audit                            │
+└──────────────────────────────────────────────────┘
+       │                            │
+       ▼                            ▼
+   Quality Gates              Firebase Hosting
+                              + AAB Artifact
+```
+
+### Workflows
+
+| Workflow | Trigger | What It Does |
+|----------|---------|--------------|
+| **CI** (`.github/workflows/ci.yml`) | Push to main, PRs | Lint, test, Snyk, SonarCloud |
+| **Deploy** (`.github/workflows/deploy.yml`) | Push to main | Firebase deploy + Android AAB |
+| **Dependabot** (`.github/dependabot.yml`) | Weekly | Auto-update dependencies |
+
+### GitHub Secrets Configured
+
+| Secret | Purpose |
+|--------|---------|
+| `SONAR_TOKEN` | SonarCloud analysis |
+| `SNYK_TOKEN` | Snyk security scanning |
+| `FIREBASE_SERVICE_ACCOUNT` | Firebase Hosting deploy |
+| `VITE_FIREBASE_API_KEY` | Build environment |
+| `VITE_FIREBASE_APP_ID` | Build environment |
+| `VITE_GEMINI_API_KEY` | Gemini AI integration |
+| `VITE_RESEND_API_KEY` | Email service |
+| `ANDROID_KEYSTORE_BASE64` | Android signing |
+| `ANDROID_KEYSTORE_PASSWORD` | Android signing |
+| `ANDROID_KEY_ALIAS` | Android signing |
+| `ANDROID_KEY_PASSWORD` | Android signing |
+
+### Downloading Android AAB
+
+After a successful deploy:
+1. Go to **Actions** tab
+2. Click the **Deploy** workflow run
+3. Scroll to **Artifacts** section
+4. Download `android-release-aab`
+5. Upload to Play Console
+
+### SonarCloud Dashboard
+
+View code quality: [https://sonarcloud.io/project/overview?id=tektekgo_splitly](https://sonarcloud.io/project/overview?id=tektekgo_splitly)
+
+---
+
+## 10. Progress Checklist
 
 ### Completed ✅
 - [x] Create splitbi-dev Firebase project
@@ -340,12 +406,18 @@ If you're seeing prod data in dev (or vice versa):
 - [x] Configure local dev to use dev Firebase
 - [x] Test dev environment works
 - [x] Set up admin role in dev
+- [x] Set up GitHub Actions CI workflow
+- [x] Set up GitHub Actions Deploy workflow
+- [x] Configure Dependabot
+- [x] Configure SonarCloud
+- [x] Configure Snyk security scanning
+- [x] Add all GitHub Secrets
 
 ### Pending ⏳
-- [ ] Set up GitHub Actions workflow
-- [ ] Add basic testing setup (Vitest)
-- [ ] Add security scanning
-- [ ] Deploy Firestore security rules to dev
+- [ ] Add basic testing setup (Vitest) - for regression testing on every push
+
+### Completed After Initial Session
+- [x] Deploy Firestore security rules to dev (January 13, 2026)
 
 ---
 

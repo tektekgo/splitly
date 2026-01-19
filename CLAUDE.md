@@ -1,5 +1,28 @@
 # SplitBi - Project Context for Claude
 
+## Project Status
+
+**Last Updated:** January 18, 2026
+
+### Current State
+- ✅ Production live at https://splitbi.app
+- ✅ Dev environment at https://splitbi-dev.web.app
+- ✅ Play Store: Closed Testing (Alpha) - v1.0.76 in review
+- ✅ All CI/CD workflows operational
+
+### Recent Updates (Jan 18, 2026)
+- Updated React to 19.2.3, Firebase to 12.8.0
+- Set up dev branch with auto-deploy CI
+- Configured Dependabot auto-merge for patch/minor updates
+- Added Terms of Service and legal links to Profile screen
+- Fixed `.firebaserc` to default to dev (safer local deploys)
+
+### Pending / Future
+- Android release with latest updates (AAB ready in GitHub Actions)
+- Move from Closed Testing to Production on Play Store (when ready)
+
+---
+
 ## Daily Workflow Guide
 
 ### Branch Strategy
@@ -117,14 +140,15 @@ cd android && ./gradlew bundleRelease          # Build signed AAB
 | `ci.yml` | All pushes | Runs build/lint checks |
 | `deploy.yml` | Push to `main` | Deploy to prod + build Android AAB |
 | `deploy-dev.yml` | Push to `dev` | Deploy to dev environment |
+| `auto-merge.yml` | Dependabot PRs | Auto-merges patch/minor updates |
 
 ---
 
 ## Tech Stack
 
-- **Frontend:** React 19 + TypeScript + Vite + Tailwind CSS
-- **Mobile:** Capacitor (Android)
-- **Backend:** Firebase (Auth, Firestore, Hosting)
+- **Frontend:** React 19.2.3 + TypeScript + Vite 6.4 + Tailwind CSS
+- **Mobile:** Capacitor 7.4.5 (Android)
+- **Backend:** Firebase 12.8.0 (Auth, Firestore, Hosting)
 - **Auth:** Google Sign-In + Email/Password
 
 ---

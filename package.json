@@ -13,11 +13,11 @@
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",
-    "@capacitor/cli": "^7.4.4",
+    "@capacitor/cli": "^7.4.5",
     "@capacitor/core": "^7.4.4",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
     "@google/generative-ai": "^0.24.1",
-    "firebase": "^10.14.1",
+    "firebase": "^12.8.0",
     "framer-motion": "^12.23.26",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
